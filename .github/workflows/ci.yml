@@ -1,9 +1,9 @@
 name: Continuous Integration
 on:
   workflow_dispatch:
-#  pull_request:
+  #  pull_request:
   push:
-    branches: []
+    branches: [ ]
 
 jobs:
   test-action:
@@ -11,7 +11,7 @@ jobs:
 
     container:
       image: fortifydocker/fortify-ci-tools
-    runs-on: ubuntu-latest      
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout
         id: checkout
@@ -24,11 +24,12 @@ jobs:
         env:
           FCLI_DEFAULT_TOKEN_EXPIRE: "1h"
         with:
-            ssc_base_url: ${{ vars.FTFY_SSC_URL}}
-            ssc_app: "github_action_dev_app"
-            ssc_version: "1.0"
-            sast_client_auth_token: ${{ secrets.FTFY_SAST_CLIENT_TOKEN }}
-            sast_build_options: "-bt none"
+          ssc_base_url: ${{ vars.FTFY_SSC_URL}}
+          ssc_app: "github_action_dev_app"
+          ssc_version: "1.0"
+          ssc_ci_token: ${{ secrets.FTFY_CI_TOKEN }}
+          sast_client_auth_token: ${{ secrets.FTFY_SAST_CLIENT_TOKEN }}
+          sast_build_options: "-bt none"
 
   test-action-local:
     name: GitHub Actions Test but local
