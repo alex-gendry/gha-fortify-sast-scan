@@ -3,10 +3,7 @@ on:
   workflow_dispatch:
 #  pull_request:
   push:
-    branches:
-#      - main
-      - 'releases/*'
-      - 'feature/*'
+    branches: []
 
 jobs:
   test-action:
