@@ -1,0 +1,63 @@
+name: Continuous Integration
+on:
+  workflow_dispatch:
+#  pull_request:
+  push:
+    branches:
+#      - main
+      - 'releases/*'
+      - 'feature/*'
+
+jobs:
+  test-action:
+    name: GitHub Actions Test
+
+    container:
+      image: fortifydocker/fortify-ci-tools
+    runs-on: ubuntu-latest      
+    steps:
+      - name: Checkout
+        id: checkout
+        uses: actions/checkout@v4
+
+      - name: Test Local Action
+        if: always()
+        id: test-action
+        uses: ./
+        env:
+          FCLI_DEFAULT_TOKEN_EXPIRE: "1h"
+        with:
+            ssc_base_url: ${{ vars.FTFY_SSC_URL}}
+            ssc_app: "github_action_dev_app"
+            ssc_version: "1.0"
+
+  test-action-local:
+    name: GitHub Actions Test but local
+
+    runs-on: fortify-ubuntu
+    steps:
+      - name: Checkout
+        id: checkout
+        uses: actions/checkout@v4
+
+#      - name: Test Local Action
+#        if: always()
+#        id: test-action
+#        uses: ./
+#        env:
+#          FCLI_DEFAULT_TOKEN_EXPIRE: "1h"
+#          FCLI_EXECUTABLE_LOCATION: "/fortify/fcli/"
+#          FCLI_DISABLE_SSL_CHECKS: true
+#        with:
+#          ssc_base_url: "https://fortify.local"
+#          ssc_app: "github_action_dev_app"
+#          ssc_version: "${{ github.run_id }}"
+#          ssc_ci_username: ci.user
+#          ssc_ci_password: One4All@1234
+#          ssc_version_attributes: |
+#            Accessibility=Internal Network Access Required
+#            DevStrategy=Internally Developed
+#            DevPhase=New
+#            Languages=C,C++,Java
+#            Interfaces=Programmatic API,Web Access
+#          ssc_version_issue_template: PCI v4.0 Basic Issue Template
