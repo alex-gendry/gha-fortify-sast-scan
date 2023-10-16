@@ -1,0 +1,45 @@
+name: 'Fortify SSC - Create Application Version'
+description: 'GitHub Action for Application Version creation'
+author: 'Alex Gendry @ OpenText'
+
+# Define your inputs here.
+inputs:
+  ssc_base_url:
+    description: 'Fortify SSC URL'
+    required: true
+  ssc_ci_username:
+    description: 'Fortify SSC CI Acount username'
+    required: false
+  ssc_ci_password:
+    description: 'Fortify SSC CI Acount password'
+    required: false
+  ssc_ci_token:
+    description: 'Fortify SSC Decrypted or Encrypted CI Token (CIToken)'
+    required: false
+  ssc_app:
+    description: 'Fortify SSC Application Name'
+    default: ${{ github.event.repository.name }}
+    required: true
+  ssc_version:
+    description: 'Fortify SSC Application Version Name'
+    default: ${{ github.ref_name }}
+    required: true
+  sast_client_auth_token:
+    description: 'Fortify ScanCentral SAST Client authentication token'
+    required: false
+  sast_build_options:
+    description: 'Fortify scancentral package build options'
+    default: -bt none
+    required: false
+  sha:
+    description: 'SHA used in various FCLI variable names'
+    default: ${{ github.run_id }}
+    required: false
+
+runs:
+  using: node20
+  main: dist/index.js
+
+branding:
+  icon: 'shield'
+  color: 'blue'
