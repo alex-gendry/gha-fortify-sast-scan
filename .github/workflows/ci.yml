@@ -27,7 +27,7 @@ jobs:
           ssc_base_url: ${{ vars.FTFY_SSC_URL}}
           ssc_app: "github_action_dev_app"
           ssc_version: "1.0"
-          ssc_ci_token: ${{ secrets.FTFY_CI_TOKEN }}
+          ssc_ci_token: ${{ secrets.FTFY_CI_TOKEN_ENC }}
           sast_client_auth_token: ${{ secrets.FTFY_SAST_CLIENT_TOKEN }}
           sast_build_options: "-bt none"
 
