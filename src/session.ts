@@ -66,6 +66,8 @@ export async function loginSscWithToken(
       process.env.FCLI_DISABLE_SSL_CHECKS ? `--insecure` : '',
       '--output=json'
     ])
+    core.debug(jsonRes)
+
     if (jsonRes['__action__'] === 'CREATED') {
       return true
     } else {

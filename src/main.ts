@@ -492,9 +492,9 @@ async function commitAppVersion(id: string): Promise<any> {
  */
 export async function run(): Promise<void> {
   try {
+    /** Login  */
+    core.info(`Login to Fortify solutions`)
     try {
-      /** Login  */
-      core.info(`Login to Fortify solutions`)
       if (INPUT.ssc_ci_token) {
         await session.loginSscWithToken(INPUT.ssc_base_url, INPUT.ssc_ci_token)
         core.info('SSC Login Success')
@@ -515,6 +515,11 @@ export async function run(): Promise<void> {
           'SSC: Credentials missing and no existing default login session exists'
         )
       }
+    } catch (err) {
+      core.setFailed(`${err}`)
+      throw new Error('Login to SSC failed!')
+    }
+    try {
       if (INPUT.ssc_ci_token) {
         await session.loginSastWithToken(
           INPUT.ssc_base_url,
@@ -542,7 +547,7 @@ export async function run(): Promise<void> {
       }
     } catch (err) {
       core.setFailed(`${err}`)
-      throw new Error('Login failed!')
+      throw new Error('Login to ScanCentral SAST failed!')
     }
 
     /** Is AppVersion already created ? */

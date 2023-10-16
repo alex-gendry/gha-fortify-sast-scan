@@ -27327,9 +27327,9 @@ async function commitAppVersion(id) {
  */
 async function run() {
     try {
+        /** Login  */
+        core.info(`Login to Fortify solutions`);
         try {
-            /** Login  */
-            core.info(`Login to Fortify solutions`);
             if (INPUT.ssc_ci_token) {
                 await session.loginSscWithToken(INPUT.ssc_base_url, INPUT.ssc_ci_token);
                 core.info('SSC Login Success');
@@ -27345,6 +27345,12 @@ async function run() {
                 core.setFailed('SSC: Missing credentials. Specify CI Token or Username+Password');
                 throw new Error('SSC: Credentials missing and no existing default login session exists');
             }
+        }
+        catch (err) {
+            core.setFailed(`${err}`);
+            throw new Error('Login to SSC failed!');
+        }
+        try {
             if (INPUT.ssc_ci_token) {
                 await session.loginSastWithToken(INPUT.ssc_base_url, INPUT.ssc_ci_token, INPUT.sast_client_auth_token);
                 core.info('ScanCentral SAST Login Success');
@@ -27363,7 +27369,7 @@ async function run() {
         }
         catch (err) {
             core.setFailed(`${err}`);
-            throw new Error('Login failed!');
+            throw new Error('Login to ScanCentral SAST failed!');
         }
         /** Is AppVersion already created ? */
         core.info(`Checking if AppVersion ${INPUT.ssc_app}:${INPUT.ssc_version} exists`);
@@ -27530,6 +27536,7 @@ async function loginSscWithToken(base_url, token) {
             process.env.FCLI_DISABLE_SSL_CHECKS ? `--insecure` : '',
             '--output=json'
         ]);
+        core.debug(jsonRes);
         if (jsonRes['__action__'] === 'CREATED') {
             return true;
         }
@@ -27765,6 +27772,7 @@ function getScanCentralPath() {
 }
 exports.getScanCentralPath = getScanCentralPath;
 async function fcli(args) {
+    core.debug('fcli START');
     let responseData = '';
     let errorData = '';
     const options = {
@@ -27778,8 +27786,10 @@ async function fcli(args) {
         },
         silent: true
     };
+    core.debug('fcli begin');
     const response = await exec.exec(getFcliPath(), args, options);
     core.debug(responseData);
+    core.debug(errorData);
     return JSON.parse(responseData);
 }
 exports.fcli = fcli;
