@@ -497,12 +497,14 @@ export async function run(): Promise<void> {
       core.info(`Login to Fortify solutions`)
       if (INPUT.ssc_ci_token) {
         await session.loginSscWithToken(INPUT.ssc_base_url, INPUT.ssc_ci_token)
+        core.info("SSC Login Success")
       } else if (INPUT.ssc_ci_username && INPUT.ssc_ci_password) {
         await session.loginSscWithUsernamePassword(
           INPUT.ssc_base_url,
           INPUT.ssc_ci_username,
           INPUT.ssc_ci_password
         )
+        core.info("SSC Login Success")
       } else if (await session.hasActiveSscSession(INPUT.ssc_base_url)) {
         core.info('Existing default SSC login session found.')
       } else {
@@ -519,6 +521,7 @@ export async function run(): Promise<void> {
           INPUT.ssc_ci_token,
           INPUT.sast_client_auth_token
         )
+        core.info("ScanCentral SAST Login Success")
       } else if (INPUT.ssc_ci_username && INPUT.ssc_ci_password) {
         await session.loginSastWithUsernamePassword(
           INPUT.ssc_base_url,
@@ -526,6 +529,7 @@ export async function run(): Promise<void> {
           INPUT.ssc_ci_password,
           INPUT.sast_client_auth_token
         )
+        core.info("ScanCentral SAST Login Success")
       } else if (await session.hasActiveSastSession(INPUT.ssc_base_url)) {
         core.info('Existing default ScanCentral SAST login session found.')
       } else {
