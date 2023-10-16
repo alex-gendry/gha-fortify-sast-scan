@@ -27772,25 +27772,29 @@ function getScanCentralPath() {
 }
 exports.getScanCentralPath = getScanCentralPath;
 async function fcli(args) {
-    core.debug('fcli START');
     let responseData = '';
     let errorData = '';
-    const options = {
-        listeners: {
-            stdout: (data) => {
-                responseData += data.toString();
+    try {
+        const options = {
+            listeners: {
+                stdout: (data) => {
+                    responseData += data.toString();
+                },
+                stderr: (data) => {
+                    errorData += data.toString();
+                }
             },
-            stderr: (data) => {
-                errorData += data.toString();
-            }
-        },
-        silent: true
-    };
-    core.debug('fcli begin');
-    const response = await exec.exec(getFcliPath(), args, options);
-    core.debug(responseData);
-    core.debug(errorData);
-    return JSON.parse(responseData);
+            silent: true
+        };
+        core.debug('fcli begin');
+        const response = await exec.exec(getFcliPath(), args, options);
+        core.debug(responseData);
+        return JSON.parse(responseData);
+    }
+    catch (e) {
+        core.error(`${errorData}`);
+        throw new Error(`${e}`);
+    }
 }
 exports.fcli = fcli;
 async function scancentral(args) {

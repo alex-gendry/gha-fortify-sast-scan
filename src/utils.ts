@@ -107,28 +107,30 @@ export function getScanCentralPath(): string {
 }
 
 export async function fcli(args: string[]): Promise<any> {
-  core.debug('fcli START')
   let responseData = ''
   let errorData = ''
-
-  const options = {
-    listeners: {
-      stdout: (data: Buffer) => {
-        responseData += data.toString()
+  try {
+    const options = {
+      listeners: {
+        stdout: (data: Buffer) => {
+          responseData += data.toString()
+        },
+        stderr: (data: Buffer) => {
+          errorData += data.toString()
+        }
       },
-      stderr: (data: Buffer) => {
-        errorData += data.toString()
-      }
-    },
-    silent: true
+      silent: true
+    }
+
+    core.debug('fcli begin')
+    const response = await exec.exec(getFcliPath(), args, options)
+    core.debug(responseData)
+
+    return JSON.parse(responseData)
+  } catch (e) {
+    core.error(`${errorData}`)
+    throw new Error(`${e}`)
   }
-
-  core.debug('fcli begin')
-  const response = await exec.exec(getFcliPath(), args, options)
-  core.debug(responseData)
-  core.debug(errorData)
-
-  return JSON.parse(responseData)
 }
 
 export async function scancentral(args: string[]): Promise<any> {
