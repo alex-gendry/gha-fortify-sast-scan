@@ -38440,19 +38440,7 @@ async function createVulnsByScanProductTable(appId) {
         jp.query(totalVulns, '$..[?(@.id=="High")].totalCount')[0] ? jp.query(totalVulns, '$..[?(@.id=="High")].totalCount')[0] : 0,
         jp.query(totalVulns, '$..[?(@.id=="Medium")].totalCount')[0] ? jp.query(totalVulns, '$..[?(@.id=="Medium")].totalCount')[0] : 0,
         jp.query(totalVulns, '$..[?(@.id=="Low")].totalCount')[0] ? jp.query(totalVulns, '$..[?(@.id=="Low")].totalCount')[0] : 0];
-    sastVulns.forEach((element) => {
-        headers.push({ data: stringToHeader(element["cleanName"]), header: true });
-        sastRow.push(`<p>${element["totalCount"].length ? element["totalCount"] : 0}</p>`);
-    });
-    dastVulns.forEach((element) => {
-        dastRow.push(`<p>${element["totalCount"].length ? element["totalCount"] : 0}</p>`);
-    });
-    scaVulns.forEach((element) => {
-        scaRow.push(`<p>${element["totalCount"].length ? element["totalCount"] : 0}</p>`);
-    });
-    totalVulns.forEach((element) => {
-        totalRow.push(`<p>${element["totalCount"].length ? element["totalCount"] : 0}</p>`);
-    });
+    core.debug(totalRow.toString());
     return [
         headers,
         sastRow, dastRow, scaRow
