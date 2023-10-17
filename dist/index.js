@@ -27586,20 +27586,25 @@ async function createVulnsByScanProductTable(appId) {
     const sastVulns = await vuln.getAppVersionVulnsCount(appId, "SAST");
     const dastVulns = await vuln.getAppVersionVulnsCount(appId, "DAST");
     const scaVulns = await vuln.getAppVersionVulnsCount(appId, "SCA");
+    const totalVulns = await vuln.getAppVersionVulnsCount(appId);
     let table = [];
     let headers = [{ data: ':test_tube: Analysis Type', header: true }];
     let sastRow = ['**SAST**'];
     let dastRow = ['**DAST**'];
     let scaRow = ['**SCA**'];
+    let totalRow = ['**Total**'];
     sastVulns.forEach((element) => {
         headers.push({ data: stringToHeader(element["cleanName"]), header: true });
-        sastRow.push(`<p>${element["totalCount"] ? element["totalCount"] : 0}</p>`);
+        sastRow.push(`<p>${element["totalCount"].length ? element["totalCount"] : 0}</p>`);
     });
     dastVulns.forEach((element) => {
-        dastRow.push(`<p>${element["totalCount"] ? element["totalCount"] : 0}</p>`);
+        dastRow.push(`<p>${element["totalCount"].length ? element["totalCount"] : 0}</p>`);
     });
     scaVulns.forEach((element) => {
-        scaRow.push(`<p>${element["totalCount"] ? element["totalCount"] : 0}</p>`);
+        scaRow.push(`<p>${element["totalCount"].length ? element["totalCount"] : 0}</p>`);
+    });
+    totalVulns.forEach((element) => {
+        totalRow.push(`<p>${element["totalCount"].length ? element["totalCount"] : 0}</p>`);
     });
     return [
         // Headers

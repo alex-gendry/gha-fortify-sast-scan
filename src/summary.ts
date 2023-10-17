@@ -28,21 +28,26 @@ async function createVulnsByScanProductTable(appId: string|number): Promise<any>
     const sastVulns = await vuln.getAppVersionVulnsCount(appId, "SAST")
     const dastVulns = await vuln.getAppVersionVulnsCount(appId, "DAST")
     const scaVulns = await vuln.getAppVersionVulnsCount(appId, "SCA")
+    const totalVulns = await vuln.getAppVersionVulnsCount(appId)
     let table = []
     let headers: any[] = [{data: ':test_tube: Analysis Type', header: true}]
     let sastRow: any[] = ['**SAST**']
     let dastRow: any[] = ['**DAST**']
     let scaRow: any[] = ['**SCA**']
+    let totalRow: any[] = ['**Total**']
 
     sastVulns.forEach((element: any) => {
         headers.push({data: stringToHeader(element["cleanName"]), header: true})
-        sastRow.push(`<p>${element["totalCount"] ? element["totalCount"] : 0 }</p>`)
+        sastRow.push(`<p>${element["totalCount"].length ? element["totalCount"] : 0 }</p>`)
     })
     dastVulns.forEach((element: any) => {
-        dastRow.push(`<p>${element["totalCount"] ? element["totalCount"] : 0}</p>`)
+        dastRow.push(`<p>${element["totalCount"].length ? element["totalCount"] : 0}</p>`)
     })
     scaVulns.forEach((element: any) => {
-        scaRow.push(`<p>${element["totalCount"] ? element["totalCount"] : 0}</p>`)
+        scaRow.push(`<p>${element["totalCount"].length ? element["totalCount"] : 0}</p>`)
+    })
+    totalVulns.forEach((element: any) => {
+        totalRow.push(`<p>${element["totalCount"].length ? element["totalCount"] : 0}</p>`)
     })
 
     return [
