@@ -52,18 +52,21 @@ export async function loginSscWithToken(
   token: string
 ): Promise<boolean> {
   try {
-    let jsonRes = await utils.fcli([
+    let args = [
       'ssc',
       'session',
       'login',
-      `--ci-token='${token}'`,
-      `--url='${base_url}'`,
-      process.env.FCLI_DEFAULT_TOKEN_EXPIRE
-        ? `--expire-in=${process.env.FCLI_DEFAULT_TOKEN_EXPIRE}`
-        : '',
-      process.env.FCLI_DISABLE_SSL_CHECKS ? `--insecure` : '',
+      `--token=ZDQ4NWY0MDYtYzY4OS00YjE2LWIxYjUtOTVkOWE2NzYzZTM1`,
+      `--url=${base_url}`,
       '--output=json'
-    ])
+    ]
+    args = process.env.FCLI_DEFAULT_TOKEN_EXPIRE
+      ? args.concat([`--expire-in=${process.env.FCLI_DEFAULT_TOKEN_EXPIRE}`])
+      : args
+    args = process.env.FCLI_DISABLE_SSL_CHECKS
+      ? args.concat([`--insecure`])
+      : args
+    let jsonRes = await utils.fcli(args)
     core.debug(jsonRes)
 
     if (jsonRes['__action__'] === 'CREATED') {
@@ -84,7 +87,7 @@ export async function loginSscWithUsernamePassword(
   password: string
 ): Promise<boolean> {
   try {
-    let jsonRes = await utils.fcli([
+    let args = [
       'ssc',
       'session',
       'login',
@@ -94,13 +97,15 @@ export async function loginSscWithUsernamePassword(
       username,
       '-p',
       password,
-      '--expire-in',
-      process.env.FCLI_DEFAULT_TOKEN_EXPIRE
-        ? process.env.FCLI_DEFAULT_TOKEN_EXPIRE
-        : '1d',
-      process.env.FCLI_DISABLE_SSL_CHECKS ? `--insecure` : '',
       '--output=json'
-    ])
+    ]
+    args = process.env.FCLI_DEFAULT_TOKEN_EXPIRE
+      ? args.concat([`--expire-in=${process.env.FCLI_DEFAULT_TOKEN_EXPIRE}`])
+      : args
+    args = process.env.FCLI_DISABLE_SSL_CHECKS
+      ? args.concat([`--insecure`])
+      : args
+    let jsonRes = await utils.fcli(args)
     if (jsonRes['__action__'] === 'CREATED') {
       return true
     } else {
@@ -119,19 +124,22 @@ export async function loginSastWithToken(
   clientToken: string
 ): Promise<boolean> {
   try {
-    let jsonRes = await utils.fcli([
+    let args = [
       'sc-sast',
       'session',
       'login',
       `--ssc-url=${base_url}`,
       `--ssc-ci-token=${token}`,
       `--client-auth-token=${clientToken}`,
-      process.env.FCLI_DEFAULT_TOKEN_EXPIRE
-        ? `--expire-in=${process.env.FCLI_DEFAULT_TOKEN_EXPIRE}`
-        : '',
-      process.env.FCLI_DISABLE_SSL_CHECKS ? `--insecure` : '',
       '--output=json'
-    ])
+    ]
+    args = process.env.FCLI_DEFAULT_TOKEN_EXPIRE
+      ? args.concat([`--expire-in=${process.env.FCLI_DEFAULT_TOKEN_EXPIRE}`])
+      : args
+    args = process.env.FCLI_DISABLE_SSL_CHECKS
+      ? args.concat([`--insecure`])
+      : args
+    let jsonRes = await utils.fcli(args)
     if (jsonRes['__action__'] === 'CREATED') {
       return true
     } else {
@@ -151,7 +159,7 @@ export async function loginSastWithUsernamePassword(
   clientToken: string
 ): Promise<boolean> {
   try {
-    let jsonRes = await utils.fcli([
+    let args = [
       'sc-sast',
       'session',
       'login',
@@ -159,12 +167,15 @@ export async function loginSastWithUsernamePassword(
       `--ssc-user=${username}`,
       `--ssc-password=${password}`,
       `--client-auth-token=${clientToken}`,
-      process.env.FCLI_DEFAULT_TOKEN_EXPIRE
-        ? `--expire-in=${process.env.FCLI_DEFAULT_TOKEN_EXPIRE}`
-        : '',
-      process.env.FCLI_DISABLE_SSL_CHECKS ? `--insecure` : '',
       '--output=json'
-    ])
+    ]
+    args = process.env.FCLI_DEFAULT_TOKEN_EXPIRE
+      ? args.concat([`--expire-in=${process.env.FCLI_DEFAULT_TOKEN_EXPIRE}`])
+      : args
+    args = process.env.FCLI_DISABLE_SSL_CHECKS
+      ? args.concat([`--insecure`])
+      : args
+    let jsonRes = await utils.fcli(args)
     if (jsonRes['__action__'] === 'CREATED') {
       return true
     } else {

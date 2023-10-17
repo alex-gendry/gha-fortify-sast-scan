@@ -26894,6 +26894,201 @@ async function appVersionExists(app, version) {
     }
 }
 exports.appVersionExists = appVersionExists;
+async function commitAppVersion(id) {
+    core.debug(`Committing AppVersion ${id}`);
+    const commitBodyJson = JSON.parse(`{"committed": "true"}`);
+    core.debug(JSON.stringify(commitBodyJson));
+    let jsonRes = await utils.fcli([
+        'ssc',
+        'rest',
+        'call',
+        `/api/v1/projectVersions/${id}`,
+        '-d',
+        JSON.stringify(commitBodyJson),
+        `-X`,
+        'PUT',
+        '--output=json'
+    ]);
+    const responseCode = jsonRes[0].responseCode;
+    core.debug(responseCode);
+    if (200 <= Number(responseCode) && Number(responseCode) < 300) {
+        return true;
+    }
+    else {
+        core.error(`AppVersion Commit failed with code ${responseCode}`);
+        return false;
+    }
+}
+async function setAppVersionIssueTemplate(appId, template) {
+    let jsonRes = await utils.fcli([
+        'ssc',
+        'appversion',
+        'update',
+        `--issue-template=${template}`,
+        `${appId}`,
+        '--output=json'
+    ]);
+    if (jsonRes['__action__'] === 'UPDATED') {
+        return true;
+    }
+    else {
+        core.warning(`Issue Template update failed: SSC returned __action__ = ${jsonRes['__action__']}`);
+        return false;
+    }
+}
+async function setAppVersionAttribute(appId, attribute) {
+    try {
+        let jsonRes = await utils.fcli([
+            'ssc',
+            'appversion-attribute',
+            'set',
+            attribute,
+            `--appversion=${appId}`,
+            '--output=json'
+        ]);
+        core.debug(jsonRes.toString());
+        return true;
+    }
+    catch (err) {
+        core.error('Something went wrong during Application Attribute assignment');
+        throw new Error(`${err}`);
+    }
+}
+async function setAppVersionAttributes(appId, attributes) {
+    await Promise.all(attributes.map(async (attribute) => {
+        core.debug(`Assigning ${attribute} to ${appId}`);
+        let status = await setAppVersionAttribute(appId, attribute);
+        core.debug(`Assigned = ${status}`);
+        if (!status) {
+            core.warning(`Attribute assignment failed: ${attribute}`);
+            return false;
+        }
+    }));
+    return true;
+}
+async function copyAppVersionVulns(source, target) {
+    core.debug(`Copying AppVersion Vulnerabilities ${source} -> ${target}`);
+    const copyVulnsBodyJson = utils.getCopyVulnsBody(source, target);
+    core.debug(JSON.stringify(copyVulnsBodyJson));
+    let jsonRes = await utils.fcli([
+        'ssc',
+        'rest',
+        'call',
+        '/api/v1/projectVersions/action/copyCurrentState',
+        '-d',
+        JSON.stringify(copyVulnsBodyJson),
+        `-X`,
+        'POST',
+        '--output=json'
+    ]);
+    const responseCode = jsonRes[0].responseCode;
+    core.debug(responseCode);
+    if (200 <= Number(responseCode) && Number(responseCode) < 300) {
+        return true;
+    }
+    else {
+        core.error(`AppVersion Copy Vulns failed with code ${responseCode}`);
+        return false;
+    }
+}
+async function copyAppVersionState(source, target) {
+    core.debug(`Copying AppVersion State ${source} -> ${target}`);
+    const copyStateBodyJson = utils.getCopyStateBody(source, target);
+    core.debug(JSON.stringify(copyStateBodyJson));
+    let jsonRes = await utils.fcli([
+        'ssc',
+        'rest',
+        'call',
+        '/api/v1/projectVersions/action/copyFromPartial',
+        '-d',
+        JSON.stringify(copyStateBodyJson),
+        `-X`,
+        'POST',
+        '--output=json'
+    ]);
+    const responseCode = jsonRes[0].responseCode;
+    core.debug(responseCode);
+    if (200 <= Number(responseCode) && Number(responseCode) < 300) {
+        return true;
+    }
+    else {
+        core.error(`AppVersion Copy State failed with code ${responseCode}`);
+        return false;
+    }
+}
+async function deleteAppVersion(id) {
+    core.debug(`Deleting AppVersion ${id}`);
+    let jsonRes = await utils.fcli([
+        'ssc',
+        'rest',
+        'call',
+        `/api/v1/projectVersions/${id}`,
+        `-X`,
+        'DELETE',
+        '--output=json'
+    ]);
+    const responseCode = jsonRes[0].responseCode;
+    core.debug(responseCode);
+    if (200 <= Number(responseCode) && Number(responseCode) < 300) {
+        return true;
+    }
+    else {
+        core.error(`AppVersion Deletion failed with code ${responseCode}`);
+        return false;
+    }
+}
+async function getAppId(app) {
+    let jsonRes = await utils.fcli([
+        'ssc',
+        'app',
+        'ls',
+        `-q=name=${app}`,
+        '--output=json'
+    ]);
+    if (jsonRes.length === 0) {
+        core.debug(`Application "${app}" not found`);
+        return -1;
+    }
+    else {
+        core.debug(`Application "${app}" exists`);
+        return jsonRes[0].id;
+    }
+}
+async function createAppVersion(app, version) {
+    core.debug(`Creating AppVersion ${app}:${version}`);
+    const appId = await getAppId(app);
+    let createAppVersionBodyJson;
+    if (appId > 0) {
+        core.debug(`Application ${app} exists`);
+        createAppVersionBodyJson = utils.getCreateAppVersionBody(appId, version);
+    }
+    else {
+        core.debug(`Application ${app} not found. Creating new Application as well`);
+        createAppVersionBodyJson = utils.getCreateAppVersionBody(app, version);
+    }
+    core.debug(JSON.stringify(createAppVersionBodyJson));
+    let jsonRes = await utils.fcli([
+        'ssc',
+        'rest',
+        'call',
+        '/api/v1/projectVersions',
+        '-d',
+        JSON.stringify(createAppVersionBodyJson),
+        `-X`,
+        'POST',
+        '--output=json'
+        // `--store=${INPUT.sha}_appVersionId`
+    ]);
+    const responseCode = jsonRes[0].responseCode;
+    core.debug(responseCode);
+    if (200 <= Number(responseCode) && Number(responseCode) < 300) {
+        return jsonRes[0].data;
+    }
+    else {
+        core.error(`AppVersion creation return code ${responseCode}`);
+        return false;
+    }
+}
 
 
 /***/ }),
@@ -26929,8 +27124,6 @@ var __importStar = (this && this.__importStar) || function (mod) {
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.run = void 0;
 const core = __importStar(__nccwpck_require__(2186));
-const exec = __importStar(__nccwpck_require__(1514));
-const utils = __importStar(__nccwpck_require__(1314));
 const session = __importStar(__nccwpck_require__(1610));
 const appversion = __importStar(__nccwpck_require__(3538));
 const sast = __importStar(__nccwpck_require__(7431));
@@ -26947,380 +27140,6 @@ const INPUT = {
     sast_build_options: core.getInput('sast_build_options', { required: false }),
     sha: core.getInput('sha', { required: false })
 };
-async function getAppId(app) {
-    let responseData = '';
-    let error = '';
-    const options = {
-        listeners: {
-            stdout: (data) => {
-                responseData += data.toString();
-            },
-            stderr: (data) => {
-                error += data.toString();
-            }
-        },
-        silent: true
-    };
-    try {
-        const response = await exec.exec(utils.getFcliPath(), ['ssc', 'app', 'ls', `-q=name=${app}`, '--output=json'], options);
-        core.debug(response.toString());
-        const jsonRes = JSON.parse(responseData);
-        if (jsonRes.length === 0) {
-            core.debug(`Application "${app}" not found`);
-            return 0;
-        }
-        else {
-            core.debug(`Application "${app}" exists`);
-            return jsonRes[0].id;
-        }
-    }
-    catch {
-        core.error('Something went wrong during Application retrieval');
-        core.error(error);
-        core.error(`Application : "${app}"`);
-        core.setFailed('Something went wrong during Application retrieval');
-    }
-    return -1;
-}
-async function createAppVersion(app, version) {
-    core.debug(`Creating AppVersion ${app}:${version}`);
-    const appId = await getAppId(app);
-    let createAppVersionBodyJson;
-    if (appId > 0) {
-        core.debug(`Application ${app} exists`);
-        createAppVersionBodyJson = utils.getCreateAppVersionBody(appId, version);
-    }
-    else {
-        core.debug(`Application ${app} not found. Creating new Application as well`);
-        createAppVersionBodyJson = utils.getCreateAppVersionBody(app, version);
-    }
-    core.debug(JSON.stringify(createAppVersionBodyJson));
-    let responseData = '';
-    let errorData = '';
-    const options = {
-        listeners: {
-            stdout: (data) => {
-                responseData += data.toString();
-            },
-            stderr: (data) => {
-                errorData += data.toString();
-            }
-        },
-        silent: true
-    };
-    try {
-        const response = await exec.exec(utils.getFcliPath(), [
-            'ssc',
-            'rest',
-            'call',
-            '/api/v1/projectVersions',
-            '-d',
-            JSON.stringify(createAppVersionBodyJson),
-            `-X`,
-            'POST',
-            '--output=json',
-            `--store=${INPUT.sha}_appVersionId`
-        ], options);
-        core.debug(response.toString());
-        core.debug(responseData);
-        const jsonRes = JSON.parse(responseData);
-        const responseCode = jsonRes[0].responseCode;
-        core.debug(responseCode);
-        if (200 <= Number(responseCode) && Number(responseCode) < 300) {
-            return jsonRes[0].data;
-        }
-        else {
-            core.error(`AppVersion creation return code ${responseCode}`);
-            throw new Error(`AppVersion creation return code ${responseCode}`);
-        }
-    }
-    catch {
-        core.error('Something went wrong during Application Version creation');
-        core.error(errorData);
-        core.error(`Application : "${app}":"${version}"`);
-        core.setFailed('Something went wrong during Application Version creation');
-    }
-}
-async function deleteAppVersion(id) {
-    core.debug(`Deleting AppVersion ${id}`);
-    let responseData = '';
-    let errorData = '';
-    const options = {
-        listeners: {
-            stdout: (data) => {
-                responseData += data.toString();
-            },
-            stderr: (data) => {
-                errorData += data.toString();
-            }
-        },
-        silent: true
-    };
-    try {
-        const response = await exec.exec(utils.getFcliPath(), [
-            'ssc',
-            'rest',
-            'call',
-            `/api/v1/projectVersions/${id}`,
-            `-X`,
-            'DELETE',
-            '--output=json'
-        ], options);
-        core.debug(response.toString());
-        core.debug(responseData);
-        const jsonRes = JSON.parse(responseData);
-        const responseCode = jsonRes[0].responseCode;
-        core.debug(responseCode);
-        if (200 <= Number(responseCode) && Number(responseCode) < 300) {
-            return true;
-        }
-        else {
-            core.error(`AppVersion Deletion failed with code ${responseCode}`);
-            throw new Error(`AppVersion Commit Deletion with code ${responseCode}`);
-        }
-    }
-    catch {
-        core.error('Something went wrong during Application Version Deletion');
-        core.error(errorData);
-        core.error(`AppVersion ${id}`);
-        core.setFailed('Something went wrong during Application Version Deletion');
-    }
-    return false;
-}
-async function copyAppVersionState(source, target) {
-    core.debug(`Copying AppVersion State ${source} -> ${target}`);
-    const copyStateBodyJson = utils.getCopyStateBody(source, target);
-    core.debug(JSON.stringify(copyStateBodyJson));
-    let responseData = '';
-    let errorData = '';
-    const options = {
-        listeners: {
-            stdout: (data) => {
-                responseData += data.toString();
-            },
-            stderr: (data) => {
-                errorData += data.toString();
-            }
-        },
-        silent: true
-    };
-    try {
-        const response = await exec.exec(utils.getFcliPath(), [
-            'ssc',
-            'rest',
-            'call',
-            '/api/v1/projectVersions/action/copyFromPartial',
-            '-d',
-            JSON.stringify(copyStateBodyJson),
-            `-X`,
-            'POST',
-            '--output=json'
-        ], options);
-        core.debug(response.toString());
-        core.debug(responseData);
-        const jsonRes = JSON.parse(responseData);
-        const responseCode = jsonRes[0].responseCode;
-        core.debug(responseCode);
-        if (200 <= Number(responseCode) && Number(responseCode) < 300) {
-            return true;
-        }
-        else {
-            core.error(`AppVersion Copy State failed with code ${responseCode}`);
-            throw new Error(`AppVersion Copy State failed with code ${responseCode}`);
-        }
-    }
-    catch {
-        core.error('Something went wrong during Application Version Copy State');
-        core.error(errorData);
-        core.error(`Version ${source}" to Version "${target}"`);
-        core.setFailed('Something went wrong during Application Version Copy State');
-        return false;
-    }
-}
-async function copyAppVersionVulns(source, target) {
-    core.debug(`Copying AppVersion Vulnerabilities ${source} -> ${target}`);
-    const copyVulnsBodyJson = utils.getCopyVulnsBody(source, target);
-    core.debug(JSON.stringify(copyVulnsBodyJson));
-    let responseData = '';
-    let errorData = '';
-    const options = {
-        listeners: {
-            stdout: (data) => {
-                responseData += data.toString();
-            },
-            stderr: (data) => {
-                errorData += data.toString();
-            }
-        },
-        silent: true
-    };
-    try {
-        const response = await exec.exec(utils.getFcliPath(), [
-            'ssc',
-            'rest',
-            'call',
-            '/api/v1/projectVersions/action/copyCurrentState',
-            '-d',
-            JSON.stringify(copyVulnsBodyJson),
-            `-X`,
-            'POST',
-            '--output=json'
-        ], options);
-        core.debug(response.toString());
-        core.debug(responseData);
-        const jsonRes = JSON.parse(responseData);
-        const responseCode = jsonRes[0].responseCode;
-        core.debug(responseCode);
-        if (200 <= Number(responseCode) && Number(responseCode) < 300) {
-            return true;
-        }
-        else {
-            core.error(`AppVersion Copy Vulns failed with code ${responseCode}`);
-            throw new Error(`AppVersion Copy Vulns failed with code ${responseCode}`);
-        }
-    }
-    catch {
-        core.error('Something went wrong during Application Version Copy Vulns');
-        core.error(errorData);
-        core.error(`Version ${source}" to Version "${target}"`);
-        core.setFailed('Something went wrong during Application Version Copy Vulns');
-        return false;
-    }
-}
-async function setAppVersionAttribute(appId, attribute) {
-    let responseData = '';
-    let errorData = '';
-    const options = {
-        listeners: {
-            stdout: (data) => {
-                responseData += data.toString();
-            },
-            stderr: (data) => {
-                errorData += data.toString();
-            }
-        },
-        silent: true
-    };
-    try {
-        const response = await exec.exec(utils.getFcliPath(), [
-            'ssc',
-            'appversion-attribute',
-            'set',
-            attribute,
-            `--appversion=${appId}`,
-            '--output=json'
-        ], options);
-        core.debug(response.toString());
-        return true;
-    }
-    catch {
-        core.error('Something went wrong during Application Attribute assignment');
-        core.error(errorData);
-        return false;
-    }
-}
-async function setAppVersionAttributes(appId, attributes) {
-    await Promise.all(attributes.map(async (attribute) => {
-        core.debug(`Assigning ${attribute} to ${appId}`);
-        let status = await setAppVersionAttribute(appId, attribute);
-        core.debug(`Assigned = ${status}`);
-        if (!status) {
-            core.warning(`Attribute assignment failed: ${attribute}`);
-            return false;
-        }
-    }));
-    return true;
-}
-async function setAppVersionIssueTemplate(appId, template) {
-    let responseData = '';
-    let errorData = '';
-    const options = {
-        listeners: {
-            stdout: (data) => {
-                responseData += data.toString();
-            },
-            stderr: (data) => {
-                errorData += data.toString();
-            }
-        },
-        silent: true
-    };
-    try {
-        const response = await exec.exec(utils.getFcliPath(), [
-            'ssc',
-            'appversion',
-            'update',
-            `--issue-template=${template}`,
-            `${appId}`,
-            '--output=json'
-        ], options);
-        core.debug(response.toString());
-        core.debug(responseData);
-        const jsonRes = JSON.parse(responseData);
-        if (jsonRes['__action__'] === 'UPDATED') {
-            return true;
-        }
-        else {
-            core.warning(`Issue Template update failed: SSC returned __action__ = ${jsonRes['__action__']}`);
-            return false;
-        }
-    }
-    catch {
-        core.error('Something went wrong during Application Attribute assignment');
-        core.error(errorData);
-        return false;
-    }
-}
-async function commitAppVersion(id) {
-    core.debug(`Committing AppVersion ${id}`);
-    const commitBodyJson = JSON.parse(`{"committed": "true"}`);
-    core.debug(JSON.stringify(commitBodyJson));
-    let responseData = '';
-    let errorData = '';
-    const options = {
-        listeners: {
-            stdout: (data) => {
-                responseData += data.toString();
-            },
-            stderr: (data) => {
-                errorData += data.toString();
-            }
-        },
-        silent: true
-    };
-    try {
-        const response = await exec.exec(utils.getFcliPath(), [
-            'ssc',
-            'rest',
-            'call',
-            `/api/v1/projectVersions/${id}`,
-            '-d',
-            JSON.stringify(commitBodyJson),
-            `-X`,
-            'PUT',
-            '--output=json'
-        ], options);
-        core.debug(response.toString());
-        core.debug(responseData);
-        const jsonRes = JSON.parse(responseData);
-        const responseCode = jsonRes[0].responseCode;
-        core.debug(responseCode);
-        if (200 <= Number(responseCode) && Number(responseCode) < 300) {
-            return true;
-        }
-        else {
-            core.error(`AppVersion Commit failed with code ${responseCode}`);
-            throw new Error(`AppVersion Commit failed with code ${responseCode}`);
-        }
-    }
-    catch {
-        core.error('Something went wrong during Application Version Commit');
-        core.error(errorData);
-        core.error(`AppVersion ${id}`);
-        core.setFailed('Something went wrong during Application Version Commit');
-    }
-    return false;
-}
 /**
  * The main function for the action.
  * @returns {Promise<void>} Resolves when the action is complete.
@@ -27386,13 +27205,19 @@ async function run() {
         if (appVersionExists) {
             core.info(`AppVersion ${INPUT.ssc_app}:${INPUT.ssc_version} exists`);
             core.info(`Packaging source code with "${INPUT.sast_build_options}"`);
+            let packaged = -1;
             try {
-                sast.packageSourceCode(INPUT.sast_build_options);
+                packaged = await sast.packageSourceCode(INPUT.sast_build_options);
+                if (packaged != 0) {
+                    throw new Error();
+                }
             }
             catch (err) {
                 core.setFailed(`Failed to package source code with "${INPUT.sast_build_options}"`);
                 throw new Error(`${err}`);
             }
+            core.info(`Submitting scan`);
+            let jobToken = await sast.startSastScan(INPUT.ssc_app, INPUT.ssc_version);
         }
         else {
             core.warning(`AppVersion ${INPUT.ssc_app}:${INPUT.ssc_version} not found.`);
@@ -27440,12 +27265,54 @@ var __importStar = (this && this.__importStar) || function (mod) {
     return result;
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.packageSourceCode = void 0;
+exports.startSastScan = exports.packageSourceCode = void 0;
 const utils = __importStar(__nccwpck_require__(1314));
+const core = __importStar(__nccwpck_require__(2186));
 async function packageSourceCode(buildOpts) {
     return await utils.scancentral(['package'].concat(utils.stringToArgsArray(buildOpts).concat(['-o', 'package.zip'])));
 }
 exports.packageSourceCode = packageSourceCode;
+async function startSastScan(app, version) {
+    let jsonRes = await utils.fcli([
+        'sc-sast',
+        'scan',
+        'start',
+        '--upload',
+        `--appversion=${app}:${version}`,
+        `--sensor-version=23.1.0`,
+        `--package-file=package.zip`,
+        '--output=json'
+    ]);
+    if (jsonRes['__action__'] == 'SCAN_REQUESTED') {
+        core.debug(`Scan ${jsonRes['jobToken']} requested`);
+        return jsonRes['jobToken'];
+    }
+    else {
+        throw new Error(`Scan submission failed: Fortify returned ${jsonRes['__action__']}`);
+    }
+}
+exports.startSastScan = startSastScan;
+// export async function waitForSastScan(jobToken: string): Promise<string> {
+//   let jsonRes = await utils.fcli([
+//     'sc-sast',
+//     'scan',
+//     'start',
+//     '--upload',
+//     `--appversion=${app}:${version}`,
+//     `--sensor-version=23.1.0`,
+//     `--package-file=package.zip`,
+//     '--output=json'
+//   ])
+//
+//   if (jsonRes['__action__'] == 'SCAN_REQUESTED') {
+//     core.debug(`Scan ${jsonRes['jobToken']} requested`)
+//     return jsonRes['jobToken']
+//   } else {
+//     throw new Error(
+//       `Scan submission failed: Fortify returned ${jsonRes['__action__']}`
+//     )
+//   }
+// }
 
 
 /***/ }),
@@ -27528,18 +27395,21 @@ async function hasActiveSastSession(base_url) {
 exports.hasActiveSastSession = hasActiveSastSession;
 async function loginSscWithToken(base_url, token) {
     try {
-        let jsonRes = await utils.fcli([
+        let args = [
             'ssc',
             'session',
             'login',
-            `--ci-token='${token}'`,
-            `--url='${base_url}'`,
-            process.env.FCLI_DEFAULT_TOKEN_EXPIRE
-                ? `--expire-in=${process.env.FCLI_DEFAULT_TOKEN_EXPIRE}`
-                : '',
-            process.env.FCLI_DISABLE_SSL_CHECKS ? `--insecure` : '',
+            `--token=ZDQ4NWY0MDYtYzY4OS00YjE2LWIxYjUtOTVkOWE2NzYzZTM1`,
+            `--url=${base_url}`,
             '--output=json'
-        ]);
+        ];
+        args = process.env.FCLI_DEFAULT_TOKEN_EXPIRE
+            ? args.concat([`--expire-in=${process.env.FCLI_DEFAULT_TOKEN_EXPIRE}`])
+            : args;
+        args = process.env.FCLI_DISABLE_SSL_CHECKS
+            ? args.concat([`--insecure`])
+            : args;
+        let jsonRes = await utils.fcli(args);
         core.debug(jsonRes);
         if (jsonRes['__action__'] === 'CREATED') {
             return true;
@@ -27555,7 +27425,7 @@ async function loginSscWithToken(base_url, token) {
 exports.loginSscWithToken = loginSscWithToken;
 async function loginSscWithUsernamePassword(base_url, username, password) {
     try {
-        let jsonRes = await utils.fcli([
+        let args = [
             'ssc',
             'session',
             'login',
@@ -27565,13 +27435,15 @@ async function loginSscWithUsernamePassword(base_url, username, password) {
             username,
             '-p',
             password,
-            '--expire-in',
-            process.env.FCLI_DEFAULT_TOKEN_EXPIRE
-                ? process.env.FCLI_DEFAULT_TOKEN_EXPIRE
-                : '1d',
-            process.env.FCLI_DISABLE_SSL_CHECKS ? `--insecure` : '',
             '--output=json'
-        ]);
+        ];
+        args = process.env.FCLI_DEFAULT_TOKEN_EXPIRE
+            ? args.concat([`--expire-in=${process.env.FCLI_DEFAULT_TOKEN_EXPIRE}`])
+            : args;
+        args = process.env.FCLI_DISABLE_SSL_CHECKS
+            ? args.concat([`--insecure`])
+            : args;
+        let jsonRes = await utils.fcli(args);
         if (jsonRes['__action__'] === 'CREATED') {
             return true;
         }
@@ -27586,19 +27458,22 @@ async function loginSscWithUsernamePassword(base_url, username, password) {
 exports.loginSscWithUsernamePassword = loginSscWithUsernamePassword;
 async function loginSastWithToken(base_url, token, clientToken) {
     try {
-        let jsonRes = await utils.fcli([
+        let args = [
             'sc-sast',
             'session',
             'login',
             `--ssc-url=${base_url}`,
             `--ssc-ci-token=${token}`,
             `--client-auth-token=${clientToken}`,
-            process.env.FCLI_DEFAULT_TOKEN_EXPIRE
-                ? `--expire-in=${process.env.FCLI_DEFAULT_TOKEN_EXPIRE}`
-                : '',
-            process.env.FCLI_DISABLE_SSL_CHECKS ? `--insecure` : '',
             '--output=json'
-        ]);
+        ];
+        args = process.env.FCLI_DEFAULT_TOKEN_EXPIRE
+            ? args.concat([`--expire-in=${process.env.FCLI_DEFAULT_TOKEN_EXPIRE}`])
+            : args;
+        args = process.env.FCLI_DISABLE_SSL_CHECKS
+            ? args.concat([`--insecure`])
+            : args;
+        let jsonRes = await utils.fcli(args);
         if (jsonRes['__action__'] === 'CREATED') {
             return true;
         }
@@ -27613,7 +27488,7 @@ async function loginSastWithToken(base_url, token, clientToken) {
 exports.loginSastWithToken = loginSastWithToken;
 async function loginSastWithUsernamePassword(base_url, username, password, clientToken) {
     try {
-        let jsonRes = await utils.fcli([
+        let args = [
             'sc-sast',
             'session',
             'login',
@@ -27621,12 +27496,15 @@ async function loginSastWithUsernamePassword(base_url, username, password, clien
             `--ssc-user=${username}`,
             `--ssc-password=${password}`,
             `--client-auth-token=${clientToken}`,
-            process.env.FCLI_DEFAULT_TOKEN_EXPIRE
-                ? `--expire-in=${process.env.FCLI_DEFAULT_TOKEN_EXPIRE}`
-                : '',
-            process.env.FCLI_DISABLE_SSL_CHECKS ? `--insecure` : '',
             '--output=json'
-        ]);
+        ];
+        args = process.env.FCLI_DEFAULT_TOKEN_EXPIRE
+            ? args.concat([`--expire-in=${process.env.FCLI_DEFAULT_TOKEN_EXPIRE}`])
+            : args;
+        args = process.env.FCLI_DISABLE_SSL_CHECKS
+            ? args.concat([`--insecure`])
+            : args;
+        let jsonRes = await utils.fcli(args);
         if (jsonRes['__action__'] === 'CREATED') {
             return true;
         }
@@ -27790,7 +27668,6 @@ async function fcli(args) {
             },
             silent: true
         };
-        core.debug('fcli begin');
         core.debug(args.toString());
         const response = await exec.exec(getFcliPath(), args, options);
         core.debug(responseData);

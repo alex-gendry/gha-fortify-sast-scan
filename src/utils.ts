@@ -122,7 +122,6 @@ export async function fcli(args: string[]): Promise<any> {
       silent: true
     }
 
-    core.debug('fcli begin')
     core.debug(args.toString())
     const response = await exec.exec(getFcliPath(), args, options)
     core.debug(responseData)

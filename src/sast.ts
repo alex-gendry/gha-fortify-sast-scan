@@ -9,7 +9,10 @@ export async function packageSourceCode(buildOpts: string): Promise<number> {
   )
 }
 
-export async function startSastScan(app:string, version:string): Promise<string> {
+export async function startSastScan(
+  app: string,
+  version: string
+): Promise<string> {
   let jsonRes = await utils.fcli([
     'sc-sast',
     'scan',
@@ -21,11 +24,34 @@ export async function startSastScan(app:string, version:string): Promise<string>
     '--output=json'
   ])
 
-  if (jsonRes.length === 0) {
-    core.debug(`AppVersion "${app}":"${version}" not found`)
-    return -1
+  if (jsonRes['__action__'] == 'SCAN_REQUESTED') {
+    core.debug(`Scan ${jsonRes['jobToken']} requested`)
+    return jsonRes['jobToken']
   } else {
-    core.debug(`AppVersion "${app}":"${version}" exists`)
-    return jsonRes[0].id
+    throw new Error(
+      `Scan submission failed: Fortify returned ${jsonRes['__action__']}`
+    )
   }
 }
+
+// export async function waitForSastScan(jobToken: string): Promise<string> {
+//   let jsonRes = await utils.fcli([
+//     'sc-sast',
+//     'scan',
+//     'start',
+//     '--upload',
+//     `--appversion=${app}:${version}`,
+//     `--sensor-version=23.1.0`,
+//     `--package-file=package.zip`,
+//     '--output=json'
+//   ])
+//
+//   if (jsonRes['__action__'] == 'SCAN_REQUESTED') {
+//     core.debug(`Scan ${jsonRes['jobToken']} requested`)
+//     return jsonRes['jobToken']
+//   } else {
+//     throw new Error(
+//       `Scan submission failed: Fortify returned ${jsonRes['__action__']}`
+//     )
+//   }
+// }

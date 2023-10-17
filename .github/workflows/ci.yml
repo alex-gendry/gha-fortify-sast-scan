@@ -12,8 +12,8 @@ jobs:
 
       FCLI_EXECUTABLE_LOCATION: "."
 
-#    container:
-#      image: fortifydocker/fortify-ci-tools
+    #    container:
+    #      image: fortifydocker/fortify-ci-tools
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -33,25 +33,25 @@ jobs:
 
       - name: Download CLIs
         run: |
-          wget -qO- https://github.com/fortify/fcli/releases/download/v1.3.0/fcli-linux.tgz | tar zxf -  
-          
+          wget -qO- https://github.com/fortify/fcli/releases/download/v1.3.2/fcli-linux.tgz | tar zxf -  
+
       # GitHub Action for Application Version creation
       - name: Create Application Version
         uses: agendry-pub/gha-ssc-create-application-version@v1
         with:
           ssc_base_url: ${{ vars.FTFY_SSC_BASE_URL}}
-          # ssc_ci_token: ${{ secrets.FTFY_CI_TOKEN_DEC }}
+          ssc_ci_token: ZDQ4NWY0MDYtYzY4OS00YjE2LWIxYjUtOTVkOWE2NzYzZTM1
           ssc_app: "github_action_dev_app"
           ssc_version: "1.0"
-          ssc_ci_username: ${{ secrets.FTFY_CI_USERNAME }}
-          ssc_ci_password:  ${{ secrets.FTFY_CI_PASSWORD }}
+          #          ssc_ci_username: ${{ secrets.FTFY_CI_USERNAME }}
+          #          ssc_ci_password:  ${{ secrets.FTFY_CI_PASSWORD }}
           ssc_version_attributes: |
             Accessibility=Internal Network Access Required
             DevStrategy=Internally Developed
             DevPhase=New
 
       - name: Test Local Action
-        if: always()
+        #        if: always()
         id: test-action
         uses: ./
         env:
@@ -61,9 +61,9 @@ jobs:
           ssc_base_url: ${{ vars.FTFY_SSC_BASE_URL}}
           ssc_app: "github_action_dev_app"
           ssc_version: "1.0"
-#          ssc_ci_token: ZDQ4NWY0MDYtYzY4OS00YjE2LWIxYjUtOTVkOWE2NzYzZTM1
-          ssc_ci_username: ${{ secrets.FTFY_CI_USERNAME }}
-          ssc_ci_password:  ${{ secrets.FTFY_CI_PASSWORD }}
+          ssc_ci_token: ${{ secrets.FTFY_CI_TOKEN_ENC }}
+          #          ssc_ci_username: ${{ secrets.FTFY_CI_USERNAME }}
+          #          ssc_ci_password:  ${{ secrets.FTFY_CI_PASSWORD }}
           sast_client_auth_token: ${{ secrets.FTFY_SAST_CLIENT_TOKEN }}
           sast_build_options: "-bt none"
 
