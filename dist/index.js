@@ -27235,7 +27235,7 @@ async function run() {
         //     throw new Error(`${e}`)
         // }
         /** Job Summary */
-        await summary.setJobSummary();
+        await summary.setJobSummary(INPUT.ssc_app, INPUT.ssc_version);
         core.setOutput('time', new Date().toTimeString());
     }
     catch (error) {
@@ -27561,15 +27561,24 @@ var __importStar = (this && this.__importStar) || function (mod) {
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.setJobSummary = void 0;
 const core = __importStar(__nccwpck_require__(2186));
-async function setJobSummary() {
+const vuln = __importStar(__nccwpck_require__(4002));
+async function setJobSummary(app, version) {
+    let vulns = await vuln.getAppVersionVulns(app, version);
+    let table = [];
+    let headers = [];
+    let row = [];
+    vulns.forEach((element) => {
+        headers.push({ data: element["cleanName"], header: true });
+        row.push(element["totalCount"]);
+    });
     await core.summary
-        .addHeading('Test Results')
+        .addHeading('Fortify SAST Results')
         // .addCodeBlock(generateTestResults(), "js")
         .addTable([
-        [{ data: 'File', header: true }, { data: 'Result', header: true }],
-        ['foo.js', 'Pass ✅'],
-        ['bar.js', 'Fail ❌'],
-        ['test.js', 'Pass ✅']
+        // Headers
+        headers,
+        // rows
+        row
     ])
         .addLink('View staging deployment!', 'https://github.com')
         .write();
@@ -27778,6 +27787,52 @@ async function scancentral(args) {
     return response;
 }
 exports.scancentral = scancentral;
+
+
+/***/ }),
+
+/***/ 4002:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+
+"use strict";
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.getAppVersionVulns = void 0;
+const utils = __importStar(__nccwpck_require__(1314));
+async function getAppVersionVulns(app, version) {
+    let jsonRes = await utils.fcli([
+        'ssc',
+        'appversion-vuln',
+        'count',
+        `--appversion=${app}:${version}`,
+        '--output=json'
+    ]);
+    return jsonRes;
+}
+exports.getAppVersionVulns = getAppVersionVulns;
 
 
 /***/ }),

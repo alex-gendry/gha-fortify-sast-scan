@@ -1,14 +1,27 @@
 import * as core from '@actions/core'
+import * as vuln from './vuln'
 
-export async function setJobSummary(): Promise<any>{
+export async function setJobSummary(app: string, version: string): Promise<any> {
+    let vulns: any[] = await vuln.getAppVersionVulns(app, version)
+
+    let table = []
+    let headers: any[] = []
+    let row: string[] = []
+
+    vulns.forEach((element) => {
+        headers.push({data: element["cleanName"], header: true})
+        row.push(element["totalCount"])
+
+    })
+
     await core.summary
-        .addHeading('Test Results')
+        .addHeading('Fortify SAST Results')
         // .addCodeBlock(generateTestResults(), "js")
         .addTable([
-            [{data: 'File', header: true}, {data: 'Result', header: true}],
-            ['foo.js', 'Pass ✅'],
-            ['bar.js', 'Fail ❌'],
-            ['test.js', 'Pass ✅']
+            // Headers
+            headers,
+            // rows
+            row
         ])
         .addLink('View staging deployment!', 'https://github.com')
         .write()
