@@ -14,6 +14,9 @@ export async function setJobSummary(app: string, version: string): Promise<any> 
 
     })
 
+    core.debug(headers.toString())
+    core.debug(row.toString())
+
     await core.summary
         .addHeading('Fortify SAST Results')
         // .addCodeBlock(generateTestResults(), "js")
