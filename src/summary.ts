@@ -18,6 +18,7 @@ export async function setJobSummary(app: string, version: string): Promise<any> 
     core.debug(row.toString())
 
     await core.summary
+        .addImage('OpenTextBanner.png', 'Fortify by OpenText CyberSecurity')
         .addHeading('Fortify SAST Results')
         // .addCodeBlock(generateTestResults(), "js")
         .addTable([
