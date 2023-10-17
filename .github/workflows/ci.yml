@@ -67,14 +67,14 @@ jobs:
           sast_client_auth_token: ${{ secrets.FTFY_SAST_CLIENT_TOKEN }}
           sast_build_options: "-bt none"
 
-  test-action-local:
-    name: GitHub Actions Test but local
-
-    runs-on: fortify-ubuntu
-    steps:
-      - name: Checkout
-        id: checkout
-        uses: actions/checkout@v4
+#  test-action-local:
+#    name: GitHub Actions Test but local
+#
+#    runs-on: fortify-ubuntu
+#    steps:
+#      - name: Checkout
+#        id: checkout
+#        uses: actions/checkout@v4
 
 #      - name: Test Local Action
 #        if: always()
