@@ -38500,7 +38500,7 @@ async function createVulnsByScanProductTable(appId, filterSet = "Security Audito
 async function setJobSummary(app, version) {
     const appId = await appversion.getAppVersionId(app, version);
     await core.summary
-        .addImage('https://cdn.asp.events/CLIENT_CloserSt_D86EA381_5056_B739_5482D50A1A831DDD/sites/CSWA-2023/media/libraries/exhibitors/Ezone-cover.png/fit-in/1500x9999/filters:no_upscale()', 'Fortify by OpenText CyberSecurity')
+        .addImage('https://cdn.asp.events/CLIENT_CloserSt_D86EA381_5056_B739_5482D50A1A831DDD/sites/CSWA-2023/media/libraries/exhibitors/Ezone-cover.png/fit-in/1500x9999/filters:no_upscale()', 'Fortify by OpenText CyberSecurity', { width: "600" })
         .addHeading('Fortify AST Results')
         // .addCodeBlock(generateTestResults(), "js")
         .addTable(await createVulnsByScanProductTable(appId, 'Information'))
