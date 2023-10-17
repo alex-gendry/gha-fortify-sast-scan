@@ -9,7 +9,23 @@ export async function setJobSummary(app: string, version: string): Promise<any> 
     let row: string[] = []
 
     vulns.forEach((element) => {
-        headers.push({data: element["cleanName"], header: true})
+        switch (element["cleanName"]) {
+            case 'Critical':
+                headers.push({data: `:red_circle: element["cleanName"]`, header: true})
+                break
+            case 'High':
+                headers.push({data: `:orange_circle: element["cleanName"]`, header: true})
+                break
+            case 'Medium':
+                headers.push({data: `:yellow_circle: element["cleanName"]`, header: true})
+                break
+            case 'Low':
+                headers.push({data: `:white_circle: element["cleanName"]`, header: true})
+                break
+            default:
+                headers.push({data: `:large_blue_circle: element["cleanName"]`, header: true})
+                break
+        }
         row.push(`<p>${element["totalCount"]}</p>`)
 
     })
