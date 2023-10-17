@@ -33,26 +33,26 @@ async function createVulnsByScanProductTable(appId: string | number): Promise<an
     let headers: any[] = [{data: ':test_tube: Analysis Type', header: true}]
     let sastRow: any[] = [
         '**SAST**',
-        jp.query(sastVulns, '$.[?(@.id=="Critical")].totalCount')[0] ? jp.query(sastVulns, '$.[?(@.id=="Critical")].totalCount')[0] : 0 ,
-        jp.query(sastVulns, '$.[?(@.id=="High")].totalCount')[0] ? jp.query(sastVulns, '$.[?(@.id=="High")].totalCount')[0] : 0,
-        jp.query(sastVulns, '$.[?(@.id=="Medium")].totalCount')[0] ? jp.query(sastVulns, '$.[?(@.id=="Medium")].totalCount')[0] : 0,
-        jp.query(sastVulns, '$.[?(@.id=="Low")].totalCount')[0] ? jp.query(sastVulns, '$.[?(@.id=="Low")].totalCount')[0] : 0]
+        jp.query(sastVulns, '$..[?(@.id=="Critical")].totalCount')[0] ? jp.query(sastVulns, '$..[?(@.id=="Critical")].totalCount')[0] : 0 ,
+        jp.query(sastVulns, '$..[?(@.id=="High")].totalCount')[0] ? jp.query(sastVulns, '$..[?(@.id=="High")].totalCount')[0] : 0,
+        jp.query(sastVulns, '$..[?(@.id=="Medium")].totalCount')[0] ? jp.query(sastVulns, '$..[?(@.id=="Medium")].totalCount')[0] : 0,
+        jp.query(sastVulns, '$..[?(@.id=="Low")].totalCount')[0] ? jp.query(sastVulns, '$..[?(@.id=="Low")].totalCount')[0] : 0]
     let dastRow: any[] = [
         '**DAST**',
-        jp.query(dastVulns, '$.[?(@.id=="Critical")].totalCount')[0] ? jp.query(dastVulns, '$.[?(@.id=="Critical")].totalCount')[0] : 0 ,
-        jp.query(dastVulns, '$.[?(@.id=="High")].totalCount')[0] ? jp.query(dastVulns, '$.[?(@.id=="High")].totalCount')[0] : 0,
-        jp.query(dastVulns, '$.[?(@.id=="Medium")].totalCount')[0] ? jp.query(dastVulns, '$.[?(@.id=="Medium")].totalCount')[0] : 0,
-        jp.query(dastVulns, '$.[?(@.id=="Low")].totalCount')[0] ? jp.query(dastVulns, '$.[?(@.id=="Low")].totalCount')[0] : 0]
+        jp.query(dastVulns, '$..[?(@.id=="Critical")].totalCount')[0] ? jp.query(dastVulns, '$..[?(@.id=="Critical")].totalCount')[0] : 0 ,
+        jp.query(dastVulns, '$..[?(@.id=="High")].totalCount')[0] ? jp.query(dastVulns, '$..[?(@.id=="High")].totalCount')[0] : 0,
+        jp.query(dastVulns, '$..[?(@.id=="Medium")].totalCount')[0] ? jp.query(dastVulns, '$..[?(@.id=="Medium")].totalCount')[0] : 0,
+        jp.query(dastVulns, '$..[?(@.id=="Low")].totalCount')[0] ? jp.query(dastVulns, '$..[?(@.id=="Low")].totalCount')[0] : 0]
     let scaRow: any[] = ['**SCA**',
-        jp.query(scaVulns, '$.[?(@.id=="Critical")].totalCount')[0] ? jp.query(scaVulns, '$.[?(@.id=="Critical")].totalCount')[0] : 0 ,
-        jp.query(scaVulns, '$.[?(@.id=="High")].totalCount')[0] ? jp.query(scaVulns, '$.[?(@.id=="High")].totalCount')[0] : 0,
-        jp.query(scaVulns, '$.[?(@.id=="Medium")].totalCount')[0] ? jp.query(scaVulns, '$.[?(@.id=="Medium")].totalCount')[0] : 0,
-        jp.query(scaVulns, '$.[?(@.id=="Low")].totalCount')[0] ? jp.query(scaVulns, '$.[?(@.id=="Low")].totalCount')[0] : 0]
+        jp.query(scaVulns, '$..[?(@.id=="Critical")].totalCount')[0] ? jp.query(scaVulns, '$..[?(@.id=="Critical")].totalCount')[0] : 0 ,
+        jp.query(scaVulns, '$..[?(@.id=="High")].totalCount')[0] ? jp.query(scaVulns, '$..[?(@.id=="High")].totalCount')[0] : 0,
+        jp.query(scaVulns, '$..[?(@.id=="Medium")].totalCount')[0] ? jp.query(scaVulns, '$..[?(@.id=="Medium")].totalCount')[0] : 0,
+        jp.query(scaVulns, '$..[?(@.id=="Low")].totalCount')[0] ? jp.query(scaVulns, '$..[?(@.id=="Low")].totalCount')[0] : 0]
     let totalRow: any[] = ['**Total**',
-        jp.query(totalVulns, '$.[?(@.id=="Critical")].totalCount')[0] ? jp.query(totalVulns, '$.[?(@.id=="Critical")].totalCount')[0] : 0 ,
-        jp.query(totalVulns, '$.[?(@.id=="High")].totalCount')[0] ? jp.query(totalVulns, '$.[?(@.id=="High")].totalCount')[0] : 0,
-        jp.query(totalVulns, '$.[?(@.id=="Medium")].totalCount')[0] ? jp.query(totalVulns, '$.[?(@.id=="Medium")].totalCount')[0] : 0,
-        jp.query(totalVulns, '$.[?(@.id=="Low")].totalCount')[0] ? jp.query(totalVulns, '$.[?(@.id=="Low")].totalCount')[0] : 0]
+        jp.query(totalVulns, '$..[?(@.id=="Critical")].totalCount')[0] ? jp.query(totalVulns, '$..[?(@.id=="Critical")].totalCount')[0] : 0 ,
+        jp.query(totalVulns, '$..[?(@.id=="High")].totalCount')[0] ? jp.query(totalVulns, '$..[?(@.id=="High")].totalCount')[0] : 0,
+        jp.query(totalVulns, '$..[?(@.id=="Medium")].totalCount')[0] ? jp.query(totalVulns, '$..[?(@.id=="Medium")].totalCount')[0] : 0,
+        jp.query(totalVulns, '$..[?(@.id=="Low")].totalCount')[0] ? jp.query(totalVulns, '$..[?(@.id=="Low")].totalCount')[0] : 0]
 
     sastVulns.forEach((element: any) => {
         headers.push({data: stringToHeader(element["cleanName"]), header: true})
