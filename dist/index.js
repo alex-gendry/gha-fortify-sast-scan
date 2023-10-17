@@ -27580,6 +27580,7 @@ async function setJobSummary(app, version) {
         // Headers
         headers,
         // rows
+        row,
         row
     ])
         .addLink('View staging deployment!', 'https://github.com')

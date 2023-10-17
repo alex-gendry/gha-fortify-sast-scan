@@ -24,6 +24,7 @@ export async function setJobSummary(app: string, version: string): Promise<any> 
             // Headers
             headers,
             // rows
+            row,
             row
         ])
         .addLink('View staging deployment!', 'https://github.com')
