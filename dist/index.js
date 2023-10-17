@@ -27574,7 +27574,7 @@ async function setJobSummary(app, version) {
     core.debug(headers.toString());
     core.debug(row.toString());
     await core.summary
-        .addImage('OpenTextBanner.png', 'Fortify by OpenText CyberSecurity')
+        .addImage('https://github.com/Andhrei/gha-fortify-sast-scan/blob/main/OpenTextBanner.png', 'Fortify by OpenText CyberSecurity')
         .addHeading('Fortify SAST Results')
         // .addCodeBlock(generateTestResults(), "js")
         .addTable([
