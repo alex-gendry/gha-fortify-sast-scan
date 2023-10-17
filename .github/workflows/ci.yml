@@ -28,8 +28,8 @@ jobs:
       - name: Download Fortify ScanCentral Client
         uses: fortify/gha-setup-scancentral-client@v1
         with:
-          version: ${{ vars.FTFY_SC_CLIENT_VERSION }}
-          client-auth-token: ${{ vars.FTFY_SAST_CLIENT_TOKEN }}
+          version: 23.1.0
+          client-auth-token: ${{ secrets.FTFY_SAST_CLIENT_TOKEN }}
 
       - name: Download CLIs
         run: |
