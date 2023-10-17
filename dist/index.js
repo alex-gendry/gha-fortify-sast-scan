@@ -27588,18 +27588,18 @@ async function createVulnsByScanProductTable(appId) {
     const scaVulns = await vuln.getAppVersionVulnsCount(appId, "SCA");
     let table = [];
     let headers = [{ data: ':test_tube: Analysis Type', header: true }];
-    let sastRow = ['SAST'];
-    let dastRow = ['DAST'];
-    let scaRow = ['SCA'];
+    let sastRow = ['**SAST**'];
+    let dastRow = ['**DAST**'];
+    let scaRow = ['**SCA**'];
     sastVulns.forEach((element) => {
         headers.push({ data: stringToHeader(element["cleanName"]), header: true });
-        sastRow.push(`<p>${element["totalCount"]}</p>`);
+        sastRow.push(`<p>${element["totalCount"] ? element["totalCount"] : 0}</p>`);
     });
     dastVulns.forEach((element) => {
-        dastRow.push(`<p>${element["totalCount"]}</p>`);
+        dastRow.push(`<p>${element["totalCount"] ? element["totalCount"] : 0}</p>`);
     });
     scaVulns.forEach((element) => {
-        scaRow.push(`<p>${element["totalCount"]}</p>`);
+        scaRow.push(`<p>${element["totalCount"] ? element["totalCount"] : 0}</p>`);
     });
     return [
         // Headers
@@ -27614,7 +27614,7 @@ async function setJobSummary(app, version) {
     const appId = await appversion.getAppVersionId(app, version);
     await core.summary
         .addImage('https://github.com/Andhrei/gha-fortify-sast-scan/blob/main/OpenTextBanner.png', 'Fortify by OpenText CyberSecurity')
-        .addHeading('Fortify SAST Results')
+        .addHeading('Fortify AST Results')
         // .addCodeBlock(generateTestResults(), "js")
         .addTable(await createVulnsByScanProductTable(appId))
         .addLink('View staging deployment!', 'https://github.com')

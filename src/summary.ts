@@ -30,19 +30,19 @@ async function createVulnsByScanProductTable(appId: string|number): Promise<any>
     const scaVulns = await vuln.getAppVersionVulnsCount(appId, "SCA")
     let table = []
     let headers: any[] = [{data: ':test_tube: Analysis Type', header: true}]
-    let sastRow: any[] = ['SAST']
-    let dastRow: any[] = ['DAST']
-    let scaRow: any[] = ['SCA']
+    let sastRow: any[] = ['**SAST**']
+    let dastRow: any[] = ['**DAST**']
+    let scaRow: any[] = ['**SCA**']
 
     sastVulns.forEach((element: any) => {
         headers.push({data: stringToHeader(element["cleanName"]), header: true})
-        sastRow.push(`<p>${element["totalCount"]}</p>`)
+        sastRow.push(`<p>${element["totalCount"] ? element["totalCount"] : 0 }</p>`)
     })
     dastVulns.forEach((element: any) => {
-        dastRow.push(`<p>${element["totalCount"]}</p>`)
+        dastRow.push(`<p>${element["totalCount"] ? element["totalCount"] : 0}</p>`)
     })
     scaVulns.forEach((element: any) => {
-        scaRow.push(`<p>${element["totalCount"]}</p>`)
+        scaRow.push(`<p>${element["totalCount"] ? element["totalCount"] : 0}</p>`)
     })
 
     return [
@@ -61,7 +61,7 @@ export async function setJobSummary(app: string, version: string): Promise<any> 
 
     await core.summary
         .addImage('https://github.com/Andhrei/gha-fortify-sast-scan/blob/main/OpenTextBanner.png', 'Fortify by OpenText CyberSecurity')
-        .addHeading('Fortify SAST Results')
+        .addHeading('Fortify AST Results')
         // .addCodeBlock(generateTestResults(), "js")
         .addTable(await createVulnsByScanProductTable(appId))
         .addLink('View staging deployment!', 'https://github.com')
