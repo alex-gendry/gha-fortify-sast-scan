@@ -30,7 +30,11 @@ async function createVulnsByScanProductTable(appId: string | number): Promise<an
     const totalVulns = await vuln.getAppVersionVulnsCount(appId)
     let table = []
     var jp = require('jsonpath')
-    let headers: any[] = [{data: ':test_tube: Analysis Type', header: true}]
+    let headers: any[] = [{data: ':test_tube: Analysis Type', header: true},
+        {data: stringToHeader('Critical'), header: true},
+        {data: stringToHeader('High'), header: true},
+        {data: stringToHeader('Medium'), header: true},
+        {data: stringToHeader('Low'), header: true}]
     let sastRow: any[] = [
         '**SAST**',
         jp.query(sastVulns, '$..[?(@.id=="Critical")].totalCount')[0] ? jp.query(sastVulns, '$..[?(@.id=="Critical")].totalCount')[0] : 0 ,

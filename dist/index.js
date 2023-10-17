@@ -38411,7 +38411,11 @@ async function createVulnsByScanProductTable(appId) {
     const totalVulns = await vuln.getAppVersionVulnsCount(appId);
     let table = [];
     var jp = __nccwpck_require__(4378);
-    let headers = [{ data: ':test_tube: Analysis Type', header: true }];
+    let headers = [{ data: ':test_tube: Analysis Type', header: true },
+        { data: stringToHeader('Critical'), header: true },
+        { data: stringToHeader('High'), header: true },
+        { data: stringToHeader('Medium'), header: true },
+        { data: stringToHeader('Low'), header: true }];
     let sastRow = [
         '**SAST**',
         jp.query(sastVulns, '$..[?(@.id=="Critical")].totalCount')[0] ? jp.query(sastVulns, '$..[?(@.id=="Critical")].totalCount')[0] : 0,
