@@ -58,6 +58,9 @@ async function createVulnsByScanProductTable(appId: string | number): Promise<an
         jp.query(totalVulns, '$..[?(@.id=="Medium")].totalCount')[0] ? jp.query(totalVulns, '$..[?(@.id=="Medium")].totalCount')[0] : 0,
         jp.query(totalVulns, '$..[?(@.id=="Low")].totalCount')[0] ? jp.query(totalVulns, '$..[?(@.id=="Low")].totalCount')[0] : 0]
 
+    core.debug(sastRow.toString())
+    core.debug(dastRow.toString())
+    core.debug(scaRow.toString())
     core.debug(totalRow.toString())
 
     return [// Headers
