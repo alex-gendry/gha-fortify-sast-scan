@@ -23,7 +23,7 @@ function stringToHeader(element: string): string {
     }
 }
 
-async function createVulnsByScanProductTable(appId: string | number, filterSet: string = "filterset"): Promise<any> {
+async function createVulnsByScanProductTable(appId: string | number, filterSet: string = "Security Auditor View"): Promise<any> {
 
     const sastVulns = await vuln.getAppVersionVulnsCount(appId, filterSet, "SAST")
     const dastVulns = await vuln.getAppVersionVulnsCount(appId, filterSet, "DAST")

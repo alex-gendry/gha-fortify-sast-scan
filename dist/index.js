@@ -38464,7 +38464,7 @@ function stringToHeader(element) {
             break;
     }
 }
-async function createVulnsByScanProductTable(appId, filterSet = "filterset") {
+async function createVulnsByScanProductTable(appId, filterSet = "Security Auditor View") {
     const sastVulns = await vuln.getAppVersionVulnsCount(appId, filterSet, "SAST");
     const dastVulns = await vuln.getAppVersionVulnsCount(appId, filterSet, "DAST");
     const scaVulns = await vuln.getAppVersionVulnsCount(appId, filterSet, "SCA");
