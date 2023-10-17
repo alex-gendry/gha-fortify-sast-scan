@@ -27571,6 +27571,8 @@ async function setJobSummary(app, version) {
         headers.push({ data: element["cleanName"], header: true });
         row.push(element["totalCount"]);
     });
+    core.debug(headers.toString());
+    core.debug(row.toString());
     await core.summary
         .addHeading('Fortify SAST Results')
         // .addCodeBlock(generateTestResults(), "js")
