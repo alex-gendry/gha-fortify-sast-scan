@@ -27569,7 +27569,7 @@ async function setJobSummary(app, version) {
     let row = [];
     vulns.forEach((element) => {
         headers.push({ data: element["cleanName"], header: true });
-        row.push(element["totalCount"]);
+        row.push(`<p>${element["totalCount"]}</p>`);
     });
     core.debug(headers.toString());
     core.debug(row.toString());
@@ -27580,7 +27580,6 @@ async function setJobSummary(app, version) {
         // Headers
         headers,
         // rows
-        row,
         row
     ])
         .addLink('View staging deployment!', 'https://github.com')
