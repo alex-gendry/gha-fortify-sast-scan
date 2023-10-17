@@ -27127,6 +27127,7 @@ const core = __importStar(__nccwpck_require__(2186));
 const session = __importStar(__nccwpck_require__(1610));
 const appversion = __importStar(__nccwpck_require__(3538));
 const sast = __importStar(__nccwpck_require__(7431));
+const summary = __importStar(__nccwpck_require__(2553));
 const INPUT = {
     ssc_base_url: core.getInput('ssc_base_url', { required: true }),
     ssc_ci_token: core.getInput('ssc_ci_token', { required: false }),
@@ -27192,7 +27193,7 @@ async function run() {
             core.setFailed(`${err}`);
             throw new Error('Login to ScanCentral SAST failed!');
         }
-        /** Is AppVersion already created ? */
+        /** Does the AppVersion exists ? */
         core.info(`Checking if AppVersion ${INPUT.ssc_app}:${INPUT.ssc_version} exists`);
         let appVersionExists = false;
         try {
@@ -27202,27 +27203,39 @@ async function run() {
             core.setFailed(`Failed to check if ${INPUT.ssc_app}:${INPUT.ssc_version} exists`);
             throw new Error(`${err}`);
         }
-        if (appVersionExists) {
-            core.info(`AppVersion ${INPUT.ssc_app}:${INPUT.ssc_version} exists`);
-            core.info(`Packaging source code with "${INPUT.sast_build_options}"`);
-            let packaged = -1;
-            try {
-                packaged = await sast.packageSourceCode(INPUT.sast_build_options);
-                if (packaged != 0) {
-                    throw new Error();
-                }
-            }
-            catch (err) {
-                core.setFailed(`Failed to package source code with "${INPUT.sast_build_options}"`);
-                throw new Error(`${err}`);
-            }
-            core.info(`Submitting scan`);
-            let jobToken = await sast.startSastScan(INPUT.ssc_app, INPUT.ssc_version);
-        }
-        else {
+        if (!appVersionExists) {
             core.warning(`AppVersion ${INPUT.ssc_app}:${INPUT.ssc_version} not found.`);
             core.setFailed('Scan not executed because AppVersion ${INPUT.ssc_app}:${INPUT.ssc_version} not found.');
         }
+        core.info(`AppVersion ${INPUT.ssc_app}:${INPUT.ssc_version} exists`);
+        /** Source code packaging */
+        core.info(`Packaging source code with "${INPUT.sast_build_options}"`);
+        let packaged = -1;
+        try {
+            packaged = await sast.packageSourceCode(INPUT.sast_build_options);
+            if (packaged != 0) {
+                throw new Error('Source code packaging failed');
+            }
+        }
+        catch (err) {
+            core.setFailed(`Failed to package source code with "${INPUT.sast_build_options}"`);
+            throw new Error(`${err}`);
+        }
+        /** SAST Scan Execution */
+        // try {
+        //     core.info(`Submitting scan`)
+        //     let jobToken = await sast.startSastScan(INPUT.ssc_app, INPUT.ssc_version)
+        //     core.info('Waiting for scan completion...')
+        //     if (!(await sast.waitForSastScan(jobToken))) {
+        //         core.setFailed('SAST Scan Failed')
+        //     } else {
+        //         core.info(`SAST Scan is successfuly executed and submitted to ${INPUT.ssc_app}:${INPUT.ssc_version}`)
+        //     }
+        // } catch (e) {
+        //     throw new Error(`${e}`)
+        // }
+        /** Job Summary */
+        await summary.setJobSummary();
         core.setOutput('time', new Date().toTimeString());
     }
     catch (error) {
@@ -27265,7 +27278,7 @@ var __importStar = (this && this.__importStar) || function (mod) {
     return result;
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.startSastScan = exports.packageSourceCode = void 0;
+exports.waitForSastScan = exports.startSastScan = exports.packageSourceCode = void 0;
 const utils = __importStar(__nccwpck_require__(1314));
 const core = __importStar(__nccwpck_require__(2186));
 async function packageSourceCode(buildOpts) {
@@ -27292,27 +27305,28 @@ async function startSastScan(app, version) {
     }
 }
 exports.startSastScan = startSastScan;
-// export async function waitForSastScan(jobToken: string): Promise<string> {
-//   let jsonRes = await utils.fcli([
-//     'sc-sast',
-//     'scan',
-//     'start',
-//     '--upload',
-//     `--appversion=${app}:${version}`,
-//     `--sensor-version=23.1.0`,
-//     `--package-file=package.zip`,
-//     '--output=json'
-//   ])
-//
-//   if (jsonRes['__action__'] == 'SCAN_REQUESTED') {
-//     core.debug(`Scan ${jsonRes['jobToken']} requested`)
-//     return jsonRes['jobToken']
-//   } else {
-//     throw new Error(
-//       `Scan submission failed: Fortify returned ${jsonRes['__action__']}`
-//     )
-//   }
-// }
+async function waitForSastScan(jobToken) {
+    let jsonRes = await utils.fcli(['sc-sast', 'scan', 'wait-for', jobToken, `--interval=1m`, '--output=json'], false);
+    if (jsonRes['scanState'] === 'COMPLETED' &&
+        jsonRes['sscUploadState'] === 'COMPLETED' &&
+        jsonRes['sscArtifactState'] === 'PROCESS_COMPLETE') {
+        core.debug(`Scan ${jsonRes['jobToken']} COMPLETED`);
+        return true;
+    }
+    else if (jsonRes['scanState'] != 'COMPLETED') {
+        throw new Error(`Scan execution failed: Fortify returned scanState=${jsonRes['scanState']}`);
+    }
+    else if (jsonRes['sscUploadState'] != 'COMPLETED') {
+        throw new Error(`Scan upload failed: Fortify returned sscUploadState=${jsonRes['scanState']}`);
+    }
+    else if (jsonRes['sscArtifactState'] != 'PROCESS_COMPLETE') {
+        throw new Error(`Scan artifact processing failed: Fortify returned sscArtifactState=${jsonRes['scanState']}`);
+    }
+    else {
+        throw new Error(`Scan failed: Fortify returned ${jsonRes['__action__']}`);
+    }
+}
+exports.waitForSastScan = waitForSastScan;
 
 
 /***/ }),
@@ -27399,13 +27413,11 @@ async function loginSscWithToken(base_url, token) {
             'ssc',
             'session',
             'login',
-            `--token=ZDQ4NWY0MDYtYzY4OS00YjE2LWIxYjUtOTVkOWE2NzYzZTM1`,
+            `-t`,
+            token,
             `--url=${base_url}`,
             '--output=json'
         ];
-        args = process.env.FCLI_DEFAULT_TOKEN_EXPIRE
-            ? args.concat([`--expire-in=${process.env.FCLI_DEFAULT_TOKEN_EXPIRE}`])
-            : args;
         args = process.env.FCLI_DISABLE_SSL_CHECKS
             ? args.concat([`--insecure`])
             : args;
@@ -27467,9 +27479,6 @@ async function loginSastWithToken(base_url, token, clientToken) {
             `--client-auth-token=${clientToken}`,
             '--output=json'
         ];
-        args = process.env.FCLI_DEFAULT_TOKEN_EXPIRE
-            ? args.concat([`--expire-in=${process.env.FCLI_DEFAULT_TOKEN_EXPIRE}`])
-            : args;
         args = process.env.FCLI_DISABLE_SSL_CHECKS
             ? args.concat([`--insecure`])
             : args;
@@ -27517,6 +27526,55 @@ async function loginSastWithUsernamePassword(base_url, username, password, clien
     }
 }
 exports.loginSastWithUsernamePassword = loginSastWithUsernamePassword;
+
+
+/***/ }),
+
+/***/ 2553:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+
+"use strict";
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.setJobSummary = void 0;
+const core = __importStar(__nccwpck_require__(2186));
+async function setJobSummary() {
+    await core.summary
+        .addHeading('Test Results')
+        // .addCodeBlock(generateTestResults(), "js")
+        .addTable([
+        [{ data: 'File', header: true }, { data: 'Result', header: true }],
+        ['foo.js', 'Pass ✅'],
+        ['bar.js', 'Fail ❌'],
+        ['test.js', 'Pass ✅']
+    ])
+        .addLink('View staging deployment!', 'https://github.com')
+        .write();
+}
+exports.setJobSummary = setJobSummary;
 
 
 /***/ }),
@@ -27653,7 +27711,7 @@ function getScanCentralPath() {
     }
 }
 exports.getScanCentralPath = getScanCentralPath;
-async function fcli(args) {
+async function fcli(args, silent = true) {
     let responseData = '';
     let errorData = '';
     try {
@@ -27666,10 +27724,10 @@ async function fcli(args) {
                     errorData += data.toString();
                 }
             },
-            silent: true
+            silent: silent
         };
         core.debug(args.toString());
-        const response = await exec.exec(getFcliPath(), args, options);
+        const status = await exec.exec(getFcliPath(), args, options);
         core.debug(responseData);
         return JSON.parse(responseData);
     }

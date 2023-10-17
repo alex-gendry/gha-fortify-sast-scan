@@ -56,13 +56,11 @@ export async function loginSscWithToken(
       'ssc',
       'session',
       'login',
-      `--token=ZDQ4NWY0MDYtYzY4OS00YjE2LWIxYjUtOTVkOWE2NzYzZTM1`,
+      `-t`,
+      token,
       `--url=${base_url}`,
       '--output=json'
     ]
-    args = process.env.FCLI_DEFAULT_TOKEN_EXPIRE
-      ? args.concat([`--expire-in=${process.env.FCLI_DEFAULT_TOKEN_EXPIRE}`])
-      : args
     args = process.env.FCLI_DISABLE_SSL_CHECKS
       ? args.concat([`--insecure`])
       : args
@@ -133,9 +131,6 @@ export async function loginSastWithToken(
       `--client-auth-token=${clientToken}`,
       '--output=json'
     ]
-    args = process.env.FCLI_DEFAULT_TOKEN_EXPIRE
-      ? args.concat([`--expire-in=${process.env.FCLI_DEFAULT_TOKEN_EXPIRE}`])
-      : args
     args = process.env.FCLI_DISABLE_SSL_CHECKS
       ? args.concat([`--insecure`])
       : args

@@ -106,7 +106,7 @@ export function getScanCentralPath(): string {
   }
 }
 
-export async function fcli(args: string[]): Promise<any> {
+export async function fcli(args: string[], silent = true): Promise<any> {
   let responseData = ''
   let errorData = ''
   try {
@@ -119,11 +119,11 @@ export async function fcli(args: string[]): Promise<any> {
           errorData += data.toString()
         }
       },
-      silent: true
+      silent: silent
     }
 
     core.debug(args.toString())
-    const response = await exec.exec(getFcliPath(), args, options)
+    const status = await exec.exec(getFcliPath(), args, options)
     core.debug(responseData)
 
     return JSON.parse(responseData)
