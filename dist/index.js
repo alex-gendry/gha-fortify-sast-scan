@@ -27562,43 +27562,61 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.setJobSummary = void 0;
 const core = __importStar(__nccwpck_require__(2186));
 const vuln = __importStar(__nccwpck_require__(4002));
-async function setJobSummary(app, version) {
-    let vulns = await vuln.getAppVersionVulns(app, version);
+const appversion = __importStar(__nccwpck_require__(3538));
+function stringToHeader(element) {
+    switch (element) {
+        case 'Critical':
+            return `:red_circle: ${element}`;
+            break;
+        case 'High':
+            return `:orange_circle: ${element}`;
+            break;
+        case 'Medium':
+            return `:yellow_circle: ${element}`;
+            break;
+        case 'Low':
+            return `:white_circle: ${element}`;
+            break;
+        default:
+            return `:large_blue_circle: ${element}`;
+            break;
+    }
+}
+async function createVulnsByScanProductTable(appId) {
+    const sastVulns = await vuln.getAppVersionVulnsCount(appId, "SAST");
+    const dastVulns = await vuln.getAppVersionVulnsCount(appId, "DAST");
+    const scaVulns = await vuln.getAppVersionVulnsCount(appId, "SCA");
     let table = [];
-    let headers = [];
-    let row = [];
-    vulns.forEach((element) => {
-        switch (element["cleanName"]) {
-            case 'Critical':
-                headers.push({ data: `:red_circle: element["cleanName"]`, header: true });
-                break;
-            case 'High':
-                headers.push({ data: `:orange_circle: element["cleanName"]`, header: true });
-                break;
-            case 'Medium':
-                headers.push({ data: `:yellow_circle: element["cleanName"]`, header: true });
-                break;
-            case 'Low':
-                headers.push({ data: `:white_circle: element["cleanName"]`, header: true });
-                break;
-            default:
-                headers.push({ data: `:large_blue_circle: element["cleanName"]`, header: true });
-                break;
-        }
-        row.push(`<p>${element["totalCount"]}</p>`);
+    let headers = [{ data: ':test_tube: Analysis Type', header: true }];
+    let sastRow = ['SAST'];
+    let dastRow = ['DAST'];
+    let scaRow = ['SCA'];
+    sastVulns.forEach((element) => {
+        headers.push({ data: stringToHeader(element["cleanName"]), header: true });
+        sastRow.push(`<p>${element["totalCount"]}</p>`);
     });
-    core.debug(headers.toString());
-    core.debug(row.toString());
+    dastVulns.forEach((element) => {
+        dastRow.push(`<p>${element["totalCount"]}</p>`);
+    });
+    scaVulns.forEach((element) => {
+        scaRow.push(`<p>${element["totalCount"]}</p>`);
+    });
+    return [
+        // Headers
+        headers,
+        // rows
+        sastRow,
+        dastRow,
+        scaRow
+    ];
+}
+async function setJobSummary(app, version) {
+    const appId = await appversion.getAppVersionId(app, version);
     await core.summary
         .addImage('https://github.com/Andhrei/gha-fortify-sast-scan/blob/main/OpenTextBanner.png', 'Fortify by OpenText CyberSecurity')
         .addHeading('Fortify SAST Results')
         // .addCodeBlock(generateTestResults(), "js")
-        .addTable([
-        // Headers
-        headers,
-        // rows
-        row
-    ])
+        .addTable(await createVulnsByScanProductTable(appId))
         .addLink('View staging deployment!', 'https://github.com')
         .write();
 }
@@ -27839,19 +27857,47 @@ var __importStar = (this && this.__importStar) || function (mod) {
     return result;
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.getAppVersionVulns = void 0;
+exports.getAppVersionVulnsCount = void 0;
 const utils = __importStar(__nccwpck_require__(1314));
-async function getAppVersionVulns(app, version) {
+const core = __importStar(__nccwpck_require__(2186));
+async function getAppVersionVulnsCount(appId, analysisType, newIssues) {
+    let query = "";
+    if (newIssues) {
+        query = "[issue age]:NEW";
+    }
+    if (analysisType) {
+        switch (analysisType) {
+            case "SAST":
+                query = `${query}${query.length ? " AND " : ""}[analysis type]:SCA`;
+                break;
+            case "DAST":
+                query = `${query}${query.length ? " AND " : ""}[analysis type]:WEBINSPECT`;
+                break;
+            case "SCA":
+                query = `${query}${query.length ? " AND " : ""}[analysis type]:SONATYPE`;
+                break;
+        }
+    }
+    core.debug(query);
+    const url = `/api/v1/projectVersions/${appId}/issueGroups?groupingtype=FOLDER${query.length ? `&qm=issues&q=${encodeURI(query)}` : ""}`;
+    core.debug(url);
     let jsonRes = await utils.fcli([
         'ssc',
-        'appversion-vuln',
-        'count',
-        `--appversion=${app}:${version}`,
+        'rest',
+        'call',
+        url,
         '--output=json'
     ]);
-    return jsonRes;
+    const responseCode = jsonRes[0].responseCode;
+    core.debug(responseCode);
+    if (200 <= Number(responseCode) && Number(responseCode) < 300) {
+        return jsonRes[0].data;
+    }
+    else {
+        throw new Error(`issueSummaries failed with code ${responseCode}`);
+    }
 }
-exports.getAppVersionVulns = getAppVersionVulns;
+exports.getAppVersionVulnsCount = getAppVersionVulnsCount;
 
 
 /***/ }),

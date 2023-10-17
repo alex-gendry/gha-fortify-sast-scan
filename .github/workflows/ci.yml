@@ -41,8 +41,8 @@ jobs:
         with:
           ssc_base_url: ${{ vars.FTFY_SSC_BASE_URL}}
           ssc_ci_token: ZDQ4NWY0MDYtYzY4OS00YjE2LWIxYjUtOTVkOWE2NzYzZTM1
-          ssc_app: "github_action_dev_app"
-          ssc_version: "1.0"
+          ssc_app: PetClinic
+          ssc_version: 1.1-gl-ast
           #          ssc_ci_username: ${{ secrets.FTFY_CI_USERNAME }}
           #          ssc_ci_password:  ${{ secrets.FTFY_CI_PASSWORD }}
           ssc_version_attributes: |
@@ -59,8 +59,8 @@ jobs:
 
         with:
           ssc_base_url: ${{ vars.FTFY_SSC_BASE_URL}}
-          ssc_app: "github_action_dev_app"
-          ssc_version: "1.0"
+          ssc_app: PetClinic
+          ssc_version: 1.1-gl-ast
           ssc_ci_token: ${{ secrets.FTFY_CI_TOKEN_ENC }}
           #          ssc_ci_username: ${{ secrets.FTFY_CI_USERNAME }}
           #          ssc_ci_password:  ${{ secrets.FTFY_CI_PASSWORD }}
