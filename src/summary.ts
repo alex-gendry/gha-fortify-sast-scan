@@ -1,6 +1,5 @@
 import * as core from '@actions/core'
 import * as vuln from './vuln'
-import * as utils from "./utils";
 import * as appversion from "./appversion";
 
 function stringToHeader(element: string): string {
@@ -23,22 +22,41 @@ function stringToHeader(element: string): string {
     }
 }
 
-async function createVulnsByScanProductTable(appId: string|number): Promise<any> {
+async function createVulnsByScanProductTable(appId: string | number): Promise<any> {
 
     const sastVulns = await vuln.getAppVersionVulnsCount(appId, "SAST")
     const dastVulns = await vuln.getAppVersionVulnsCount(appId, "DAST")
     const scaVulns = await vuln.getAppVersionVulnsCount(appId, "SCA")
     const totalVulns = await vuln.getAppVersionVulnsCount(appId)
     let table = []
+    var jp = require('jsonpath')
     let headers: any[] = [{data: ':test_tube: Analysis Type', header: true}]
-    let sastRow: any[] = ['**SAST**']
-    let dastRow: any[] = ['**DAST**']
-    let scaRow: any[] = ['**SCA**']
-    let totalRow: any[] = ['**Total**']
+    let sastRow: any[] = [
+        '**SAST**',
+        jp.query(sastVulns, '$.[?(@.id=="Critical")].totalCount')[0] ? jp.query(sastVulns, '$.[?(@.id=="Critical")].totalCount')[0] : 0 ,
+        jp.query(sastVulns, '$.[?(@.id=="High")].totalCount')[0] ? jp.query(sastVulns, '$.[?(@.id=="High")].totalCount')[0] : 0,
+        jp.query(sastVulns, '$.[?(@.id=="Medium")].totalCount')[0] ? jp.query(sastVulns, '$.[?(@.id=="Medium")].totalCount')[0] : 0,
+        jp.query(sastVulns, '$.[?(@.id=="Low")].totalCount')[0] ? jp.query(sastVulns, '$.[?(@.id=="Low")].totalCount')[0] : 0]
+    let dastRow: any[] = [
+        '**DAST**',
+        jp.query(dastVulns, '$.[?(@.id=="Critical")].totalCount')[0] ? jp.query(dastVulns, '$.[?(@.id=="Critical")].totalCount')[0] : 0 ,
+        jp.query(dastVulns, '$.[?(@.id=="High")].totalCount')[0] ? jp.query(dastVulns, '$.[?(@.id=="High")].totalCount')[0] : 0,
+        jp.query(dastVulns, '$.[?(@.id=="Medium")].totalCount')[0] ? jp.query(dastVulns, '$.[?(@.id=="Medium")].totalCount')[0] : 0,
+        jp.query(dastVulns, '$.[?(@.id=="Low")].totalCount')[0] ? jp.query(dastVulns, '$.[?(@.id=="Low")].totalCount')[0] : 0]
+    let scaRow: any[] = ['**SCA**',
+        jp.query(scaVulns, '$.[?(@.id=="Critical")].totalCount')[0] ? jp.query(scaVulns, '$.[?(@.id=="Critical")].totalCount')[0] : 0 ,
+        jp.query(scaVulns, '$.[?(@.id=="High")].totalCount')[0] ? jp.query(scaVulns, '$.[?(@.id=="High")].totalCount')[0] : 0,
+        jp.query(scaVulns, '$.[?(@.id=="Medium")].totalCount')[0] ? jp.query(scaVulns, '$.[?(@.id=="Medium")].totalCount')[0] : 0,
+        jp.query(scaVulns, '$.[?(@.id=="Low")].totalCount')[0] ? jp.query(scaVulns, '$.[?(@.id=="Low")].totalCount')[0] : 0]
+    let totalRow: any[] = ['**Total**',
+        jp.query(totalVulns, '$.[?(@.id=="Critical")].totalCount')[0] ? jp.query(totalVulns, '$.[?(@.id=="Critical")].totalCount')[0] : 0 ,
+        jp.query(totalVulns, '$.[?(@.id=="High")].totalCount')[0] ? jp.query(totalVulns, '$.[?(@.id=="High")].totalCount')[0] : 0,
+        jp.query(totalVulns, '$.[?(@.id=="Medium")].totalCount')[0] ? jp.query(totalVulns, '$.[?(@.id=="Medium")].totalCount')[0] : 0,
+        jp.query(totalVulns, '$.[?(@.id=="Low")].totalCount')[0] ? jp.query(totalVulns, '$.[?(@.id=="Low")].totalCount')[0] : 0]
 
     sastVulns.forEach((element: any) => {
         headers.push({data: stringToHeader(element["cleanName"]), header: true})
-        sastRow.push(`<p>${element["totalCount"].length ? element["totalCount"] : 0 }</p>`)
+        sastRow.push(`<p>${element["totalCount"].length ? element["totalCount"] : 0}</p>`)
     })
     dastVulns.forEach((element: any) => {
         dastRow.push(`<p>${element["totalCount"].length ? element["totalCount"] : 0}</p>`)
@@ -50,14 +68,9 @@ async function createVulnsByScanProductTable(appId: string|number): Promise<any>
         totalRow.push(`<p>${element["totalCount"].length ? element["totalCount"] : 0}</p>`)
     })
 
-    return [
-        // Headers
-        headers,
-        // rows
-        sastRow,
-        dastRow,
-        scaRow
-    ]
+    return [// Headers
+        headers, // rows
+        sastRow, dastRow, scaRow]
 
 }
 
