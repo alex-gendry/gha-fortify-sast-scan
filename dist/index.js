@@ -37915,6 +37915,65 @@ async function createAppVersion(app, version) {
 
 /***/ }),
 
+/***/ 6671:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+
+"use strict";
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.getFilterSetFolders = exports.getFilterSetGuid = void 0;
+const utils = __importStar(__nccwpck_require__(1314));
+async function getFilterSetGuid(appId, filterSetName) {
+    let jsonRes = await utils.fcli([
+        'ssc',
+        'appversion-filterset',
+        'get',
+        filterSetName,
+        `--appversion=${appId}`,
+        '--output=json'
+    ]);
+    return jsonRes["guid"];
+}
+exports.getFilterSetGuid = getFilterSetGuid;
+async function getFilterSetFolders(appId, filterSetName) {
+    let jsonRes = await utils.fcli([
+        'ssc',
+        'appversion-filterset',
+        'get',
+        filterSetName,
+        `--appversion=${appId}`,
+        '--output=json'
+    ]);
+    return jsonRes["folders"];
+}
+exports.getFilterSetFolders = getFilterSetFolders;
+
+
+/***/ }),
+
 /***/ 399:
 /***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
 
@@ -38385,6 +38444,7 @@ exports.setJobSummary = void 0;
 const core = __importStar(__nccwpck_require__(2186));
 const vuln = __importStar(__nccwpck_require__(4002));
 const appversion = __importStar(__nccwpck_require__(3538));
+const filterset = __importStar(__nccwpck_require__(6671));
 function stringToHeader(element) {
     switch (element) {
         case 'Critical':
@@ -38404,49 +38464,37 @@ function stringToHeader(element) {
             break;
     }
 }
-async function createVulnsByScanProductTable(appId) {
-    const sastVulns = await vuln.getAppVersionVulnsCount(appId, "SAST");
-    const dastVulns = await vuln.getAppVersionVulnsCount(appId, "DAST");
-    const scaVulns = await vuln.getAppVersionVulnsCount(appId, "SCA");
-    const totalVulns = await vuln.getAppVersionVulnsCount(appId);
+async function createVulnsByScanProductTable(appId, filterSet = "filterset") {
+    const sastVulns = await vuln.getAppVersionVulnsCount(appId, filterSet, "SAST");
+    const dastVulns = await vuln.getAppVersionVulnsCount(appId, filterSet, "DAST");
+    const scaVulns = await vuln.getAppVersionVulnsCount(appId, filterSet, "SCA");
+    const totalVulns = await vuln.getAppVersionVulnsCount(appId, filterSet);
+    const folders = await filterset.getFilterSetFolders(appId, filterSet);
     let table = [];
+    let headers = [{ data: ':test_tube: Analysis Type', header: true }];
     var jp = __nccwpck_require__(4378);
-    let headers = [{ data: ':test_tube: Analysis Type', header: true },
-        { data: stringToHeader('Critical'), header: true },
-        { data: stringToHeader('High'), header: true },
-        { data: stringToHeader('Medium'), header: true },
-        { data: stringToHeader('Low'), header: true }];
-    let sastRow = [
-        '**SAST**',
-        jp.query(sastVulns, '$..[?(@.id=="Critical")].totalCount')[0] ? jp.query(sastVulns, '$..[?(@.id=="Critical")].totalCount')[0] : 0,
-        jp.query(sastVulns, '$..[?(@.id=="High")].totalCount')[0] ? jp.query(sastVulns, '$..[?(@.id=="High")].totalCount')[0] : 0,
-        jp.query(sastVulns, '$..[?(@.id=="Medium")].totalCount')[0] ? jp.query(sastVulns, '$..[?(@.id=="Medium")].totalCount')[0] : 0,
-        jp.query(sastVulns, '$..[?(@.id=="Low")].totalCount')[0] ? jp.query(sastVulns, '$..[?(@.id=="Low")].totalCount')[0] : 0
-    ];
-    let dastRow = [
-        '**DAST**',
-        jp.query(dastVulns, '$..[?(@.id=="Critical")].totalCount')[0] ? jp.query(dastVulns, '$..[?(@.id=="Critical")].totalCount')[0] : 0,
-        jp.query(dastVulns, '$..[?(@.id=="High")].totalCount')[0] ? jp.query(dastVulns, '$..[?(@.id=="High")].totalCount')[0] : 0,
-        jp.query(dastVulns, '$..[?(@.id=="Medium")].totalCount')[0] ? jp.query(dastVulns, '$..[?(@.id=="Medium")].totalCount')[0] : 0,
-        jp.query(dastVulns, '$..[?(@.id=="Low")].totalCount')[0] ? jp.query(dastVulns, '$..[?(@.id=="Low")].totalCount')[0] : 0
-    ];
-    let scaRow = ['**SCA**',
-        jp.query(scaVulns, '$..[?(@.id=="Critical")].totalCount')[0] ? jp.query(scaVulns, '$..[?(@.id=="Critical")].totalCount')[0] : 0,
-        jp.query(scaVulns, '$..[?(@.id=="High")].totalCount')[0] ? jp.query(scaVulns, '$..[?(@.id=="High")].totalCount')[0] : 0,
-        jp.query(scaVulns, '$..[?(@.id=="Medium")].totalCount')[0] ? jp.query(scaVulns, '$..[?(@.id=="Medium")].totalCount')[0] : 0,
-        jp.query(scaVulns, '$..[?(@.id=="Low")].totalCount')[0] ? jp.query(scaVulns, '$..[?(@.id=="Low")].totalCount')[0] : 0];
-    let totalRow = ['**Total**',
-        jp.query(totalVulns, '$..[?(@.id=="Critical")].totalCount')[0] ? jp.query(totalVulns, '$..[?(@.id=="Critical")].totalCount')[0] : 0,
-        jp.query(totalVulns, '$..[?(@.id=="High")].totalCount')[0] ? jp.query(totalVulns, '$..[?(@.id=="High")].totalCount')[0] : 0,
-        jp.query(totalVulns, '$..[?(@.id=="Medium")].totalCount')[0] ? jp.query(totalVulns, '$..[?(@.id=="Medium")].totalCount')[0] : 0,
-        jp.query(totalVulns, '$..[?(@.id=="Low")].totalCount')[0] ? jp.query(totalVulns, '$..[?(@.id=="Low")].totalCount')[0] : 0];
+    let sastRow = ['SAST'];
+    let scaRow = ['DAST'];
+    let dastRow = ['SCA'];
+    let totalRow = ['Total'];
+    folders.forEach((folder) => {
+        headers.push({ data: stringToHeader(folder["name"]), header: true });
+        const sastCount = jp.query(sastVulns, `$..[?(@.id=="${folder["name"]}")].totalCount`)[0];
+        sastRow.push(sastCount ? `${sastCount}` : `${0}`);
+        const dastCount = jp.query(dastVulns, `$..[?(@.id=="${folder["name"]}")].totalCount`)[0];
+        dastRow.push(dastCount ? `${dastCount}` : `${0}`);
+        const scaCount = jp.query(scaVulns, `$..[?(@.id=="${folder["name"]}")].totalCount`)[0];
+        scaRow.push(scaCount ? `${scaCount}` : `${0}`);
+        const totalCount = jp.query(totalVulns, `$..[?(@.id=="${folder["name"]}")].totalCount`)[0];
+        totalRow.push(totalCount ? `${totalCount}` : `${0}`);
+    });
     core.debug(sastRow.toString());
     core.debug(dastRow.toString());
     core.debug(scaRow.toString());
     core.debug(totalRow.toString());
     return [
         headers,
-        sastRow, dastRow, scaRow
+        sastRow, dastRow, scaRow, totalRow
     ];
 }
 async function setJobSummary(app, version) {
@@ -38698,8 +38746,9 @@ var __importStar = (this && this.__importStar) || function (mod) {
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.getAppVersionVulnsCount = void 0;
 const utils = __importStar(__nccwpck_require__(1314));
+const filterset = __importStar(__nccwpck_require__(6671));
 const core = __importStar(__nccwpck_require__(2186));
-async function getAppVersionVulnsCount(appId, analysisType, newIssues) {
+async function getAppVersionVulnsCount(appId, filterSet, analysisType, newIssues) {
     let query = "";
     if (newIssues) {
         query = "[issue age]:NEW";
@@ -38718,7 +38767,7 @@ async function getAppVersionVulnsCount(appId, analysisType, newIssues) {
         }
     }
     core.debug(query);
-    const url = `/api/v1/projectVersions/${appId}/issueGroups?groupingtype=FOLDER${query.length ? `&qm=issues&q=${encodeURI(query)}` : ""}`;
+    const url = `/api/v1/projectVersions/${appId}/issueGroups?filterset=${await filterset.getFilterSetGuid(appId, filterSet)}&groupingtype=FOLDER${query.length ? `&qm=issues&q=${encodeURI(query)}` : ""}`;
     core.debug(url);
     let jsonRes = await utils.fcli([
         'ssc',

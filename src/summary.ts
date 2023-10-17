@@ -1,6 +1,7 @@
 import * as core from '@actions/core'
 import * as vuln from './vuln'
 import * as appversion from "./appversion";
+import * as filterset from "./filterset";
 
 function stringToHeader(element: string): string {
     switch (element) {
@@ -22,41 +23,31 @@ function stringToHeader(element: string): string {
     }
 }
 
-async function createVulnsByScanProductTable(appId: string | number): Promise<any> {
+async function createVulnsByScanProductTable(appId: string | number, filterSet: string = "filterset"): Promise<any> {
 
-    const sastVulns = await vuln.getAppVersionVulnsCount(appId, "SAST")
-    const dastVulns = await vuln.getAppVersionVulnsCount(appId, "DAST")
-    const scaVulns = await vuln.getAppVersionVulnsCount(appId, "SCA")
-    const totalVulns = await vuln.getAppVersionVulnsCount(appId)
+    const sastVulns = await vuln.getAppVersionVulnsCount(appId, filterSet, "SAST")
+    const dastVulns = await vuln.getAppVersionVulnsCount(appId, filterSet, "DAST")
+    const scaVulns = await vuln.getAppVersionVulnsCount(appId, filterSet, "SCA")
+    const totalVulns = await vuln.getAppVersionVulnsCount(appId, filterSet)
+    const folders: any[] = await filterset.getFilterSetFolders(appId, filterSet)
     let table = []
+    let headers: any[] = [{data: ':test_tube: Analysis Type', header: true}]
     var jp = require('jsonpath')
-    let headers: any[] = [{data: ':test_tube: Analysis Type', header: true},
-        {data: stringToHeader('Critical'), header: true},
-        {data: stringToHeader('High'), header: true},
-        {data: stringToHeader('Medium'), header: true},
-        {data: stringToHeader('Low'), header: true}]
-    let sastRow: any[] = [
-        '**SAST**',
-        jp.query(sastVulns, '$..[?(@.id=="Critical")].totalCount')[0] ? jp.query(sastVulns, '$..[?(@.id=="Critical")].totalCount')[0] : 0 ,
-        jp.query(sastVulns, '$..[?(@.id=="High")].totalCount')[0] ? jp.query(sastVulns, '$..[?(@.id=="High")].totalCount')[0] : 0,
-        jp.query(sastVulns, '$..[?(@.id=="Medium")].totalCount')[0] ? jp.query(sastVulns, '$..[?(@.id=="Medium")].totalCount')[0] : 0,
-        jp.query(sastVulns, '$..[?(@.id=="Low")].totalCount')[0] ? jp.query(sastVulns, '$..[?(@.id=="Low")].totalCount')[0] : 0]
-    let dastRow: any[] = [
-        '**DAST**',
-        jp.query(dastVulns, '$..[?(@.id=="Critical")].totalCount')[0] ? jp.query(dastVulns, '$..[?(@.id=="Critical")].totalCount')[0] : 0 ,
-        jp.query(dastVulns, '$..[?(@.id=="High")].totalCount')[0] ? jp.query(dastVulns, '$..[?(@.id=="High")].totalCount')[0] : 0,
-        jp.query(dastVulns, '$..[?(@.id=="Medium")].totalCount')[0] ? jp.query(dastVulns, '$..[?(@.id=="Medium")].totalCount')[0] : 0,
-        jp.query(dastVulns, '$..[?(@.id=="Low")].totalCount')[0] ? jp.query(dastVulns, '$..[?(@.id=="Low")].totalCount')[0] : 0]
-    let scaRow: any[] = ['**SCA**',
-        jp.query(scaVulns, '$..[?(@.id=="Critical")].totalCount')[0] ? jp.query(scaVulns, '$..[?(@.id=="Critical")].totalCount')[0] : 0 ,
-        jp.query(scaVulns, '$..[?(@.id=="High")].totalCount')[0] ? jp.query(scaVulns, '$..[?(@.id=="High")].totalCount')[0] : 0,
-        jp.query(scaVulns, '$..[?(@.id=="Medium")].totalCount')[0] ? jp.query(scaVulns, '$..[?(@.id=="Medium")].totalCount')[0] : 0,
-        jp.query(scaVulns, '$..[?(@.id=="Low")].totalCount')[0] ? jp.query(scaVulns, '$..[?(@.id=="Low")].totalCount')[0] : 0]
-    let totalRow: any[] = ['**Total**',
-        jp.query(totalVulns, '$..[?(@.id=="Critical")].totalCount')[0] ? jp.query(totalVulns, '$..[?(@.id=="Critical")].totalCount')[0] : 0 ,
-        jp.query(totalVulns, '$..[?(@.id=="High")].totalCount')[0] ? jp.query(totalVulns, '$..[?(@.id=="High")].totalCount')[0] : 0,
-        jp.query(totalVulns, '$..[?(@.id=="Medium")].totalCount')[0] ? jp.query(totalVulns, '$..[?(@.id=="Medium")].totalCount')[0] : 0,
-        jp.query(totalVulns, '$..[?(@.id=="Low")].totalCount')[0] ? jp.query(totalVulns, '$..[?(@.id=="Low")].totalCount')[0] : 0]
+    let sastRow: any[] = ['SAST']
+    let scaRow: any[] = ['DAST']
+    let dastRow: any[] = ['SCA']
+    let totalRow: any[] = ['Total']
+    folders.forEach((folder) => {
+        headers.push({data: stringToHeader(folder["name"]), header: true})
+        const sastCount = jp.query(sastVulns, `$..[?(@.id=="${folder["name"]}")].totalCount`)[0]
+        sastRow.push( sastCount ? `${sastCount}` : `${0}`)
+        const dastCount = jp.query(dastVulns, `$..[?(@.id=="${folder["name"]}")].totalCount`)[0]
+        dastRow.push( dastCount ? `${dastCount}` : `${0}`)
+        const scaCount = jp.query(scaVulns, `$..[?(@.id=="${folder["name"]}")].totalCount`)[0]
+        scaRow.push( scaCount ? `${scaCount}` : `${0}`)
+        const totalCount = jp.query(totalVulns, `$..[?(@.id=="${folder["name"]}")].totalCount`)[0]
+        totalRow.push( totalCount ? `${totalCount}` : `${0}`)
+    })
 
     core.debug(sastRow.toString())
     core.debug(dastRow.toString())
@@ -65,7 +56,7 @@ async function createVulnsByScanProductTable(appId: string | number): Promise<an
 
     return [// Headers
         headers, // rows
-        sastRow, dastRow, scaRow]
+        sastRow, dastRow, scaRow, totalRow]
 
 }
 
