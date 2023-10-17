@@ -56,10 +56,8 @@ export async function loginSscWithToken(
       'ssc',
       'session',
       'login',
-      `--url`,
-      base_url,
-      '-t',
-      token,
+      `--ci-token='${token}'`,
+      `--url='${base_url}'`,
       process.env.FCLI_DEFAULT_TOKEN_EXPIRE
         ? `--expire-in=${process.env.FCLI_DEFAULT_TOKEN_EXPIRE}`
         : '',

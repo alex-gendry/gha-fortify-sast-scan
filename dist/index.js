@@ -26881,16 +26881,16 @@ async function appVersionExists(app, version) {
     let jsonRes = await utils.fcli([
         'ssc',
         'appversion',
-        'ls',
+        'list',
         `-q=application.name=${app}`,
         `-q=name=${version}`,
         '--output=json'
     ]);
     if (jsonRes.length === 0) {
-        return true;
+        return false;
     }
     else {
-        return false;
+        return true;
     }
 }
 exports.appVersionExists = appVersionExists;
@@ -27331,10 +27331,12 @@ async function run() {
         core.info(`Login to Fortify solutions`);
         try {
             if (INPUT.ssc_ci_token) {
+                core.debug('Login to SSC using Token');
                 await session.loginSscWithToken(INPUT.ssc_base_url, INPUT.ssc_ci_token);
                 core.info('SSC Login Success');
             }
             else if (INPUT.ssc_ci_username && INPUT.ssc_ci_password) {
+                core.debug('Login to SSC using Username Password');
                 await session.loginSscWithUsernamePassword(INPUT.ssc_base_url, INPUT.ssc_ci_username, INPUT.ssc_ci_password);
                 core.info('SSC Login Success');
             }
@@ -27392,6 +27394,10 @@ async function run() {
                 throw new Error(`${err}`);
             }
         }
+        else {
+            core.warning(`AppVersion ${INPUT.ssc_app}:${INPUT.ssc_version} not found.`);
+            core.setFailed('Scan not executed because AppVersion ${INPUT.ssc_app}:${INPUT.ssc_version} not found.');
+        }
         core.setOutput('time', new Date().toTimeString());
     }
     catch (error) {
@@ -27437,7 +27443,7 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.packageSourceCode = void 0;
 const utils = __importStar(__nccwpck_require__(1314));
 async function packageSourceCode(buildOpts) {
-    return await utils.scancentral(['package', buildOpts]);
+    return await utils.scancentral(['package'].concat(utils.stringToArgsArray(buildOpts).concat(['-o', 'package.zip'])));
 }
 exports.packageSourceCode = packageSourceCode;
 
@@ -27526,10 +27532,8 @@ async function loginSscWithToken(base_url, token) {
             'ssc',
             'session',
             'login',
-            `--url`,
-            base_url,
-            '-t',
-            token,
+            `--ci-token='${token}'`,
+            `--url='${base_url}'`,
             process.env.FCLI_DEFAULT_TOKEN_EXPIRE
                 ? `--expire-in=${process.env.FCLI_DEFAULT_TOKEN_EXPIRE}`
                 : '',
@@ -27668,7 +27672,7 @@ var __importStar = (this && this.__importStar) || function (mod) {
     return result;
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.scancentral = exports.fcli = exports.getScanCentralPath = exports.getFcliPath = exports.getCopyVulnsBody = exports.getCopyStateBody = exports.getCreateAppVersionBody = void 0;
+exports.scancentral = exports.stringToArgsArray = exports.fcli = exports.getScanCentralPath = exports.getFcliPath = exports.getCopyVulnsBody = exports.getCopyStateBody = exports.getCreateAppVersionBody = void 0;
 const core = __importStar(__nccwpck_require__(2186));
 const exec = __importStar(__nccwpck_require__(1514));
 /**
@@ -27787,6 +27791,7 @@ async function fcli(args) {
             silent: true
         };
         core.debug('fcli begin');
+        core.debug(args.toString());
         const response = await exec.exec(getFcliPath(), args, options);
         core.debug(responseData);
         return JSON.parse(responseData);
@@ -27797,6 +27802,27 @@ async function fcli(args) {
     }
 }
 exports.fcli = fcli;
+function stringToArgsArray(text) {
+    const re = /^"[^"]*"$/;
+    const re2 = /^([^"]|[^"].*?[^"])$/;
+    let arr = [];
+    let argPart = null;
+    text &&
+        text.split(' ').forEach(function (arg) {
+            if ((re.test(arg) || re2.test(arg)) && !argPart) {
+                arr.push(arg);
+            }
+            else {
+                argPart = argPart ? argPart + ' ' + arg : arg;
+                if (/"$/.test(argPart)) {
+                    arr.push(argPart);
+                    argPart = null;
+                }
+            }
+        });
+    return arr;
+}
+exports.stringToArgsArray = stringToArgsArray;
 async function scancentral(args) {
     let responseData = '';
     let errorData = '';

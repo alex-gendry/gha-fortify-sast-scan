@@ -123,6 +123,7 @@ export async function fcli(args: string[]): Promise<any> {
     }
 
     core.debug('fcli begin')
+    core.debug(args.toString())
     const response = await exec.exec(getFcliPath(), args, options)
     core.debug(responseData)
 
@@ -131,6 +132,29 @@ export async function fcli(args: string[]): Promise<any> {
     core.error(`${errorData}`)
     throw new Error(`${e}`)
   }
+}
+
+export function stringToArgsArray(text: string): string[] {
+  const re = /^"[^"]*"$/
+  const re2 = /^([^"]|[^"].*?[^"])$/
+
+  let arr: string[] = []
+  let argPart: any = null
+
+  text &&
+    text.split(' ').forEach(function (arg) {
+      if ((re.test(arg) || re2.test(arg)) && !argPart) {
+        arr.push(arg)
+      } else {
+        argPart = argPart ? argPart + ' ' + arg : arg
+        if (/"$/.test(argPart)) {
+          arr.push(argPart)
+          argPart = null
+        }
+      }
+    })
+
+  return arr
 }
 
 export async function scancentral(args: string[]): Promise<any> {
