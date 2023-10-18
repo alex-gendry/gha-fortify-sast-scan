@@ -54,10 +54,16 @@ async function getVulnsByScanProductTable(appId: string | number, filterSet: str
 
 }
 
-async function getScansSummaryTable(appId: string | number): Promise<any[]> {
+async function getScansSummaryTable(appId: string|number): Promise<any[]>{
     const scanTypesList: string[] = await artifact.getScanTypesList(appId)
-    let scanRows: any[] = []
+    let scanRows:any[] = []
 
+    await Promise.all(
+        scanTypesList.map(async scanType => {
+            const lastScan = await artifact.getLatestArtifact(appId, scanType)
+            scanRows.push([`<b>Last Successful ${utils.normalizeScanType(scanType)} Scan</b>`,new Date(lastScan["lastScanDate"]).toLocaleString('fr-FR') ])
+        })
+    )
 
     return scanRows
 }

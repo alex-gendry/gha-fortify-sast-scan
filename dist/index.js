@@ -38627,6 +38627,10 @@ async function getVulnsByScanProductTable(appId, filterSet = "Security Auditor V
 async function getScansSummaryTable(appId) {
     const scanTypesList = await artifact.getScanTypesList(appId);
     let scanRows = [];
+    await Promise.all(scanTypesList.map(async (scanType) => {
+        const lastScan = await artifact.getLatestArtifact(appId, scanType);
+        scanRows.push([`<b>Last Successful ${utils.normalizeScanType(scanType)} Scan</b>`, new Date(lastScan["lastScanDate"]).toLocaleString('fr-FR')]);
+    }));
     return scanRows;
 }
 async function setJobSummary(app, version) {
