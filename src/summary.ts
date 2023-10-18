@@ -144,15 +144,16 @@ function getAsLink(text:string, link: string): string {
     return `<a target="_blank" href="${link}">${text}</a>`
 }
 
-export async function setJobSummary(app: string, version: string, passedSecurityage:boolean, filterSet: string, base_url: string): Promise<any> {
-    const appId = await appversion.getAppVersionId(app, version)
+export async function setJobSummary(INPUT: any, passedSecurityage:boolean,): Promise<any> {
+    const appId = await appversion.getAppVersionId(INPUT.ssc_app, INPUT.ssc_version)
 
     const securityRating = await performanceindicator.getPerformanceIndicatorValueByName(appId, 'Fortify Security Rating')
     let n = 0
     const securityStars: string = ":white_circle::white_circle::white_circle::white_circle::white_circle:".replace(/white_circle/g, match => n++ < securityRating ? "star" : match)
 
-    const appVersionUrl: string = `${base_url}/html/ssc/version/${appId}/audit`
-    const securityRatingsUrl: string = `${base_url}/html/ssc/version/${appId}/trend?versionTrendDateRange=YEAR&versionTrendParam=performanceIndicators%3A%3AFortifySecurityRating`
+    const appVersionUrl: string = `${INPUT.ssc_base_url}/html/ssc/version/${appId}/audit`
+    const securityRatingsUrl: string = `${INPUT.ssc_base_url}/html/ssc/version/${appId}/trend?versionTrendDateRange=YEAR&versionTrendParam=performanceIndicators%3A%3AFortifySecurityRating`
+    const securityGateUrl: string = `${INPUT.ssc_base_url}/html/ssc/version/${appId}/audit?${await filterset.getFilterSetGuid(appId, INPUT.security_gate_filterset)}`
 
     await core.summary
         .addImage('https://cdn.asp.events/CLIENT_CloserSt_D86EA381_5056_B739_5482D50A1A831DDD/sites/CSWA-2023/media/libraries/exhibitors/Ezone-cover.png/fit-in/1500x9999/filters:no_upscale()', 'Fortify by OpenText CyberSecurity', {width: "600"})
@@ -160,14 +161,14 @@ export async function setJobSummary(app: string, version: string, passedSecurity
         .addHeading(':clipboard: Executive Summary', 2)
         .addRaw(`:date: ${new Date().toLocaleString('fr-FR')}</>`)
         .addTable([
-            [`<b>Application</b>`, app, `<b>Application Version</b>`, `${getAsLink(version,appVersionUrl)}`]
+            [`<b>Application</b>`, INPUT.ssc_app, `<b>Application Version</b>`, `${getAsLink(INPUT.ssc_version,appVersionUrl)}`]
         ])
         .addTable([
-            [`<p><b>Fortify Security Rating</b>:   ${getAsLink(securityStars,securityRatingsUrl)}</p>`],
-            [`<p><b>Security Gate Status</b> :   ${passedSecurityage ? 'Passed :white_check_mark:' : 'Failed :x:'  }</p>`]])
+            [`<p><b>${getAsLink("Fortify Security Rating",securityRatingsUrl)}</b>: ${securityStars}</p>`],
+            [`<p><b>${getAsLink("Security Gate Status",securityRatingsUrl)}</b> :   ${passedSecurityage ? 'Passed :white_check_mark:' : 'Failed :x:'  }</p>`]])
         .addTable(await getScansSummaryTable(appId))
         .addHeading(':signal_strength: Security Findings', 2)
-        .addHeading(`:telescope: Filter Set: ${filterSet}`, 3)
-        .addTable(await getVulnsByScanProductTable(appId, filterSet))
+        .addHeading(`:telescope: Filter Set: ${INPUT.summary_filterset}`, 3)
+        .addTable(await getVulnsByScanProductTable(appId, INPUT.summary_filterset))
         .write()
 }

@@ -106,7 +106,11 @@ export async function run(): Promise<void> {
         }
 
         /** Job Summary */
-        await summary.setJobSummary(INPUT.ssc_app, INPUT.ssc_version, passedSecurityGate, INPUT.summary_filterset, INPUT.ssc_base_url)
+        await summary.setJobSummary(INPUT, passedSecurityGate).catch(error => {
+            core.error(error.message)
+            core.setFailed(`Job Summary construction failed`)
+            process.exit(core.ExitCode.Failure)
+        })
 
 
         core.setOutput('time', new Date().toTimeString())
