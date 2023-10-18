@@ -50,10 +50,13 @@ async function getVulnsByScanProductTable(appId: string | number, filterSet: str
             const count: number = jp.query(vulns, `$..[?(@.id=="${folder["name"]}")].totalCount`)[0]
             const countNew: number = jp.query(newVulns, `$..[?(@.id=="${folder["name"]}")].totalCount`)[0]
             let cell: string = ""
-            if (!count && (!countNew || countNew === 0)) {
-                cell = `0`
+            if (!count) {
+                cell = `${count}`
             } else {
-                if (count === countNew) {
+                if (!countNew || countNew === 0)
+                {
+                    cell = `${count}`
+                } else if (count === countNew) {
                     cell = `${count} :new:`
                 } else {
                     cell = `${count} (${countNew} :new:)`

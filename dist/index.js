@@ -38624,11 +38624,14 @@ async function getVulnsByScanProductTable(appId, filterSet = "Security Auditor V
             const count = jp.query(vulns, `$..[?(@.id=="${folder["name"]}")].totalCount`)[0];
             const countNew = jp.query(newVulns, `$..[?(@.id=="${folder["name"]}")].totalCount`)[0];
             let cell = "";
-            if ((!count) && (!countNew || countNew === 0)) {
-                cell = `0`;
+            if (!count) {
+                cell = `${count}`;
             }
             else {
-                if (count === countNew) {
+                if (!countNew || countNew === 0) {
+                    cell = `${count}`;
+                }
+                else if (count === countNew) {
                     cell = `${count} :new:`;
                 }
                 else {
