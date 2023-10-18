@@ -38590,7 +38590,7 @@ async function setJobSummary(app, version) {
                 </tr>
                 </tbody>
             </table>
-
+        </td>
         <td>
             <table width="400" cellspacing="0">
                 <tbody>

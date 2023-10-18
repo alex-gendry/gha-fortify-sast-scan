@@ -92,7 +92,7 @@ export async function setJobSummary(app: string, version: string): Promise<any> 
                 </tr>
                 </tbody>
             </table>
-
+        </td>
         <td>
             <table width="400" cellspacing="0">
                 <tbody>
