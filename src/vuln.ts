@@ -16,8 +16,8 @@ export async function getAppVersionVulnsCount(appId: number | string, filterSet:
             case "DAST":
                 query = `${query}${query.length ? " AND " : ""}[analysis type]:WEBINSPECT`
                 break
-            case "SCA":
-                query = `${query}${query.length ? " AND " : ""}[analysis type]:SONATYPE`
+            default:
+                query = `${query}${query.length ? " AND " : ""}[analysis type]:${analysisType}`
                 break
         }
     }
