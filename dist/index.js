@@ -38611,7 +38611,7 @@ async function getVulnsByScanProductTable(appId, filterSet = "Security Auditor V
     const scanTypesList = await artifact.getScanTypesList(appId);
     const folders = await filterset.getFilterSetFolders(appId, filterSet);
     folders.forEach((folder) => {
-        headers.push({ data: `${folder["name"]}`, header: true });
+        headers.push({ data: `${stringToHeader(folder["name"])}`, header: true });
     });
     await Promise.all(scanTypesList.map(async (scanType) => {
         const vulns = await vuln.getAppVersionVulnsCount(appId, filterSet, scanType);
@@ -38623,6 +38623,22 @@ async function getVulnsByScanProductTable(appId, filterSet = "Security Auditor V
         rows.push(row);
     }));
     return [headers].concat(rows);
+}
+async function getNewVulnsTable(appId, filterSet = "Security Auditor View") {
+    var jp = __nccwpck_require__(4378);
+    let headers = [];
+    let row = [];
+    const folders = await filterset.getFilterSetFolders(appId, filterSet);
+    const vulns = await vuln.getAppVersionNewVulnsCount(appId, filterSet);
+    folders.forEach((folder) => {
+        headers.push({ data: `${stringToHeader(folder["name"])}`, header: true });
+        const count = jp.query(vulns, `$..[?(@.id=="${folder["name"]}")].totalCount`)[0];
+        row.push(count ? `${count}` : `${0}`);
+    });
+    return [
+        headers,
+        row
+    ];
 }
 async function getScansSummaryTable(appId) {
     const scanTypesList = await artifact.getScanTypesList(appId);
@@ -38645,11 +38661,11 @@ async function setJobSummary(app, version) {
         .addTable([[`<b>Application</b>`, app, `<b>Application Version</b>`, version]])
         .addRaw(`<p><b>Fortify Security Rating</b>:   ${securityStars}</p>`)
         .addTable(await getScansSummaryTable(appId))
-        .addSeparator()
         .addHeading('Security Findings', 2)
+        .addHeading(':new: Newly Added Security Findings', 2)
+        .addTable(await getNewVulnsTable(appId, 'Security Auditor View'))
+        .addHeading(':signal_strength: All Security Findings', 2)
         .addTable(await getVulnsByScanProductTable(appId, 'Security Auditor View'))
-        // .addHeading('Newly Added Security Findings', 2)
-        // .addTable(await getNewVulnsTable(appId, 'Security Auditor View'))
         .addLink('View staging deployment!', 'https://github.com')
         .write();
 }
@@ -38913,7 +38929,7 @@ var __importStar = (this && this.__importStar) || function (mod) {
     return result;
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.getAppVersionVulnsCount = void 0;
+exports.getAppVersionNewVulnsCount = exports.getAppVersionVulnsCount = void 0;
 const utils = __importStar(__nccwpck_require__(1314));
 const filterset = __importStar(__nccwpck_require__(6671));
 const core = __importStar(__nccwpck_require__(2186));
@@ -38955,6 +38971,10 @@ async function getAppVersionVulnsCount(appId, filterSet, analysisType, newIssues
     }
 }
 exports.getAppVersionVulnsCount = getAppVersionVulnsCount;
+async function getAppVersionNewVulnsCount(appId, filterSet, analysisType) {
+    return await getAppVersionVulnsCount(appId, filterSet, analysisType, true);
+}
+exports.getAppVersionNewVulnsCount = getAppVersionNewVulnsCount;
 
 
 /***/ }),

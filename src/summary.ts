@@ -5,6 +5,7 @@ import * as filterset from "./filterset";
 import * as artifact from "./artifact";
 import * as utils from "./utils";
 import * as performanceindicator from "./performanceindicator";
+import {getAppVersionNewVulnsCount} from "./vuln";
 
 function stringToHeader(element: string): string {
     switch (element) {
@@ -30,12 +31,12 @@ async function getVulnsByScanProductTable(appId: string | number, filterSet: str
     var jp = require('jsonpath')
 
     let headers: any[] = [{data: ':test_tube: Analysis Type', header: true}]
-    let rows : any[] = []
+    let rows: any[] = []
     const scanTypesList: string[] = await artifact.getScanTypesList(appId)
     const folders: any[] = await filterset.getFilterSetFolders(appId, filterSet)
 
     folders.forEach((folder) => {
-        headers.push({data: `${folder["name"]}`, header: true})
+        headers.push({data: `${stringToHeader(folder["name"])}`, header: true})
     })
 
     await Promise.all(scanTypesList.map(async scanType => {
@@ -54,14 +55,34 @@ async function getVulnsByScanProductTable(appId: string | number, filterSet: str
 
 }
 
-async function getScansSummaryTable(appId: string|number): Promise<any[]>{
+async function getNewVulnsTable(appId:string|number, filterSet:string = "Security Auditor View") : Promise<any>{
+    var jp = require('jsonpath')
+
+    let headers: any[] = []
+    let row: string[] = []
+    const folders: any[] = await filterset.getFilterSetFolders(appId, filterSet)
+    const vulns = await vuln.getAppVersionNewVulnsCount(appId, filterSet)
+
+    folders.forEach((folder) => {
+        headers.push({data: `${stringToHeader(folder["name"])}`, header: true})
+        const count = jp.query(vulns, `$..[?(@.id=="${folder["name"]}")].totalCount`)[0]
+        row.push(count ? `${count}` : `${0}`)
+    })
+
+    return [
+        headers,
+        row
+    ]
+}
+
+async function getScansSummaryTable(appId: string | number): Promise<any[]> {
     const scanTypesList: string[] = await artifact.getScanTypesList(appId)
-    let scanRows:any[] = []
+    let scanRows: any[] = []
 
     await Promise.all(
         scanTypesList.map(async scanType => {
             const lastScan = await artifact.getLatestArtifact(appId, scanType)
-            scanRows.push([`<b>Last Successful ${utils.normalizeScanType(scanType)} Scan</b>`,new Date(lastScan["lastScanDate"]).toLocaleString('fr-FR') ])
+            scanRows.push([`<b>Last Successful ${utils.normalizeScanType(scanType)} Scan</b>`, new Date(lastScan["lastScanDate"]).toLocaleString('fr-FR')])
         })
     )
 
@@ -82,11 +103,11 @@ export async function setJobSummary(app: string, version: string): Promise<any> 
         .addTable([[`<b>Application</b>`, app, `<b>Application Version</b>`, version]])
         .addRaw(`<p><b>Fortify Security Rating</b>:   ${securityStars}</p>`)
         .addTable(await getScansSummaryTable(appId))
-        .addSeparator()
         .addHeading('Security Findings', 2)
+        .addHeading(':new: Newly Added Security Findings', 2)
+        .addTable(await getNewVulnsTable(appId, 'Security Auditor View'))
+        .addHeading(':signal_strength: All Security Findings', 2)
         .addTable(await getVulnsByScanProductTable(appId, 'Security Auditor View'))
-        // .addHeading('Newly Added Security Findings', 2)
-        // .addTable(await getNewVulnsTable(appId, 'Security Auditor View'))
         .addLink('View staging deployment!', 'https://github.com')
         .write()
 }

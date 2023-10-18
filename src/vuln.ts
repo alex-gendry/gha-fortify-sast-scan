@@ -40,3 +40,8 @@ export async function getAppVersionVulnsCount(appId: number | string, filterSet:
         throw new Error(`issueSummaries failed with code ${responseCode}`)
     }
 }
+
+
+export async function getAppVersionNewVulnsCount(appId: number | string, filterSet:string, analysisType?: String): Promise<any> {
+    return await getAppVersionVulnsCount(appId, filterSet, analysisType, true)
+}
