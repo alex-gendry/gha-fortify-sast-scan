@@ -38625,20 +38625,22 @@ async function getVulnsByScanProductTable(appId, filterSet = "Security Auditor V
             const countNew = jp.query(newVulns, `$..[?(@.id=="${folder["name"]}")].totalCount`)[0];
             let cell = "";
             if (!count) {
-                cell = `${count}`;
+                cell = `0`;
             }
             else {
                 if (!countNew || countNew === 0) {
                     cell = `${count}`;
                 }
-                else if (count === countNew) {
-                    cell = `${count} :new:`;
-                }
                 else {
-                    cell = `${count} (${countNew} :new:)`;
+                    if (count === countNew) {
+                        cell = `${count} :new:`;
+                    }
+                    else {
+                        cell = `${count} (${countNew} :new:)`;
+                    }
+                    total += count;
+                    totalNew += countNew;
                 }
-                total += count;
-                totalNew += countNew;
             }
             row.push(cell);
             core.debug(`${scanType} : ${total} / ${count}`);
