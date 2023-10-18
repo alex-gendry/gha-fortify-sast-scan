@@ -38610,8 +38610,12 @@ async function getVulnsByScanProductTable(appId, filterSet = "Security Auditor V
     let rows = [];
     const scanTypesList = await artifact.getScanTypesList(appId);
     const folders = await filterset.getFilterSetFolders(appId, filterSet);
+    let folderTotals = [];
+    let folderTotalsNew = [];
     folders.forEach((folder) => {
         headers.push({ data: `${stringToHeader(folder["name"])}`, header: true });
+        folderTotals[folder["name"]] = 0;
+        folderTotalsNew[folder["name"]] = 0;
     });
     headers.push({ data: `Total`, header: true });
     await Promise.all(scanTypesList.map(async (scanType) => {
@@ -38640,6 +38644,8 @@ async function getVulnsByScanProductTable(appId, filterSet = "Security Auditor V
                     }
                     total += count;
                     totalNew += countNew;
+                    folderTotals[folder["name"]] += count;
+                    folderTotalsNew[folder["name"]] += countNew;
                 }
             }
             row.push(cell);
@@ -38659,6 +38665,21 @@ async function getVulnsByScanProductTable(appId, filterSet = "Security Auditor V
         core.debug(cell);
         rows.push(row);
     }));
+    let totalRow = [`Total`];
+    folders.forEach((folder) => {
+        let cell = "";
+        if (folderTotals[folder["name"]] === 0) {
+            cell = "0";
+        }
+        else if (folderTotals[folder["name"]] === folderTotalsNew[folder["name"]]) {
+            cell = `${folderTotals[folder["name"]]} :new:`;
+        }
+        else {
+            cell = `${folderTotals[folder["name"]]} (${folderTotalsNew[folder["name"]]} :new:)`;
+        }
+        totalRow.push(cell);
+    });
+    rows.push(totalRow);
     return [headers].concat(rows);
 }
 async function getNewVulnsByScanProductTable(appId, filterSet = "Security Auditor View") {

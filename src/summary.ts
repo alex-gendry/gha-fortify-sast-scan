@@ -33,9 +33,13 @@ async function getVulnsByScanProductTable(appId: string | number, filterSet: str
     let rows: any[] = []
     const scanTypesList: string[] = await artifact.getScanTypesList(appId)
     const folders: any[] = await filterset.getFilterSetFolders(appId, filterSet)
+    let folderTotals: number[] = []
+    let folderTotalsNew: number[] = []
 
     folders.forEach((folder) => {
         headers.push({data: `${stringToHeader(folder["name"])}`, header: true})
+        folderTotals[folder["name"]] = 0
+        folderTotalsNew[folder["name"]] = 0
     })
     headers.push({data: `Total`, header: true})
 
@@ -63,6 +67,8 @@ async function getVulnsByScanProductTable(appId: string | number, filterSet: str
                     }
                     total += count
                     totalNew += countNew
+                    folderTotals[folder["name"]] += count
+                    folderTotalsNew[folder["name"]] += countNew
                 }
             }
 
@@ -83,6 +89,20 @@ async function getVulnsByScanProductTable(appId: string | number, filterSet: str
         core.debug(cell)
         rows.push(row)
     }))
+
+    let totalRow: string[] = [`Total`]
+    folders.forEach((folder) => {
+        let cell: string = ""
+        if (folderTotals[folder["name"]]  === 0) {
+            cell = "0"
+        } else if (folderTotals[folder["name"]]  === folderTotalsNew[folder["name"]]) {
+            cell = `${folderTotals[folder["name"]] } :new:`
+        } else {
+            cell = `${folderTotals[folder["name"]] } (${folderTotalsNew[folder["name"]]} :new:)`
+        }
+        totalRow.push(cell)
+    })
+    rows.push(totalRow)
 
     return [headers].concat(rows)
 
