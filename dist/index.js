@@ -38713,10 +38713,8 @@ async function setJobSummary(app, version, base_url) {
         .addTable([[`<b>Application</b>`, app, `<b>Application Version</b>`, `${version} ${getLink(appVersionUrl)}`]])
         .addTable([[`<p><b>Fortify Security Rating</b> ${getLink(securityRatingsUrl)}:   ${securityStars}</p>`]])
         .addTable(await getScansSummaryTable(appId))
-        .addHeading('Security Findings', 2)
-        .addHeading(':new: Newly Added Security Findings', 2)
-        .addTable(await getNewVulnsByScanProductTable(appId, filterSet))
-        .addHeading(':signal_strength: All Security Findings', 2)
+        .addHeading(':signal_strength: Security Findings', 2)
+        .addHeading(`:telescope: Filter Set: ${filterSet}`, 3)
         .addTable(await getVulnsByScanProductTable(appId, filterSet))
         .write();
 }
