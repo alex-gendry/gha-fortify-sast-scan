@@ -1,4 +1,5 @@
 import * as utils from "./utils";
+import * as core from '@actions/core'
 
 async function getAppVersionArtifacts(
     appId: string|number,
@@ -19,6 +20,15 @@ async function getAppVersionArtifacts(
         : args
 
     return await utils.fcli(args)
+}
+
+export async function getLatestArtifact(
+    appId: string|number,
+    scanType: string
+): Promise<any> {
+    let jsonRes = await getAppVersionArtifacts(appId,scanType)
+
+    return jsonRes[0]
 }
 export async function getLatestSastArtifact(
     appId: string|number
@@ -42,5 +52,17 @@ export async function getLatestScaArtifact(
     let jsonRes = await getAppVersionArtifacts(appId,"SONATYPE")
 
     return jsonRes[0]
+}
+
+export async function getScanTypesList(appId: string|number): Promise<string[]> {
+    let artifacts = await getAppVersionArtifacts(appId)
+    var jp = require('jsonpath')
+
+    const scanTypes = jp.query(artifacts, `$.*.scanTypes`).filter(
+        (scanType:any, i:any, arr:any[]) => arr.findIndex(t => t === scanType) === i
+    )
+    core.debug(scanTypes)
+
+    return scanTypes
 }
 

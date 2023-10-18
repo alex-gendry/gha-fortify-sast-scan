@@ -37944,8 +37944,9 @@ var __importStar = (this && this.__importStar) || function (mod) {
     return result;
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.getLatestScaArtifact = exports.getLatestDastArtifact = exports.getLatestSastArtifact = void 0;
+exports.getScanTypesList = exports.getLatestScaArtifact = exports.getLatestDastArtifact = exports.getLatestSastArtifact = exports.getLatestArtifact = void 0;
 const utils = __importStar(__nccwpck_require__(1314));
+const core = __importStar(__nccwpck_require__(2186));
 async function getAppVersionArtifacts(appId, scanType, status = "PROCESS_COMPLETE") {
     let args = [
         'ssc',
@@ -37962,6 +37963,11 @@ async function getAppVersionArtifacts(appId, scanType, status = "PROCESS_COMPLET
         : args;
     return await utils.fcli(args);
 }
+async function getLatestArtifact(appId, scanType) {
+    let jsonRes = await getAppVersionArtifacts(appId, scanType);
+    return jsonRes[0];
+}
+exports.getLatestArtifact = getLatestArtifact;
 async function getLatestSastArtifact(appId) {
     let jsonRes = await getAppVersionArtifacts(appId, "SCA");
     return jsonRes[0];
@@ -37977,6 +37983,14 @@ async function getLatestScaArtifact(appId) {
     return jsonRes[0];
 }
 exports.getLatestScaArtifact = getLatestScaArtifact;
+async function getScanTypesList(appId) {
+    let artifacts = await getAppVersionArtifacts(appId);
+    var jp = __nccwpck_require__(4378);
+    const scanTypes = jp.query(artifacts, `$.*.scanTypes`).filter((scanType, i, arr) => arr.findIndex(t => t === scanType) === i);
+    core.debug(scanTypes);
+    return scanTypes;
+}
+exports.getScanTypesList = getScanTypesList;
 
 
 /***/ }),
@@ -38569,6 +38583,7 @@ const vuln = __importStar(__nccwpck_require__(4002));
 const appversion = __importStar(__nccwpck_require__(3538));
 const filterset = __importStar(__nccwpck_require__(6671));
 const artifact = __importStar(__nccwpck_require__(4571));
+const utils = __importStar(__nccwpck_require__(1314));
 const performanceindicator = __importStar(__nccwpck_require__(4909));
 function stringToHeader(element) {
     switch (element) {
@@ -38618,11 +38633,17 @@ async function createVulnsByScanProductTable(appId, filterSet = "Security Audito
         sastRow, dastRow, scaRow, totalRow
     ];
 }
+async function getScansSummaryTable(appId) {
+    const scanTypesList = await artifact.getScanTypesList(appId);
+    let scanRows = [];
+    await Promise.all(scanTypesList.map(async (scanType) => {
+        const lastScan = await artifact.getLatestArtifact(appId, scanType);
+        scanRows.push([`<b>Last Successful ${utils.normalizeScanType(scanType)} Scan</b>`, new Date(lastScan["lastScanDate"]).toLocaleString('fr-FR')]);
+    }));
+    return scanRows;
+}
 async function setJobSummary(app, version) {
     const appId = await appversion.getAppVersionId(app, version);
-    const lastSastScan = await artifact.getLatestSastArtifact(appId);
-    const lastDastScan = await artifact.getLatestDastArtifact(appId);
-    const lastScaScan = await artifact.getLatestScaArtifact(appId);
     const securityRating = await performanceindicator.getPerformanceIndicatorValueByName(appId, 'Fortify Security Rating');
     let n = 0;
     const securityStars = ":white_circle::white_circle::white_circle::white_circle::white_circle:".replace(/white_circle/g, match => n++ < securityRating ? "star" : match);
@@ -38634,11 +38655,7 @@ async function setJobSummary(app, version) {
         [`<b>Application</b>`, app, `<b>Application Version</b>`, version]
     ])
         .addRaw(`<p><b>Fortify Security Rating</b>:   ${securityStars}</p>`)
-        .addTable([
-        [`<b>Last Successful SAST Scan</b>`, new Date(lastSastScan["lastScanDate"]).toLocaleString('fr-FR')],
-        [`<b>Last Successful DAST Scan</b>`, new Date(lastDastScan["lastScanDate"]).toLocaleString('fr-FR')],
-        [`<b>Last Successful SCA Scan</b>`, new Date(lastScaScan["lastScanDate"]).toLocaleString('fr-FR')]
-    ])
+        .addTable(await getScansSummaryTable(appId))
         .addSeparator()
         .addHeading('Security Findings', 2)
         .addTable(await createVulnsByScanProductTable(appId, 'Information'))
@@ -38679,7 +38696,7 @@ var __importStar = (this && this.__importStar) || function (mod) {
     return result;
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.scancentral = exports.stringToArgsArray = exports.fcli = exports.getScanCentralPath = exports.getFcliPath = exports.getCopyVulnsBody = exports.getCopyStateBody = exports.getCreateAppVersionBody = void 0;
+exports.normalizeScanType = exports.scancentral = exports.stringToArgsArray = exports.fcli = exports.getScanCentralPath = exports.getFcliPath = exports.getCopyVulnsBody = exports.getCopyStateBody = exports.getCreateAppVersionBody = void 0;
 const core = __importStar(__nccwpck_require__(2186));
 const exec = __importStar(__nccwpck_require__(1514));
 /**
@@ -38849,6 +38866,29 @@ async function scancentral(args) {
     return response;
 }
 exports.scancentral = scancentral;
+function toTitleCase(str) {
+    const titleCase = str
+        .toLowerCase()
+        .split(' ')
+        .map(word => {
+        return word.charAt(0).toUpperCase() + word.slice(1);
+    })
+        .join(' ');
+    return titleCase;
+}
+function normalizeScanType(scanType) {
+    switch (scanType) {
+        case "SCA":
+            return "Fortify SAST";
+            break;
+        case "WEBINSPECT":
+            return "Fortify DAST";
+            break;
+        default:
+            return toTitleCase(scanType);
+    }
+}
+exports.normalizeScanType = normalizeScanType;
 
 
 /***/ }),

@@ -3,6 +3,7 @@ import * as vuln from './vuln'
 import * as appversion from "./appversion";
 import * as filterset from "./filterset";
 import * as artifact from "./artifact";
+import * as utils from "./utils";
 import * as performanceindicator from "./performanceindicator";
 
 function stringToHeader(element: string): string {
@@ -57,11 +58,23 @@ async function createVulnsByScanProductTable(appId: string | number, filterSet: 
 
 }
 
+async function getScansSummaryTable(appId: string|number): Promise<any[]>{
+    const scanTypesList: string[] = await artifact.getScanTypesList(appId)
+    let scanRows:any[] = []
+
+    await Promise.all(
+        scanTypesList.map(async scanType => {
+            const lastScan = await artifact.getLatestArtifact(appId, scanType)
+            scanRows.push([`<b>Last Successful ${utils.normalizeScanType(scanType)} Scan</b>`,new Date(lastScan["lastScanDate"]).toLocaleString('fr-FR') ])
+        })
+    )
+
+    return scanRows
+}
+
 export async function setJobSummary(app: string, version: string): Promise<any> {
     const appId = await appversion.getAppVersionId(app, version)
-    const lastSastScan = await artifact.getLatestSastArtifact(appId)
-    const lastDastScan = await artifact.getLatestDastArtifact(appId)
-    const lastScaScan = await artifact.getLatestScaArtifact(appId)
+
     const securityRating = await performanceindicator.getPerformanceIndicatorValueByName(appId, 'Fortify Security Rating')
     let n = 0
     const securityStars:string = ":white_circle::white_circle::white_circle::white_circle::white_circle:".replace(/white_circle/g, match => n++ < securityRating ? "star" : match)
@@ -74,11 +87,7 @@ export async function setJobSummary(app: string, version: string): Promise<any> 
             [`<b>Application</b>`, app,`<b>Application Version</b>`, version]
         ])
         .addRaw(`<p><b>Fortify Security Rating</b>:   ${securityStars}</p>`)
-        .addTable([
-            [`<b>Last Successful SAST Scan</b>`,new Date(lastSastScan["lastScanDate"]).toLocaleString('fr-FR') ],
-            [`<b>Last Successful DAST Scan</b>`,new Date(lastDastScan["lastScanDate"]).toLocaleString('fr-FR') ],
-            [ `<b>Last Successful SCA Scan</b>`,new Date(lastScaScan["lastScanDate"]).toLocaleString('fr-FR') ]
-        ])
+        .addTable(await getScansSummaryTable(appId))
         .addSeparator()
         .addHeading('Security Findings', 2)
         .addTable(await createVulnsByScanProductTable(appId,'Information'))

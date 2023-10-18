@@ -9,7 +9,7 @@ import * as exec from '@actions/exec'
  * @returns {any} returns the HTTP body as JSON object
  */
 export function getCreateAppVersionBody(app: any, version: string): any {
-  const bodyJson = JSON.parse(`
+    const bodyJson = JSON.parse(`
     {
         "name": "${version}",
         "description": "",
@@ -19,21 +19,21 @@ export function getCreateAppVersionBody(app: any, version: string): any {
         }
     }`)
 
-  switch (typeof app) {
-    case 'string':
-      bodyJson['project']['name'] = app
-      break
-    case 'number':
-      bodyJson['project']['id'] = app
-      break
-    default:
-      core.error(
-        `app parameter should be of type string or number. Not: ${typeof app}`
-      )
-      core.setFailed('AppVersion HTTP body creation failed')
-  }
+    switch (typeof app) {
+        case 'string':
+            bodyJson['project']['name'] = app
+            break
+        case 'number':
+            bodyJson['project']['id'] = app
+            break
+        default:
+            core.error(
+                `app parameter should be of type string or number. Not: ${typeof app}`
+            )
+            core.setFailed('AppVersion HTTP body creation failed')
+    }
 
-  return bodyJson
+    return bodyJson
 }
 
 /**
@@ -43,7 +43,7 @@ export function getCreateAppVersionBody(app: any, version: string): any {
  * @returns {any} returns the HTTP body as JSON object
  */
 export function getCopyStateBody(source: string, target: string): any {
-  const bodyJson = JSON.parse(`
+    const bodyJson = JSON.parse(`
         {
             "copyAnalysisProcessingRules": "true",
             "copyBugTrackerConfiguration": "true",
@@ -52,7 +52,7 @@ export function getCopyStateBody(source: string, target: string): any {
             "projectVersionId": "${target}"
         }`)
 
-  return bodyJson
+    return bodyJson
 }
 
 /**
@@ -62,13 +62,13 @@ export function getCopyStateBody(source: string, target: string): any {
  * @returns {any} returns the HTTP body as JSON object
  */
 export function getCopyVulnsBody(source: string, target: string): any {
-  const bodyJson = JSON.parse(`
+    const bodyJson = JSON.parse(`
           {
               "previousProjectVersionId": "${source}",
               "projectVersionId": "${target}"
           }`)
 
-  return bodyJson
+    return bodyJson
 }
 
 /**
@@ -78,13 +78,13 @@ export function getCopyVulnsBody(source: string, target: string): any {
  * @returns {any} returns the full path to fcli
  */
 export function getFcliPath(): string {
-  if (process.env.FCLI_EXECUTABLE_PATH) {
-    return `${process.env.FCLI_EXECUTABLE_PATH.replace(/\/+$/, '')}`
-  } else if (process.env.FCLI_EXECUTABLE_LOCATION) {
-    return `${process.env.FCLI_EXECUTABLE_LOCATION.replace(/\/+$/, '')}/fcli`
-  } else {
-    return 'fcli'
-  }
+    if (process.env.FCLI_EXECUTABLE_PATH) {
+        return `${process.env.FCLI_EXECUTABLE_PATH.replace(/\/+$/, '')}`
+    } else if (process.env.FCLI_EXECUTABLE_LOCATION) {
+        return `${process.env.FCLI_EXECUTABLE_LOCATION.replace(/\/+$/, '')}/fcli`
+    } else {
+        return 'fcli'
+    }
 }
 
 /**
@@ -94,87 +94,113 @@ export function getFcliPath(): string {
  * @returns {any} returns the full path to scancentral
  */
 export function getScanCentralPath(): string {
-  if (process.env.SC_EXECUTABLE_PATH) {
-    return `${process.env.SC_EXECUTABLE_PATH.replace(/\/+$/, '')}`
-  } else if (process.env.SC_EXECUTABLE_LOCATION) {
-    return `${process.env.SC_EXECUTABLE_LOCATION.replace(
-      /\/+$/,
-      ''
-    )}/scancentral`
-  } else {
-    return 'scancentral'
-  }
+    if (process.env.SC_EXECUTABLE_PATH) {
+        return `${process.env.SC_EXECUTABLE_PATH.replace(/\/+$/, '')}`
+    } else if (process.env.SC_EXECUTABLE_LOCATION) {
+        return `${process.env.SC_EXECUTABLE_LOCATION.replace(
+            /\/+$/,
+            ''
+        )}/scancentral`
+    } else {
+        return 'scancentral'
+    }
 }
 
 export async function fcli(args: string[], silent = true): Promise<any> {
-  let responseData = ''
-  let errorData = ''
-  try {
-    const options = {
-      listeners: {
-        stdout: (data: Buffer) => {
-          responseData += data.toString()
-        },
-        stderr: (data: Buffer) => {
-          errorData += data.toString()
+    let responseData = ''
+    let errorData = ''
+    try {
+        const options = {
+            listeners: {
+                stdout: (data: Buffer) => {
+                    responseData += data.toString()
+                },
+                stderr: (data: Buffer) => {
+                    errorData += data.toString()
+                }
+            },
+            silent: silent
         }
-      },
-      silent: silent
+
+        core.debug(args.toString())
+        const status = await exec.exec(getFcliPath(), args, options)
+        core.debug(responseData)
+
+        return JSON.parse(responseData)
+    } catch (e) {
+        core.error(`${errorData}`)
+        throw new Error(`${e}`)
     }
-
-    core.debug(args.toString())
-    const status = await exec.exec(getFcliPath(), args, options)
-    core.debug(responseData)
-
-    return JSON.parse(responseData)
-  } catch (e) {
-    core.error(`${errorData}`)
-    throw new Error(`${e}`)
-  }
 }
 
 export function stringToArgsArray(text: string): string[] {
-  const re = /^"[^"]*"$/
-  const re2 = /^([^"]|[^"].*?[^"])$/
+    const re = /^"[^"]*"$/
+    const re2 = /^([^"]|[^"].*?[^"])$/
 
-  let arr: string[] = []
-  let argPart: any = null
+    let arr: string[] = []
+    let argPart: any = null
 
-  text &&
+    text &&
     text.split(' ').forEach(function (arg) {
-      if ((re.test(arg) || re2.test(arg)) && !argPart) {
-        arr.push(arg)
-      } else {
-        argPart = argPart ? argPart + ' ' + arg : arg
-        if (/"$/.test(argPart)) {
-          arr.push(argPart)
-          argPart = null
+        if ((re.test(arg) || re2.test(arg)) && !argPart) {
+            arr.push(arg)
+        } else {
+            argPart = argPart ? argPart + ' ' + arg : arg
+            if (/"$/.test(argPart)) {
+                arr.push(argPart)
+                argPart = null
+            }
         }
-      }
     })
 
-  return arr
+    return arr
 }
 
 export async function scancentral(args: string[]): Promise<any> {
-  let responseData = ''
-  let errorData = ''
+    let responseData = ''
+    let errorData = ''
 
-  const options = {
-    listeners: {
-      stdout: (data: Buffer) => {
-        responseData += data.toString()
-      },
-      stderr: (data: Buffer) => {
-        errorData += data.toString()
-      }
-    },
-    silent: false
+    const options = {
+        listeners: {
+            stdout: (data: Buffer) => {
+                responseData += data.toString()
+            },
+            stderr: (data: Buffer) => {
+                errorData += data.toString()
+            }
+        },
+        silent: false
+    }
+
+    const response = await exec.exec(getScanCentralPath(), args, options)
+    core.debug(responseData)
+    core.debug(`response=${response}`)
+
+    return response
+}
+
+
+
+function toTitleCase(str: string):string {
+  const titleCase = str
+      .toLowerCase()
+      .split(' ')
+      .map(word => {
+        return word.charAt(0).toUpperCase() + word.slice(1);
+      })
+      .join(' ');
+
+  return titleCase;
+}
+export function normalizeScanType(scanType: string): string {
+  switch (scanType){
+    case "SCA":
+      return "Fortify SAST"
+      break
+    case "WEBINSPECT":
+      return "Fortify DAST"
+      break
+    default:
+      return toTitleCase(scanType)
   }
-
-  const response = await exec.exec(getScanCentralPath(), args, options)
-  core.debug(responseData)
-  core.debug(`response=${response}`)
-
-  return response
 }
