@@ -63,7 +63,8 @@ async function getVulnsByScanProductTable(appId: string | number, filterSet: str
         let totalNew: number = 0
         const vulns = await vuln.getAppVersionVulnsCount(appId, filterSet, scanType, newIssues)
         const vulnsNew = await vuln.getAppVersionVulnsCount(appId, filterSet, scanType, true)
-        let row: string[] = [`${utils.normalizeScanType(scanType)}`]
+
+        let row: string[] = [utils.normalizeScanType(scanType)]
 
         folders.forEach((folder) => {
             const count: number = getVulnsTotalCountByFolder(vulns, folder["name"])
@@ -153,7 +154,7 @@ export async function setJobSummary(INPUT: any, passedSecurityage:boolean,): Pro
 
     const appVersionUrl: string = `${INPUT.ssc_base_url}/html/ssc/version/${appId}/audit`
     const securityRatingsUrl: string = `${INPUT.ssc_base_url}/html/ssc/version/${appId}/trend?versionTrendDateRange=YEAR&versionTrendParam=performanceIndicators%3A%3AFortifySecurityRating`
-    const securityGateUrl: string = `${INPUT.ssc_base_url}/html/ssc/version/${appId}/audit?${await filterset.getFilterSetGuid(appId, INPUT.security_gate_filterset)}`
+    const securityGateUrl: string = `${INPUT.ssc_base_url}/html/ssc/version/${appId}/audit?filterset=${await filterset.getFilterSetGuid(appId, INPUT.security_gate_filterset)}`
 
     await core.summary
         .addImage('https://cdn.asp.events/CLIENT_CloserSt_D86EA381_5056_B739_5482D50A1A831DDD/sites/CSWA-2023/media/libraries/exhibitors/Ezone-cover.png/fit-in/1500x9999/filters:no_upscale()', 'Fortify by OpenText CyberSecurity', {width: "600"})

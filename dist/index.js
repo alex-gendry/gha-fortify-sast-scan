@@ -38709,7 +38709,7 @@ async function getVulnsByScanProductTable(appId, filterSet = "Security Auditor V
         let totalNew = 0;
         const vulns = await vuln.getAppVersionVulnsCount(appId, filterSet, scanType, newIssues);
         const vulnsNew = await vuln.getAppVersionVulnsCount(appId, filterSet, scanType, true);
-        let row = [`${utils.normalizeScanType(scanType)}`];
+        let row = [utils.normalizeScanType(scanType)];
         folders.forEach((folder) => {
             const count = getVulnsTotalCountByFolder(vulns, folder["name"]);
             const countNew = getVulnsTotalCountByFolder(vulnsNew, folder["name"]);
@@ -38778,7 +38778,7 @@ async function setJobSummary(INPUT, passedSecurityage) {
     const securityStars = ":white_circle::white_circle::white_circle::white_circle::white_circle:".replace(/white_circle/g, match => n++ < securityRating ? "star" : match);
     const appVersionUrl = `${INPUT.ssc_base_url}/html/ssc/version/${appId}/audit`;
     const securityRatingsUrl = `${INPUT.ssc_base_url}/html/ssc/version/${appId}/trend?versionTrendDateRange=YEAR&versionTrendParam=performanceIndicators%3A%3AFortifySecurityRating`;
-    const securityGateUrl = `${INPUT.ssc_base_url}/html/ssc/version/${appId}/audit?${await filterset.getFilterSetGuid(appId, INPUT.security_gate_filterset)}`;
+    const securityGateUrl = `${INPUT.ssc_base_url}/html/ssc/version/${appId}/audit?filterset=${await filterset.getFilterSetGuid(appId, INPUT.security_gate_filterset)}`;
     await core.summary
         .addImage('https://cdn.asp.events/CLIENT_CloserSt_D86EA381_5056_B739_5482D50A1A831DDD/sites/CSWA-2023/media/libraries/exhibitors/Ezone-cover.png/fit-in/1500x9999/filters:no_upscale()', 'Fortify by OpenText CyberSecurity', { width: "600" })
         .addHeading('Fortify AST Results')
