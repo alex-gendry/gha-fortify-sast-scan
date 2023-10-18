@@ -38764,8 +38764,8 @@ async function getScansSummaryTable(appId) {
     }));
     return scanRows;
 }
-function getLink(link) {
-    return `<a target="_blank" rel="noopener noreferrer" href="${link}">:link:</a>`;
+function getAsLink(text, link) {
+    return `<a target="_blank" href="${link}">${text}</a>`;
 }
 async function setJobSummary(app, version, passedSecurityage, filterSet, base_url) {
     const appId = await appversion.getAppVersionId(app, version);
@@ -38780,10 +38780,10 @@ async function setJobSummary(app, version, passedSecurityage, filterSet, base_ur
         .addHeading(':clipboard: Executive Summary', 2)
         .addRaw(`:date: ${new Date().toLocaleString('fr-FR')}</>`)
         .addTable([
-        [`<b>Application</b>`, app, `<b>Application Version</b>`, `${version} ${getLink(appVersionUrl)}`]
+        [`<b>Application</b>`, app, `<b>Application Version</b>`, `${getAsLink(version, appVersionUrl)}`]
     ])
         .addTable([
-        [`<p><b>Fortify Security Rating</b> ${getLink(securityRatingsUrl)}:   ${securityStars}</p>`],
+        [`<p><b>Fortify Security Rating</b>:   ${getAsLink(securityStars, securityRatingsUrl)}</p>`],
         [`<p><b>Security Gate Status</b> :   ${passedSecurityage ? 'Passed :white_check_mark:' : 'Failed :x:'}</p>`]
     ])
         .addTable(await getScansSummaryTable(appId))
