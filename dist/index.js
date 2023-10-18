@@ -38645,7 +38645,9 @@ async function getScansSummaryTable(appId) {
     let scanRows = [];
     await Promise.all(scanTypesList.map(async (scanType) => {
         const lastScan = await artifact.getLatestArtifact(appId, scanType);
-        scanRows.push([`<b>Last Successful ${utils.normalizeScanType(scanType)} Scan</b>`, new Date(lastScan["lastScanDate"]).toLocaleString('fr-FR')]);
+        const lastDate = new Date(lastScan["lastScanDate"]);
+        const diffDays = Math.ceil(Math.abs(new Date().getDate() - lastDate.getDate()) / (1000 * 60 * 60 * 24));
+        scanRows.push([`<b>Last Successful ${utils.normalizeScanType(scanType)} Scan</b>`, `${lastDate.toLocaleString('fr-FR')} (${diffDays} days ago)`]);
     }));
     return scanRows;
 }
@@ -38659,7 +38661,7 @@ async function setJobSummary(app, version) {
         .addHeading('Fortify AST Results')
         .addHeading('Executive Summary', 2)
         .addTable([[`<b>Application</b>`, app, `<b>Application Version</b>`, version]])
-        .addRaw(`<p><b>Fortify Security Rating</b>:   ${securityStars}</p>`)
+        .addTable([[`<p><b>Fortify Security Rating</b>:   ${securityStars}</p>`]])
         .addTable(await getScansSummaryTable(appId))
         .addHeading('Security Findings', 2)
         .addHeading(':new: Newly Added Security Findings', 2)
