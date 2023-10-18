@@ -86,7 +86,11 @@ export async function run(): Promise<void> {
         }
 
         /** RUN Security Gate */
-        const passedSecurityGate = await securitygate.run(INPUT)
+        const passedSecurityGate = await securitygate.run(INPUT).catch(error => {
+            core.error(error.message)
+            core.setFailed(`Security Gate run failed`)
+            process.exit(core.ExitCode.Failure)
+        })
         if (!passedSecurityGate) {
             switch (INPUT.security_gate_action.toLowerCase()) {
                 case 'warn':

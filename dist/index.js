@@ -38163,7 +38163,11 @@ async function run() {
             });
         }
         /** RUN Security Gate */
-        const passedSecurityGate = await securitygate.run(INPUT);
+        const passedSecurityGate = await securitygate.run(INPUT).catch(error => {
+            core.error(error.message);
+            core.setFailed(`Security Gate run failed`);
+            process.exit(core.ExitCode.Failure);
+        });
         if (!passedSecurityGate) {
             switch (INPUT.security_gate_action.toLowerCase()) {
                 case 'warn':
@@ -38365,7 +38369,7 @@ exports.run = void 0;
 const vuln = __importStar(__nccwpck_require__(4002));
 const appversion = __importStar(__nccwpck_require__(3538));
 async function run(INPUT) {
-    const appId = await appversion.getAppVersionId(INPUT.app, INPUT.version);
+    const appId = await appversion.getAppVersionId(INPUT.ssc_app, INPUT.ssc_version);
     const count = await vuln.getAppVersionVulnsCountTotal(appId, INPUT.security_gate_filterset);
     const status = count ? false : true;
     return status;
