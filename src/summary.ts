@@ -3,6 +3,7 @@ import * as vuln from './vuln'
 import * as appversion from "./appversion";
 import * as filterset from "./filterset";
 import * as artifact from "./artifact";
+import * as performanceindicator from "./performanceindicator";
 
 function stringToHeader(element: string): string {
     switch (element) {
@@ -56,20 +57,18 @@ async function createVulnsByScanProductTable(appId: string | number, filterSet: 
 
 }
 
-// async function getAppSummaryTable(appId:string) {
-//
-// }
-
 export async function setJobSummary(app: string, version: string): Promise<any> {
     const appId = await appversion.getAppVersionId(app, version)
     const lastSastScan = await artifact.getLatestSastArtifact(appId)
     const lastDastScan = await artifact.getLatestDastArtifact(appId)
     const lastScaScan = await artifact.getLatestScaArtifact(appId)
+    const securityRating = await performanceindicator.getPerformanceIndicatorValueByName(appId, 'Fortify Security Rating')
 
     await core.summary
         .addImage('https://cdn.asp.events/CLIENT_CloserSt_D86EA381_5056_B739_5482D50A1A831DDD/sites/CSWA-2023/media/libraries/exhibitors/Ezone-cover.png/fit-in/1500x9999/filters:no_upscale()', 'Fortify by OpenText CyberSecurity', {width: "600"})
         .addHeading('Fortify AST Results')
         .addHeading('Executive Summary', 2)
+        .addDetails("details", `${app} - ${version} - ${securityRating}`)
         .addTable([
             [`<b>Application</b>`, app, '', `<b>Last Successful SAST Scan</b>`,new Date(lastSastScan["lastScanDate"]).toLocaleString('fr-FR') ],
             [`<b>Application Version</b>`, version, '', `<b>Last Successful DAST Scan</b>`,new Date(lastDastScan["lastScanDate"]).toLocaleString('fr-FR') ],

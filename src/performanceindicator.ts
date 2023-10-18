@@ -3,7 +3,7 @@ import * as core from "@actions/core";
 import * as filterset from "./filterset";
 
 
-async function getPerformanceIndicatorByName(
+export async function getPerformanceIndicatorByName(
     appId: string|number,
     performanceIndicatorName: string): Promise<any> {
 
@@ -25,3 +25,11 @@ async function getPerformanceIndicatorByName(
         throw new Error(`GET performanceIndicatorHistories failed with code ${responseCode}`)
     }
 }
+
+export async function getPerformanceIndicatorValueByName(
+    appId: string|number,
+    performanceIndicatorName: string): Promise<number> {
+    let jsonRes = await getPerformanceIndicatorByName(appId, performanceIndicatorName)
+
+    return parseFloat(jsonRes["value"])
+    }

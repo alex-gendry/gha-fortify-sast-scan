@@ -38192,6 +38192,67 @@ exports.run = run;
 
 /***/ }),
 
+/***/ 4909:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+
+"use strict";
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.getPerformanceIndicatorValueByName = exports.getPerformanceIndicatorByName = void 0;
+const utils = __importStar(__nccwpck_require__(1314));
+const core = __importStar(__nccwpck_require__(2186));
+async function getPerformanceIndicatorByName(appId, performanceIndicatorName) {
+    const url = `/api/v1/projectVersions/${appId}/performanceIndicatorHistories?q=name:"${performanceIndicatorName}"`;
+    core.debug(url);
+    let jsonRes = await utils.fcli([
+        'ssc',
+        'rest',
+        'call',
+        url,
+        '--output=json'
+    ]);
+    const responseCode = jsonRes[0].responseCode;
+    core.debug(responseCode);
+    if (200 <= Number(responseCode) && Number(responseCode) < 300) {
+        return jsonRes[0].data[0];
+    }
+    else {
+        throw new Error(`GET performanceIndicatorHistories failed with code ${responseCode}`);
+    }
+}
+exports.getPerformanceIndicatorByName = getPerformanceIndicatorByName;
+async function getPerformanceIndicatorValueByName(appId, performanceIndicatorName) {
+    let jsonRes = await getPerformanceIndicatorByName(appId, performanceIndicatorName);
+    return parseFloat(jsonRes["value"]);
+}
+exports.getPerformanceIndicatorValueByName = getPerformanceIndicatorValueByName;
+
+
+/***/ }),
+
 /***/ 7431:
 /***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
 
@@ -38508,6 +38569,7 @@ const vuln = __importStar(__nccwpck_require__(4002));
 const appversion = __importStar(__nccwpck_require__(3538));
 const filterset = __importStar(__nccwpck_require__(6671));
 const artifact = __importStar(__nccwpck_require__(4571));
+const performanceindicator = __importStar(__nccwpck_require__(4909));
 function stringToHeader(element) {
     switch (element) {
         case 'Critical':
@@ -38556,18 +38618,17 @@ async function createVulnsByScanProductTable(appId, filterSet = "Security Audito
         sastRow, dastRow, scaRow, totalRow
     ];
 }
-// async function getAppSummaryTable(appId:string) {
-//
-// }
 async function setJobSummary(app, version) {
     const appId = await appversion.getAppVersionId(app, version);
     const lastSastScan = await artifact.getLatestSastArtifact(appId);
     const lastDastScan = await artifact.getLatestDastArtifact(appId);
     const lastScaScan = await artifact.getLatestScaArtifact(appId);
+    const securityRating = await performanceindicator.getPerformanceIndicatorValueByName(appId, 'Fortify Security Rating');
     await core.summary
         .addImage('https://cdn.asp.events/CLIENT_CloserSt_D86EA381_5056_B739_5482D50A1A831DDD/sites/CSWA-2023/media/libraries/exhibitors/Ezone-cover.png/fit-in/1500x9999/filters:no_upscale()', 'Fortify by OpenText CyberSecurity', { width: "600" })
         .addHeading('Fortify AST Results')
         .addHeading('Executive Summary', 2)
+        .addDetails("details", `${app} - ${version} - ${securityRating}`)
         .addTable([
         [`<b>Application</b>`, app, '', `<b>Last Successful SAST Scan</b>`, new Date(lastSastScan["lastScanDate"]).toLocaleString('fr-FR')],
         [`<b>Application Version</b>`, version, '', `<b>Last Successful DAST Scan</b>`, new Date(lastDastScan["lastScanDate"]).toLocaleString('fr-FR')],
