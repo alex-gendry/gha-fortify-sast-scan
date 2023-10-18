@@ -71,49 +71,11 @@ export async function setJobSummary(app: string, version: string): Promise<any> 
         .addHeading('Fortify AST Results')
         .addHeading('Executive Summary', 2)
         .addTable([
-            [`<b>Application</b>`, app, '', `<b>Last Successful SAST Scan</b>`,lastSastScan["lastScanDate"] ],
-            [`<b>Application Version</b>`, version, '', `<b>Last Successful DAST Scan</b>`,lastDastScan["lastScanDate"] ],
-            ['', '', '', `<b>Last Successful SAST Scan</b>`,lastSastScan["lastScanDate"] ]
+            [`<b>Application</b>`, app, '', `<b>Last Successful SAST Scan</b>`,new Date(lastSastScan["lastScanDate"]).toLocaleDateString() ],
+            [`<b>Application Version</b>`, version, '', `<b>Last Successful DAST Scan</b>`,new Date(lastDastScan["lastScanDate"]).toLocaleDateString() ],
+            ['', '', '', `<b>Last Successful SCA Scan</b>`,new Date(lastScaScan["lastScanDate"]).toLocaleDateString() ]
         ])
         .addSeparator()
-        .addRaw(`<table width="80%" cellspacing="0" cellpadding="5">
-    <tbody>
-    <tr>
-        <td class="text">
-            <table width="400" cellspacing="0">
-                <tbody>
-                <tr>
-                    <td><b>Application Name</b></td>
-                    <td>PetClinic</td>
-                </tr>
-                <tr>
-                    <td><b>Application Version</b></td>
-                    <td>1.0</td>
-                </tr>
-                </tbody>
-            </table>
-        </td>
-        <td>
-            <table width="400" cellspacing="0">
-                <tbody>
-                <tr>
-                    <td>Last SAST Scan</td>
-                    <td>2023-04-18T09:02:19</td>
-                </tr>
-                <tr>
-                    <td>Last DAST Scan</td>
-                    <td>2023-04-18T09:02:19</td>
-                </tr>
-                <tr>
-                    <td>Last SCA Scan</td>
-                    <td>2023-04-18T09:02:19</td>
-                </tr>
-                </tbody>
-            </table>
-        </td>
-    </tr>
-    </tbody>
-</table>`)
         .addHeading('Security Findings', 2)
         .addTable(await createVulnsByScanProductTable(appId,'Information'))
         .addLink('View staging deployment!', 'https://github.com')
