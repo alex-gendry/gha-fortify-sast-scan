@@ -113,7 +113,7 @@ export async function setJobSummary(app: string, version: string, base_url: stri
         .addHeading('Fortify AST Results')
         .addHeading('Executive Summary', 2)
         .addTable([[`<b>Application</b>`, app, `<b>Application Version</b>`, `${version}`]])
-        .addRaw(` [:link:](${appVersionURL})`)
+        .addLink(` [:link:]`,appVersionURL)
         .addTable([[`<p><b>Fortify Security Rating</b>:   ${securityStars}</p>`]])
         .addTable(await getScansSummaryTable(appId))
         .addHeading('Security Findings', 2)

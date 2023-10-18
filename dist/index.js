@@ -38655,7 +38655,7 @@ async function getScansSummaryTable(appId) {
         const lastScan = await artifact.getLatestArtifact(appId, scanType);
         const lastDate = new Date(lastScan["lastScanDate"]);
         const diffDays = Math.ceil(Math.abs(new Date().getDate() - lastDate.getDate()) / (1000 * 60 * 60 * 24));
-        scanRows.push([`<b>Last Successful ${utils.normalizeScanType(scanType)} Scan</b>`, `${lastDate.toLocaleString('fr-FR')} (${diffDays} days ago)`]);
+        scanRows.push([`<b>Last Successful ${utils.normalizeScanType(scanType)} Scan</b>`, `${lastDate.toLocaleString('fr-FR')} (${utils.daysOrToday(diffDays)})`]);
     }));
     return scanRows;
 }
@@ -38670,7 +38670,7 @@ async function setJobSummary(app, version, base_url) {
         .addHeading('Fortify AST Results')
         .addHeading('Executive Summary', 2)
         .addTable([[`<b>Application</b>`, app, `<b>Application Version</b>`, `${version}`]])
-        .addRaw(` [:link:](${appVersionURL})`)
+        .addLink(` [:link:]`, appVersionURL)
         .addTable([[`<p><b>Fortify Security Rating</b>:   ${securityStars}</p>`]])
         .addTable(await getScansSummaryTable(appId))
         .addHeading('Security Findings', 2)
@@ -38715,7 +38715,7 @@ var __importStar = (this && this.__importStar) || function (mod) {
     return result;
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.normalizeScanType = exports.scancentral = exports.stringToArgsArray = exports.fcli = exports.getScanCentralPath = exports.getFcliPath = exports.getCopyVulnsBody = exports.getCopyStateBody = exports.getCreateAppVersionBody = void 0;
+exports.daysOrToday = exports.normalizeScanType = exports.scancentral = exports.stringToArgsArray = exports.fcli = exports.getScanCentralPath = exports.getFcliPath = exports.getCopyVulnsBody = exports.getCopyStateBody = exports.getCreateAppVersionBody = void 0;
 const core = __importStar(__nccwpck_require__(2186));
 const exec = __importStar(__nccwpck_require__(1514));
 /**
@@ -38908,6 +38908,15 @@ function normalizeScanType(scanType) {
     }
 }
 exports.normalizeScanType = normalizeScanType;
+function daysOrToday(diffDays) {
+    if (diffDays === 0) {
+        return "Today";
+    }
+    else {
+        return `${diffDays} days ago`;
+    }
+}
+exports.daysOrToday = daysOrToday;
 
 
 /***/ }),
