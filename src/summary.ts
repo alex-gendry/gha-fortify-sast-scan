@@ -26,7 +26,7 @@ function stringToHeader(element: string): string {
     }
 }
 
-async function getVulnsByScanProductTable(appId: string | number, filterSet: string = "Security Auditor View"): Promise<any> {
+async function getVulnsByScanProductTable(appId: string | number, filterSet: string = "Security Auditor View", newIssues: boolean = false): Promise<any> {
     var jp = require('jsonpath')
 
     let headers: any[] = [{data: ':test_tube: Analysis Type', header: true}]
@@ -41,11 +41,14 @@ async function getVulnsByScanProductTable(appId: string | number, filterSet: str
 
     await Promise.all(scanTypesList.map(async scanType => {
         let total: number = 0
-        const vulns = await vuln.getAppVersionVulnsCount(appId, filterSet, scanType)
+        const vulns = await vuln.getAppVersionVulnsCount(appId, filterSet, scanType, newIssues)
+        const newVulns = await vuln.getAppVersionVulnsCount(appId, filterSet, scanType, true)
         let row: string[] = [`${utils.normalizeScanType(scanType)}`]
 
         folders.forEach((folder) => {
             const count:number = jp.query(vulns, `$..[?(@.id=="${folder["name"]}")].totalCount`)[0]
+            const newCount:number = jp.query(newVulns, `$..[?(@.id=="${folder["name"]}")].totalCount`)[0]
+            let cell : string = ''
             row.push(count ? `${count}` : `${0}`)
             total += count ? count : 0
 
@@ -59,6 +62,10 @@ async function getVulnsByScanProductTable(appId: string | number, filterSet: str
 
     return [headers].concat(rows)
 
+}
+
+async function getNewVulnsByScanProductTable(appId: string | number, filterSet: string = "Security Auditor View") {
+    return await getVulnsByScanProductTable(appId, filterSet,true)
 }
 
 async function getNewVulnsTable(appId: string | number, filterSet: string = "Security Auditor View"): Promise<any> {
@@ -120,13 +127,12 @@ export async function setJobSummary(app: string, version: string, base_url: stri
         .addImage('https://cdn.asp.events/CLIENT_CloserSt_D86EA381_5056_B739_5482D50A1A831DDD/sites/CSWA-2023/media/libraries/exhibitors/Ezone-cover.png/fit-in/1500x9999/filters:no_upscale()', 'Fortify by OpenText CyberSecurity', {width: "600"})
         .addHeading('Fortify AST Results')
         .addHeading('Executive Summary', 2)
-        .addLink(` :link:`,appVersionUrl)
         .addTable([[`<b>Application</b>`, app, `<b>Application Version</b>`, `${version} ${getLink(appVersionUrl)}`]])
         .addTable([[`<p><b>Fortify Security Rating</b> ${getLink(securityRatingsUrl)}:   ${securityStars}</p>`]])
         .addTable(await getScansSummaryTable(appId))
         .addHeading('Security Findings', 2)
         .addHeading(':new: Newly Added Security Findings', 2)
-        .addTable(await getNewVulnsTable(appId, 'Security Auditor View'))
+        .addTable(await getNewVulnsByScanProductTable(appId, 'Security Auditor View'))
         .addHeading(':signal_strength: All Security Findings', 2)
         .addTable(await getVulnsByScanProductTable(appId, 'Security Auditor View'))
         .write()

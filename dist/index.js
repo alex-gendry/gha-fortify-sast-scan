@@ -38604,7 +38604,7 @@ function stringToHeader(element) {
             break;
     }
 }
-async function getVulnsByScanProductTable(appId, filterSet = "Security Auditor View") {
+async function getVulnsByScanProductTable(appId, filterSet = "Security Auditor View", newIssues = false) {
     var jp = __nccwpck_require__(4378);
     let headers = [{ data: ':test_tube: Analysis Type', header: true }];
     let rows = [];
@@ -38616,7 +38616,7 @@ async function getVulnsByScanProductTable(appId, filterSet = "Security Auditor V
     headers.push({ data: `Total`, header: true });
     await Promise.all(scanTypesList.map(async (scanType) => {
         let total = 0;
-        const vulns = await vuln.getAppVersionVulnsCount(appId, filterSet, scanType);
+        const vulns = await vuln.getAppVersionVulnsCount(appId, filterSet, scanType, newIssues);
         let row = [`${utils.normalizeScanType(scanType)}`];
         folders.forEach((folder) => {
             const count = jp.query(vulns, `$..[?(@.id=="${folder["name"]}")].totalCount`)[0];
@@ -38629,6 +38629,9 @@ async function getVulnsByScanProductTable(appId, filterSet = "Security Auditor V
         rows.push(row);
     }));
     return [headers].concat(rows);
+}
+async function getNewVulnsByScanProductTable(appId, filterSet = "Security Auditor View") {
+    return await getVulnsByScanProductTable(appId, filterSet, true);
 }
 async function getNewVulnsTable(appId, filterSet = "Security Auditor View") {
     var jp = __nccwpck_require__(4378);
@@ -38675,13 +38678,12 @@ async function setJobSummary(app, version, base_url) {
         .addImage('https://cdn.asp.events/CLIENT_CloserSt_D86EA381_5056_B739_5482D50A1A831DDD/sites/CSWA-2023/media/libraries/exhibitors/Ezone-cover.png/fit-in/1500x9999/filters:no_upscale()', 'Fortify by OpenText CyberSecurity', { width: "600" })
         .addHeading('Fortify AST Results')
         .addHeading('Executive Summary', 2)
-        .addLink(` :link:`, appVersionUrl)
         .addTable([[`<b>Application</b>`, app, `<b>Application Version</b>`, `${version} ${getLink(appVersionUrl)}`]])
         .addTable([[`<p><b>Fortify Security Rating</b> ${getLink(securityRatingsUrl)}:   ${securityStars}</p>`]])
         .addTable(await getScansSummaryTable(appId))
         .addHeading('Security Findings', 2)
         .addHeading(':new: Newly Added Security Findings', 2)
-        .addTable(await getNewVulnsTable(appId, 'Security Auditor View'))
+        .addTable(await getNewVulnsByScanProductTable(appId, 'Security Auditor View'))
         .addHeading(':signal_strength: All Security Findings', 2)
         .addTable(await getVulnsByScanProductTable(appId, 'Security Auditor View'))
         .write();
