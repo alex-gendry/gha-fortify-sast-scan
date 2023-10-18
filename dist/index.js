@@ -38604,8 +38604,23 @@ function stringToHeader(element) {
             break;
     }
 }
-async function getVulnsByScanProductTable(appId, filterSet = "Security Auditor View", newIssues = false) {
+function getVulnsTotalCountByFolder(vulns, folder) {
     var jp = __nccwpck_require__(4378);
+    const count = jp.query(vulns, `$..[?(@.id=="${folder}")].totalCount`)[0];
+    return count ? count : 0;
+}
+function getTotalAndNewCell(count, countNew) {
+    if (count === 0 || countNew === 0) {
+        return `${count}`;
+    }
+    else if (count === countNew) {
+        return `${count} :new:`;
+    }
+    else {
+        return `${count} (${countNew} :new:)`;
+    }
+}
+async function getVulnsByScanProductTable(appId, filterSet = "Security Auditor View", newIssues = false) {
     let headers = [{ data: ':test_tube: Analysis Type', header: true }];
     let rows = [];
     const scanTypesList = await artifact.getScanTypesList(appId);
@@ -38622,63 +38637,29 @@ async function getVulnsByScanProductTable(appId, filterSet = "Security Auditor V
         let total = 0;
         let totalNew = 0;
         const vulns = await vuln.getAppVersionVulnsCount(appId, filterSet, scanType, newIssues);
-        const newVulns = await vuln.getAppVersionVulnsCount(appId, filterSet, scanType, true);
+        const vulnsNew = await vuln.getAppVersionVulnsCount(appId, filterSet, scanType, true);
         let row = [`${utils.normalizeScanType(scanType)}`];
         folders.forEach((folder) => {
-            const count = jp.query(vulns, `$..[?(@.id=="${folder["name"]}")].totalCount`)[0];
-            const countNew = jp.query(newVulns, `$..[?(@.id=="${folder["name"]}")].totalCount`)[0];
-            let cell = "";
-            if (!count) {
-                cell = `0`;
-            }
-            else {
-                if (!countNew || countNew === 0) {
-                    cell = `${count}`;
-                }
-                else {
-                    if (count === countNew) {
-                        cell = `${count} :new:`;
-                    }
-                    else {
-                        cell = `${count} (${countNew} :new:)`;
-                    }
-                    totalNew += countNew;
-                    folderTotalsNew[folder["name"]] += countNew;
-                }
-                total += count;
-                folderTotals[folder["name"]] += count;
-            }
-            row.push(cell);
-            core.debug(`${scanType} : ${total} / ${count}`);
+            const count = getVulnsTotalCountByFolder(vulns, folder["name"]);
+            const countNew = getVulnsTotalCountByFolder(vulnsNew, folder["name"]);
+            total += count;
+            folderTotals[folder["name"]] += count;
+            totalNew += countNew;
+            folderTotalsNew[folder["name"]] += countNew;
+            row.push(getTotalAndNewCell(count, countNew));
         });
-        let cell = "";
-        if (total === 0 || totalNew === 0) {
-            cell = `${total}`;
-        }
-        else if (total === totalNew) {
-            cell = `${total} :new:`;
-        }
-        else {
-            cell = `${total} (${totalNew} :new:)`;
-        }
-        row.push(cell);
-        core.debug(cell);
+        row.push(getTotalAndNewCell(total, totalNew));
         rows.push(row);
     }));
     let totalRow = [`Total`];
+    let total = 0;
+    let totalNew = 0;
     folders.forEach((folder) => {
-        let cell = "";
-        if (folderTotals[folder["name"]] === 0) {
-            cell = "0";
-        }
-        else if (folderTotals[folder["name"]] === folderTotalsNew[folder["name"]]) {
-            cell = `${folderTotals[folder["name"]]} :new:`;
-        }
-        else {
-            cell = `${folderTotals[folder["name"]]} (${folderTotalsNew[folder["name"]]} :new:)`;
-        }
-        totalRow.push(cell);
+        totalRow.push(getTotalAndNewCell(folderTotals[folder["name"]], folderTotalsNew[folder["name"]]));
+        total += folderTotals[folder["name"]];
+        totalNew += folderTotalsNew[folder["name"]];
     });
+    totalRow.push(getTotalAndNewCell(total, totalNew));
     rows.push(totalRow);
     return [headers].concat(rows);
 }

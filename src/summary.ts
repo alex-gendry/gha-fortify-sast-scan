@@ -26,9 +26,24 @@ function stringToHeader(element: string): string {
     }
 }
 
-async function getVulnsByScanProductTable(appId: string | number, filterSet: string = "Security Auditor View", newIssues: boolean = false): Promise<any> {
+function getVulnsTotalCountByFolder(vulns: any[], folder: string): number {
     var jp = require('jsonpath')
+    const count = jp.query(vulns, `$..[?(@.id=="${folder}")].totalCount`)[0]
 
+    return count ? count : 0
+}
+
+function getTotalAndNewCell(count: number, countNew: number): string {
+    if (count === 0 || countNew === 0) {
+        return `${count}`
+    } else if (count === countNew) {
+        return `${count} :new:`
+    } else {
+        return `${count} (${countNew} :new:)`
+    }
+}
+
+async function getVulnsByScanProductTable(appId: string | number, filterSet: string = "Security Auditor View", newIssues: boolean = false): Promise<any> {
     let headers: any[] = [{data: ':test_tube: Analysis Type', header: true}]
     let rows: any[] = []
     const scanTypesList: string[] = await artifact.getScanTypesList(appId)
@@ -47,61 +62,33 @@ async function getVulnsByScanProductTable(appId: string | number, filterSet: str
         let total: number = 0
         let totalNew: number = 0
         const vulns = await vuln.getAppVersionVulnsCount(appId, filterSet, scanType, newIssues)
-        const newVulns = await vuln.getAppVersionVulnsCount(appId, filterSet, scanType, true)
+        const vulnsNew = await vuln.getAppVersionVulnsCount(appId, filterSet, scanType, true)
         let row: string[] = [`${utils.normalizeScanType(scanType)}`]
 
         folders.forEach((folder) => {
-            const count: number = jp.query(vulns, `$..[?(@.id=="${folder["name"]}")].totalCount`)[0]
-            const countNew: number = jp.query(newVulns, `$..[?(@.id=="${folder["name"]}")].totalCount`)[0]
-            let cell: string = ""
-            if (!count) {
-                cell = `0`
-            } else {
-                if (!countNew || countNew === 0) {
-                    cell = `${count}`
-                } else {
-                    if (count === countNew) {
-                        cell = `${count} :new:`
-                    } else {
-                        cell = `${count} (${countNew} :new:)`
-                    }
-                    totalNew += countNew
-                    folderTotalsNew[folder["name"]] += countNew
-                }
-                total += count
-                folderTotals[folder["name"]] += count
-            }
+            const count: number = getVulnsTotalCountByFolder(vulns, folder["name"])
+            const countNew: number = getVulnsTotalCountByFolder(vulnsNew, folder["name"])
 
-            row.push(cell)
+            total += count
+            folderTotals[folder["name"]] += count
+            totalNew += countNew
+            folderTotalsNew[folder["name"]] += countNew
 
-            core.debug(`${scanType} : ${total} / ${count}`)
+            row.push(getTotalAndNewCell(count, countNew))
         })
-
-        let cell: string = ""
-        if (total === 0 || totalNew === 0) {
-            cell = `${total}`
-        } else if (total === totalNew) {
-            cell = `${total} :new:`
-        } else {
-            cell = `${total} (${totalNew} :new:)`
-        }
-        row.push(cell)
-        core.debug(cell)
+        row.push(getTotalAndNewCell(total, totalNew))
         rows.push(row)
     }))
 
     let totalRow: string[] = [`Total`]
+    let total: number = 0
+    let totalNew: number = 0
     folders.forEach((folder) => {
-        let cell: string = ""
-        if (folderTotals[folder["name"]]  === 0) {
-            cell = "0"
-        } else if (folderTotals[folder["name"]]  === folderTotalsNew[folder["name"]]) {
-            cell = `${folderTotals[folder["name"]] } :new:`
-        } else {
-            cell = `${folderTotals[folder["name"]] } (${folderTotalsNew[folder["name"]]} :new:)`
-        }
-        totalRow.push(cell)
+        totalRow.push(getTotalAndNewCell(folderTotals[folder["name"]],folderTotalsNew[folder["name"]]))
+        total += folderTotals[folder["name"]]
+        totalNew += folderTotalsNew[folder["name"]]
     })
+    totalRow.push(getTotalAndNewCell(total, totalNew))
     rows.push(totalRow)
 
     return [headers].concat(rows)
