@@ -38624,7 +38624,7 @@ async function getVulnsByScanProductTable(appId, filterSet = "Security Auditor V
             const count = jp.query(vulns, `$..[?(@.id=="${folder["name"]}")].totalCount`)[0];
             const countNew = jp.query(newVulns, `$..[?(@.id=="${folder["name"]}")].totalCount`)[0];
             let cell = "";
-            if (!count && !countNew) {
+            if ((!count) && (!countNew || countNew === 0)) {
                 cell = `0`;
             }
             else {
@@ -38694,6 +38694,7 @@ function getLink(link) {
     return `<a target="_blank" rel="noopener noreferrer" href="${link}">:link:</a>`;
 }
 async function setJobSummary(app, version, base_url) {
+    const filterSet = 'Security Auditor View';
     const appId = await appversion.getAppVersionId(app, version);
     const securityRating = await performanceindicator.getPerformanceIndicatorValueByName(appId, 'Fortify Security Rating');
     let n = 0;
@@ -38709,9 +38710,9 @@ async function setJobSummary(app, version, base_url) {
         .addTable(await getScansSummaryTable(appId))
         .addHeading('Security Findings', 2)
         .addHeading(':new: Newly Added Security Findings', 2)
-        .addTable(await getNewVulnsByScanProductTable(appId, 'Security Auditor View'))
+        .addTable(await getNewVulnsByScanProductTable(appId, filterSet))
         .addHeading(':signal_strength: All Security Findings', 2)
-        .addTable(await getVulnsByScanProductTable(appId, 'Security Auditor View'))
+        .addTable(await getVulnsByScanProductTable(appId, filterSet))
         .write();
 }
 exports.setJobSummary = setJobSummary;
