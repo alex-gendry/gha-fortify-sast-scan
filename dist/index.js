@@ -38652,8 +38652,8 @@ async function getVulnsByScanProductTable(appId, filterSet = "Security Auditor V
             core.debug(`${scanType} : ${total} / ${count}`);
         });
         let cell = "";
-        if (total === 0) {
-            cell = "0";
+        if (total === 0 || totalNew === 0) {
+            cell = `${total}`;
         }
         else if (total === totalNew) {
             cell = `${total} :new:`;

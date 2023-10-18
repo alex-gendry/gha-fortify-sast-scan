@@ -78,8 +78,8 @@ async function getVulnsByScanProductTable(appId: string | number, filterSet: str
         })
 
         let cell: string = ""
-        if (total === 0) {
-            cell = "0"
+        if (total === 0 || totalNew === 0) {
+            cell = `${total}`
         } else if (total === totalNew) {
             cell = `${total} :new:`
         } else {
