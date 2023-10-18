@@ -37946,8 +37946,8 @@ var __importStar = (this && this.__importStar) || function (mod) {
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.getFilterSetFolders = exports.getFilterSetGuid = void 0;
 const utils = __importStar(__nccwpck_require__(1314));
-async function getFilterSetGuid(appId, filterSetName) {
-    let jsonRes = await utils.fcli([
+async function getFilterSet(appId, filterSetName) {
+    return await utils.fcli([
         'ssc',
         'appversion-filterset',
         'get',
@@ -37955,18 +37955,14 @@ async function getFilterSetGuid(appId, filterSetName) {
         `--appversion=${appId}`,
         '--output=json'
     ]);
+}
+async function getFilterSetGuid(appId, filterSetName) {
+    let jsonRes = await getFilterSet(appId, filterSetName);
     return jsonRes["guid"];
 }
 exports.getFilterSetGuid = getFilterSetGuid;
 async function getFilterSetFolders(appId, filterSetName) {
-    let jsonRes = await utils.fcli([
-        'ssc',
-        'appversion-filterset',
-        'get',
-        filterSetName,
-        `--appversion=${appId}`,
-        '--output=json'
-    ]);
+    let jsonRes = await getFilterSet(appId, filterSetName);
     return jsonRes["folders"];
 }
 exports.getFilterSetFolders = getFilterSetFolders;
@@ -38502,6 +38498,7 @@ async function setJobSummary(app, version) {
     await core.summary
         .addImage('https://cdn.asp.events/CLIENT_CloserSt_D86EA381_5056_B739_5482D50A1A831DDD/sites/CSWA-2023/media/libraries/exhibitors/Ezone-cover.png/fit-in/1500x9999/filters:no_upscale()', 'Fortify by OpenText CyberSecurity', { width: "600" })
         .addHeading('Fortify AST Results')
+        .addHeading('<h3>Executive Summary</p3>')
         // .addCodeBlock(generateTestResults(), "js")
         .addTable(await createVulnsByScanProductTable(appId, 'Information'))
         .addLink('View staging deployment!', 'https://github.com')
