@@ -38610,12 +38610,14 @@ async function getVulnsByScanProductTable(appId, filterSet = "Security Auditor V
     let rows = [];
     const scanTypesList = await artifact.getScanTypesList(appId);
     const folders = await filterset.getFilterSetFolders(appId, filterSet);
+    folders.forEach((folder) => {
+        headers.push({ data: `${folder["name"]}`, header: true });
+    });
     await Promise.all(scanTypesList.map(async (scanType) => {
         const vulns = await vuln.getAppVersionVulnsCount(appId, filterSet, scanType);
-        let row = [];
+        let row = [`${utils.normalizeScanType(scanType)}`];
         folders.forEach((folder) => {
             const count = jp.query(vulns, `$..[?(@.id=="${folder["name"]}")].totalCount`)[0];
-            headers.push({ data: utils.normalizeScanType(scanType), header: true });
             row.push(count ? `${count}` : `${0}`);
         });
         rows.push(row);
