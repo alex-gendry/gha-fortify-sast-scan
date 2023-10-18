@@ -206,7 +206,7 @@ export function normalizeScanType(scanType: string): string {
 }
 
 export function daysOrToday(diffDays:number) {
-    if(diffDays === 0 ){
+    if(diffDays < 1 ){
         return "Today"
     } else {
         return `${diffDays} days ago`

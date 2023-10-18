@@ -38909,7 +38909,7 @@ function normalizeScanType(scanType) {
 }
 exports.normalizeScanType = normalizeScanType;
 function daysOrToday(diffDays) {
-    if (diffDays === 0) {
+    if (diffDays < 1) {
         return "Today";
     }
     else {
