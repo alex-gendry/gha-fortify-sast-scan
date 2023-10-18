@@ -48,9 +48,7 @@ async function getVulnsByScanProductTable(appId: string | number, filterSet: str
         rows.push(row)
     }))
 
-    return [// Headers
-        headers, // rows
-        rows]
+    return [headers].concat(rows)
 
 }
 

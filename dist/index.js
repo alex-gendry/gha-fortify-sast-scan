@@ -38620,10 +38620,7 @@ async function getVulnsByScanProductTable(appId, filterSet = "Security Auditor V
         });
         rows.push(row);
     }));
-    return [
-        headers,
-        rows
-    ];
+    return [headers].concat(rows);
 }
 async function getScansSummaryTable(appId) {
     const scanTypesList = await artifact.getScanTypesList(appId);
