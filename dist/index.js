@@ -37949,8 +37949,8 @@ const utils = __importStar(__nccwpck_require__(1314));
 async function getAppVersionArtifacts(appId, scanType, status = "PROCESS_COMPLETE") {
     let args = [
         'ssc',
-        'appversion-filterset',
-        'get',
+        'appversion-artifact',
+        'list',
         `--appversion=${appId}`,
         '--output=json'
     ];
@@ -38570,9 +38570,9 @@ async function setJobSummary(app, version) {
         .addHeading('Fortify AST Results')
         .addHeading('Executive Summary', 2)
         .addTable([
-        [`<b>Application</b>`, app, '', `<b>Last Successful SAST Scan</b>`, lastSastScan["uploadDate"]],
-        [`<b>Application Version</b>`, version, '', `<b>Last Successful DAST Scan</b>`, lastDastScan["uploadDate"]],
-        ['', '', '', `<b>Last Successful SAST Scan</b>`, lastSastScan["uploadDate"]]
+        [`<b>Application</b>`, app, '', `<b>Last Successful SAST Scan</b>`, lastSastScan["lastScanDate"]],
+        [`<b>Application Version</b>`, version, '', `<b>Last Successful DAST Scan</b>`, lastDastScan["lastScanDate"]],
+        ['', '', '', `<b>Last Successful SAST Scan</b>`, lastSastScan["lastScanDate"]]
     ])
         .addSeparator()
         .addHeading('Security Findings', 2)

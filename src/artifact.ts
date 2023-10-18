@@ -5,8 +5,8 @@ async function getAppVersionArtifacts(
     scanType?: string, status:string|boolean="PROCESS_COMPLETE"): Promise<any> {
     let args = [
         'ssc',
-        'appversion-filterset',
-        'get',
+        'appversion-artifact',
+        'list',
         `--appversion=${appId}`,
         '--output=json'
     ]
