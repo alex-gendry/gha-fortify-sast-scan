@@ -204,3 +204,11 @@ export function normalizeScanType(scanType: string): string {
       return toTitleCase(scanType)
   }
 }
+
+export function daysOrToday(diffDays:number) {
+    if(diffDays === 0 ){
+        return "Today"
+    } else {
+        return `${diffDays} days ago`
+    }
+}

@@ -92,7 +92,7 @@ async function getScansSummaryTable(appId: string | number): Promise<any[]> {
             const lastScan = await artifact.getLatestArtifact(appId, scanType)
             const lastDate = new Date(lastScan["lastScanDate"])
             const diffDays = Math.ceil(Math.abs(new Date().getDate() - lastDate.getDate()) / (1000 * 60 * 60 * 24));
-            scanRows.push([`<b>Last Successful ${utils.normalizeScanType(scanType)} Scan</b>`, `${lastDate.toLocaleString('fr-FR')} (${diffDays} days ago)`])
+            scanRows.push([`<b>Last Successful ${utils.normalizeScanType(scanType)} Scan</b>`, `${lastDate.toLocaleString('fr-FR')} (${utils.daysOrToday(diffDays)})`])
         })
     )
 
