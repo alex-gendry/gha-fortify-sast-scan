@@ -38497,11 +38497,11 @@ async function setJobSummary(app, version) {
     const appId = await appversion.getAppVersionId(app, version);
     await core.summary
         .addImage('https://cdn.asp.events/CLIENT_CloserSt_D86EA381_5056_B739_5482D50A1A831DDD/sites/CSWA-2023/media/libraries/exhibitors/Ezone-cover.png/fit-in/1500x9999/filters:no_upscale()', 'Fortify by OpenText CyberSecurity', { width: "600" })
-        .addHeading('<h1>Fortify AST Results</h1>')
-        .addHeading('<h3>Executive Summary</p3>')
-        .addRaw(`<b>Application Name</b>:      ${app}`).addBreak()
-        .addRaw(`<b>Application Version</b>:   ${version}`).addBreak()
-        // .addCodeBlock(generateTestResults(), "js")
+        .addHeading('Fortify AST Results')
+        .addHeading('Executive Summary', 3)
+        .addRaw(`<b>Application Name</b>:      ${app}`, true).addBreak()
+        .addRaw(`<b>Application Version</b>:   ${version}`, true).addBreak()
+        .addHeading('Security Findings', 3)
         .addTable(await createVulnsByScanProductTable(appId, 'Information'))
         .addLink('View staging deployment!', 'https://github.com')
         .write();
