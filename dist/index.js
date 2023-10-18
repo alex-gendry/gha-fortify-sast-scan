@@ -37915,6 +37915,72 @@ async function createAppVersion(app, version) {
 
 /***/ }),
 
+/***/ 4571:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+
+"use strict";
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.getLatestScaArtifact = exports.getLatestDastArtifact = exports.getLatestSastArtifact = void 0;
+const utils = __importStar(__nccwpck_require__(1314));
+async function getAppVersionArtifacts(appId, scanType, status = "PROCESS_COMPLETE") {
+    let args = [
+        'ssc',
+        'appversion-filterset',
+        'get',
+        `--appversion=${appId}`,
+        '--output=json'
+    ];
+    args = status
+        ? args.concat([`-q=status=${status}`])
+        : args;
+    args = scanType
+        ? args.concat([`-q=scanTypes=${scanType}`])
+        : args;
+    return await utils.fcli(args);
+}
+async function getLatestSastArtifact(appId) {
+    let jsonRes = await getAppVersionArtifacts(appId, "SCA");
+    return jsonRes[0];
+}
+exports.getLatestSastArtifact = getLatestSastArtifact;
+async function getLatestDastArtifact(appId) {
+    let jsonRes = await getAppVersionArtifacts(appId, "WEBINSPECT");
+    return jsonRes[0];
+}
+exports.getLatestDastArtifact = getLatestDastArtifact;
+async function getLatestScaArtifact(appId) {
+    let jsonRes = await getAppVersionArtifacts(appId, "SONATYPE");
+    return jsonRes[0];
+}
+exports.getLatestScaArtifact = getLatestScaArtifact;
+
+
+/***/ }),
+
 /***/ 6671:
 /***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
 
@@ -38441,6 +38507,7 @@ const core = __importStar(__nccwpck_require__(2186));
 const vuln = __importStar(__nccwpck_require__(4002));
 const appversion = __importStar(__nccwpck_require__(3538));
 const filterset = __importStar(__nccwpck_require__(6671));
+const artifact = __importStar(__nccwpck_require__(4571));
 function stringToHeader(element) {
     switch (element) {
         case 'Critical':
@@ -38495,13 +38562,20 @@ async function createVulnsByScanProductTable(appId, filterSet = "Security Audito
 }
 async function setJobSummary(app, version) {
     const appId = await appversion.getAppVersionId(app, version);
+    const lastSastScan = await artifact.getLatestSastArtifact(appId);
+    const lastDastScan = await artifact.getLatestDastArtifact(appId);
+    const lastScaScan = await artifact.getLatestScaArtifact(appId);
     await core.summary
         .addImage('https://cdn.asp.events/CLIENT_CloserSt_D86EA381_5056_B739_5482D50A1A831DDD/sites/CSWA-2023/media/libraries/exhibitors/Ezone-cover.png/fit-in/1500x9999/filters:no_upscale()', 'Fortify by OpenText CyberSecurity', { width: "600" })
         .addHeading('Fortify AST Results')
-        .addHeading('Executive Summary', 3)
-        .addRaw(`<b>Application Name</b>:      ${app}`, true).addBreak()
-        .addRaw(`<b>Application Version</b>:   ${version}`, true).addBreak()
-        .addHeading('Security Findings', 3)
+        .addHeading('Executive Summary', 2)
+        .addTable([
+        [`<b>Application</b>`, app, '', `<b>Last Successful SAST Scan</b>`, lastSastScan["uploadDate"]],
+        [`<b>Application Version</b>`, version, '', `<b>Last Successful DAST Scan</b>`, lastDastScan["uploadDate"]],
+        ['', '', '', `<b>Last Successful SAST Scan</b>`, lastSastScan["uploadDate"]]
+    ])
+        .addSeparator()
+        .addHeading('Security Findings', 2)
         .addTable(await createVulnsByScanProductTable(appId, 'Information'))
         .addLink('View staging deployment!', 'https://github.com')
         .write();
