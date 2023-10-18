@@ -24,12 +24,28 @@ inputs:
     description: 'Fortify SSC Application Version Name'
     default: ${{ github.ref_name }}
     required: true
+  sast_scan:
+    description: 'Enable to run ScanCentral SAST scan'
+    default: true
+    required: false
   sast_client_auth_token:
     description: 'Fortify ScanCentral SAST Client authentication token'
     required: false
   sast_build_options:
     description: 'Fortify scancentral package build options'
     default: -bt none
+    required: false
+  security_gate_action:
+    description: 'Warn or Exit on Security Gate Failure'
+    default: warn
+    required: false
+  security_gate_filterset:
+    description: 'FilterSet used for the Security Gate'
+    default: Security Auditor View
+    required: false
+  summary_filterset:
+    description: 'FilterSet used in the Job Summary'
+    default: Security Auditor View
     required: false
   sha:
     description: 'SHA used in various FCLI variable names'

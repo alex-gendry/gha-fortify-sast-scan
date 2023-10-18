@@ -127,9 +127,9 @@ export async function fcli(args: string[], silent = true): Promise<any> {
         core.debug(responseData)
 
         return JSON.parse(responseData)
-    } catch (e) {
+    } catch (err: any) {
         core.error(`${errorData}`)
-        throw new Error(`${e}`)
+        throw err
     }
 }
 

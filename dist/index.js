@@ -38085,6 +38085,8 @@ const session = __importStar(__nccwpck_require__(1610));
 const appversion = __importStar(__nccwpck_require__(3538));
 const sast = __importStar(__nccwpck_require__(7431));
 const summary = __importStar(__nccwpck_require__(2553));
+const securitygate = __importStar(__nccwpck_require__(5594));
+const process = __importStar(__nccwpck_require__(7282));
 const INPUT = {
     ssc_base_url: core.getInput('ssc_base_url', { required: true }),
     ssc_ci_token: core.getInput('ssc_ci_token', { required: false }),
@@ -38092,11 +38094,15 @@ const INPUT = {
     ssc_ci_password: core.getInput('ssc_ci_password', { required: false }),
     ssc_app: core.getInput('ssc_app', { required: true }),
     ssc_version: core.getInput('ssc_version', { required: true }),
+    sast_scan: core.getBooleanInput('sast_scan', { required: false }),
     sast_client_auth_token: core.getInput('sast_client_auth_token', {
         required: false
     }),
     sast_build_options: core.getInput('sast_build_options', { required: false }),
-    sha: core.getInput('sha', { required: false })
+    sha: core.getInput('sha', { required: false }),
+    security_gate_action: core.getInput('security_gate_action', { required: false }),
+    security_gate_filterset: core.getInput('security_gate_filterset', { required: false }),
+    summary_filterset: core.getInput('summary_filterset', { required: false })
 };
 /**
  * The main function for the action.
@@ -38106,93 +38112,70 @@ async function run() {
     try {
         /** Login  */
         core.info(`Login to Fortify solutions`);
-        try {
-            if (INPUT.ssc_ci_token) {
-                core.debug('Login to SSC using Token');
-                await session.loginSscWithToken(INPUT.ssc_base_url, INPUT.ssc_ci_token);
-                core.info('SSC Login Success');
-            }
-            else if (INPUT.ssc_ci_username && INPUT.ssc_ci_password) {
-                core.debug('Login to SSC using Username Password');
-                await session.loginSscWithUsernamePassword(INPUT.ssc_base_url, INPUT.ssc_ci_username, INPUT.ssc_ci_password);
-                core.info('SSC Login Success');
-            }
-            else if (await session.hasActiveSscSession(INPUT.ssc_base_url)) {
-                core.info('Existing default SSC login session found.');
-            }
-            else {
-                core.setFailed('SSC: Missing credentials. Specify CI Token or Username+Password');
-                throw new Error('SSC: Credentials missing and no existing default login session exists');
-            }
-        }
-        catch (err) {
-            core.setFailed(`${err}`);
-            throw new Error('Login to SSC failed!');
-        }
-        try {
-            if (INPUT.ssc_ci_token) {
-                await session.loginSastWithToken(INPUT.ssc_base_url, INPUT.ssc_ci_token, INPUT.sast_client_auth_token);
-                core.info('ScanCentral SAST Login Success');
-            }
-            else if (INPUT.ssc_ci_username && INPUT.ssc_ci_password) {
-                await session.loginSastWithUsernamePassword(INPUT.ssc_base_url, INPUT.ssc_ci_username, INPUT.ssc_ci_password, INPUT.sast_client_auth_token);
-                core.info('ScanCentral SAST Login Success');
-            }
-            else if (await session.hasActiveSastSession(INPUT.ssc_base_url)) {
-                core.info('Existing default ScanCentral SAST login session found.');
-            }
-            else {
-                core.setFailed('ScanCentral SAST: Missing credentials. Specify CI Token or Username+Password');
-                throw new Error('ScanCentral SAST: Credentials missing and no existing default login session exists');
-            }
-        }
-        catch (err) {
-            core.setFailed(`${err}`);
-            throw new Error('Login to ScanCentral SAST failed!');
-        }
+        await session.login(INPUT).catch(error => {
+            core.setFailed(`${error.message}`);
+            process.exit(core.ExitCode.Failure);
+        });
         /** Does the AppVersion exists ? */
         core.info(`Checking if AppVersion ${INPUT.ssc_app}:${INPUT.ssc_version} exists`);
-        let appVersionExists = false;
-        try {
-            appVersionExists = await appversion.appVersionExists(INPUT.ssc_app, INPUT.ssc_version);
-        }
-        catch (err) {
+        await appversion.appVersionExists(INPUT.ssc_app, INPUT.ssc_version).then(appVersionExists => {
+            if (!appVersionExists) {
+                core.warning(`AppVersion ${INPUT.ssc_app}:${INPUT.ssc_version} not found.`);
+                core.setFailed('Scan not executed because AppVersion ${INPUT.ssc_app}:${INPUT.ssc_version} not found.');
+                process.exit(core.ExitCode.Failure);
+            }
+        }).catch(error => {
+            core.error(`${error.message}`);
             core.setFailed(`Failed to check if ${INPUT.ssc_app}:${INPUT.ssc_version} exists`);
-            throw new Error(`${err}`);
-        }
-        if (!appVersionExists) {
-            core.warning(`AppVersion ${INPUT.ssc_app}:${INPUT.ssc_version} not found.`);
-            core.setFailed('Scan not executed because AppVersion ${INPUT.ssc_app}:${INPUT.ssc_version} not found.');
-        }
+            process.exit(core.ExitCode.Failure);
+        });
         core.info(`AppVersion ${INPUT.ssc_app}:${INPUT.ssc_version} exists`);
         /** Source code packaging */
         core.info(`Packaging source code with "${INPUT.sast_build_options}"`);
-        let packaged = -1;
-        try {
-            packaged = await sast.packageSourceCode(INPUT.sast_build_options);
+        await sast.packageSourceCode(INPUT.sast_build_options).then(packaged => {
             if (packaged != 0) {
                 throw new Error('Source code packaging failed');
             }
-        }
-        catch (err) {
+        }).catch(error => {
+            core.error(error.message);
             core.setFailed(`Failed to package source code with "${INPUT.sast_build_options}"`);
-            throw new Error(`${err}`);
-        }
+            process.exit(core.ExitCode.Failure);
+        });
         /** SAST Scan Execution */
-        // try {
-        //     core.info(`Submitting scan`)
-        //     let jobToken = await sast.startSastScan(INPUT.ssc_app, INPUT.ssc_version)
-        //     core.info('Waiting for scan completion...')
-        //     if (!(await sast.waitForSastScan(jobToken))) {
-        //         core.setFailed('SAST Scan Failed')
-        //     } else {
-        //         core.info(`SAST Scan is successfuly executed and submitted to ${INPUT.ssc_app}:${INPUT.ssc_version}`)
-        //     }
-        // } catch (e) {
-        //     throw new Error(`${e}`)
-        // }
+        if (INPUT.sast_scan) {
+            core.info(`Submitting SAST scan`);
+            const jobToken = await sast.startSastScan(INPUT.ssc_app, INPUT.ssc_version).catch(error => {
+                core.error(error.message);
+                core.setFailed(`SAST start scan failed`);
+                process.exit(core.ExitCode.Failure);
+            });
+            await sast.waitForSastScan(jobToken).then(result => {
+                if (!result) {
+                    throw new Error('SAST Scan Failed');
+                }
+                else {
+                    core.info(`SAST Scan is successfuly executed and submitted to ${INPUT.ssc_app}:${INPUT.ssc_version}`);
+                }
+            }).catch(error => {
+                core.error(error.message);
+                core.setFailed(`Wait fo SAST start scan failed`);
+                process.exit(core.ExitCode.Failure);
+            });
+        }
+        /** RUN Security Gate */
+        const passedSecurityGate = await securitygate.run(INPUT);
+        if (!passedSecurityGate) {
+            switch (INPUT.security_gate_action.toLowerCase()) {
+                case 'warn':
+                    core.warning('Security Gate Failure');
+                    break;
+                case 'exit':
+                    core.setFailed('Security Gate Failure');
+                    break;
+            }
+        }
         /** Job Summary */
-        await summary.setJobSummary(INPUT.ssc_app, INPUT.ssc_version, INPUT.ssc_base_url);
+        await summary.setJobSummary(INPUT.ssc_app, INPUT.ssc_version, passedSecurityGate, INPUT.summary_filterset, INPUT.ssc_base_url);
         core.setOutput('time', new Date().toTimeString());
     }
     catch (error) {
@@ -38349,6 +38332,49 @@ exports.waitForSastScan = waitForSastScan;
 
 /***/ }),
 
+/***/ 5594:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+
+"use strict";
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.run = void 0;
+const vuln = __importStar(__nccwpck_require__(4002));
+const appversion = __importStar(__nccwpck_require__(3538));
+async function run(INPUT) {
+    const appId = await appversion.getAppVersionId(INPUT.app, INPUT.version);
+    const count = await vuln.getAppVersionVulnsCountTotal(appId, INPUT.security_gate_filterset);
+    const status = count ? false : true;
+    return status;
+}
+exports.run = run;
+
+
+/***/ }),
+
 /***/ 1610:
 /***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
 
@@ -38378,7 +38404,7 @@ var __importStar = (this && this.__importStar) || function (mod) {
     return result;
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.loginSastWithUsernamePassword = exports.loginSastWithToken = exports.loginSscWithUsernamePassword = exports.loginSscWithToken = exports.hasActiveSastSession = exports.hasActiveSscSession = void 0;
+exports.login = void 0;
 const utils = __importStar(__nccwpck_require__(1314));
 const core = __importStar(__nccwpck_require__(2186));
 async function hasActiveSscSession(base_url) {
@@ -38402,7 +38428,6 @@ async function hasActiveSscSession(base_url) {
         throw new Error(`${err}`);
     }
 }
-exports.hasActiveSscSession = hasActiveSscSession;
 async function hasActiveSastSession(base_url) {
     try {
         let jsonRes = await utils.fcli([
@@ -38424,7 +38449,6 @@ async function hasActiveSastSession(base_url) {
         throw new Error(`${err}`);
     }
 }
-exports.hasActiveSastSession = hasActiveSastSession;
 async function loginSscWithToken(base_url, token) {
     try {
         let args = [
@@ -38452,7 +38476,6 @@ async function loginSscWithToken(base_url, token) {
         throw new Error(`${err}`);
     }
 }
-exports.loginSscWithToken = loginSscWithToken;
 async function loginSscWithUsernamePassword(base_url, username, password) {
     try {
         let args = [
@@ -38485,34 +38508,27 @@ async function loginSscWithUsernamePassword(base_url, username, password) {
         throw new Error(`${err}`);
     }
 }
-exports.loginSscWithUsernamePassword = loginSscWithUsernamePassword;
 async function loginSastWithToken(base_url, token, clientToken) {
-    try {
-        let args = [
-            'sc-sast',
-            'session',
-            'login',
-            `--ssc-url=${base_url}`,
-            `--ssc-ci-token=${token}`,
-            `--client-auth-token=${clientToken}`,
-            '--output=json'
-        ];
-        args = process.env.FCLI_DISABLE_SSL_CHECKS
-            ? args.concat([`--insecure`])
-            : args;
-        let jsonRes = await utils.fcli(args);
-        if (jsonRes['__action__'] === 'CREATED') {
-            return true;
-        }
-        else {
-            throw new Error(`Login Failed: Fortify returned __action__ = ${jsonRes['__action__']}`);
-        }
+    let args = [
+        'sc-sast',
+        'session',
+        'login',
+        `--ssc-url=${base_url}`,
+        `--ssc-ci-token=${token}`,
+        `--client-auth-token=${clientToken}`,
+        '--output=json'
+    ];
+    args = process.env.FCLI_DISABLE_SSL_CHECKS
+        ? args.concat([`--insecure`])
+        : args;
+    let jsonRes = await utils.fcli(args);
+    if (jsonRes['__action__'] === 'CREATED') {
+        return true;
     }
-    catch (err) {
-        throw new Error(`${err}`);
+    else {
+        throw new Error(`Login Failed: Fortify returned __action__ = ${jsonRes['__action__']}`);
     }
 }
-exports.loginSastWithToken = loginSastWithToken;
 async function loginSastWithUsernamePassword(base_url, username, password, clientToken) {
     try {
         let args = [
@@ -38543,7 +38559,53 @@ async function loginSastWithUsernamePassword(base_url, username, password, clien
         throw new Error(`${err}`);
     }
 }
-exports.loginSastWithUsernamePassword = loginSastWithUsernamePassword;
+async function login(INPUT) {
+    try {
+        if (INPUT.ssc_ci_token) {
+            core.debug('Login to SSC using Token');
+            await loginSscWithToken(INPUT.ssc_base_url, INPUT.ssc_ci_token);
+            core.info('SSC Login Success');
+        }
+        else if (INPUT.ssc_ci_username && INPUT.ssc_ci_password) {
+            core.debug('Login to SSC using Username Password');
+            await loginSscWithUsernamePassword(INPUT.ssc_base_url, INPUT.ssc_ci_username, INPUT.ssc_ci_password);
+            core.info('SSC Login Success');
+        }
+        else if (await hasActiveSscSession(INPUT.ssc_base_url)) {
+            core.info('Existing default SSC login session found.');
+        }
+        else {
+            core.setFailed('SSC: Missing credentials. Specify CI Token or Username+Password');
+            throw new Error('SSC: Credentials missing and no existing default login session exists');
+        }
+    }
+    catch (err) {
+        core.error(`${err}`);
+        throw new Error('Login to SSC failed!');
+    }
+    try {
+        if (INPUT.ssc_ci_token) {
+            await loginSastWithToken(INPUT.ssc_base_url, INPUT.ssc_ci_token, INPUT.sast_client_auth_token);
+            core.info('ScanCentral SAST Login Success');
+        }
+        else if (INPUT.ssc_ci_username && INPUT.ssc_ci_password) {
+            await loginSastWithUsernamePassword(INPUT.ssc_base_url, INPUT.ssc_ci_username, INPUT.ssc_ci_password, INPUT.sast_client_auth_token);
+            core.info('ScanCentral SAST Login Success');
+        }
+        else if (await hasActiveSastSession(INPUT.ssc_base_url)) {
+            core.info('Existing default ScanCentral SAST login session found.');
+        }
+        else {
+            core.setFailed('ScanCentral SAST: Missing credentials. Specify CI Token or Username+Password');
+            throw new Error('ScanCentral SAST: Credentials missing and no existing default login session exists');
+        }
+    }
+    catch (err) {
+        core.error(`${err.message}`);
+        throw new Error('Login to ScanCentral SAST failed!');
+    }
+}
+exports.login = login;
 
 
 /***/ }),
@@ -38700,8 +38762,7 @@ async function getScansSummaryTable(appId) {
 function getLink(link) {
     return `<a target="_blank" rel="noopener noreferrer" href="${link}">:link:</a>`;
 }
-async function setJobSummary(app, version, base_url) {
-    const filterSet = 'Security Auditor View';
+async function setJobSummary(app, version, passedSecurityage, filterSet, base_url) {
     const appId = await appversion.getAppVersionId(app, version);
     const securityRating = await performanceindicator.getPerformanceIndicatorValueByName(appId, 'Fortify Security Rating');
     let n = 0;
@@ -38712,8 +38773,14 @@ async function setJobSummary(app, version, base_url) {
         .addImage('https://cdn.asp.events/CLIENT_CloserSt_D86EA381_5056_B739_5482D50A1A831DDD/sites/CSWA-2023/media/libraries/exhibitors/Ezone-cover.png/fit-in/1500x9999/filters:no_upscale()', 'Fortify by OpenText CyberSecurity', { width: "600" })
         .addHeading('Fortify AST Results')
         .addHeading(':clipboard: Executive Summary', 2)
-        .addTable([[`<b>Application</b>`, app, `<b>Application Version</b>`, `${version} ${getLink(appVersionUrl)}`]])
-        .addTable([[`<p><b>Fortify Security Rating</b> ${getLink(securityRatingsUrl)}:   ${securityStars}</p>`]])
+        .addTable([
+        [`<b>Application</b>`, app, `<b>Application Version</b>`, `${version} ${getLink(appVersionUrl)}`],
+        [`<p><b>Date</b> :   ${new Date().toLocaleString('fr-FR')}</p>`]
+    ])
+        .addTable([
+        [`<p><b>Fortify Security Rating</b> ${getLink(securityRatingsUrl)}:   ${securityStars}</p>`],
+        [`<p><b>Security Gate Status</b> :   ${passedSecurityage ? 'Passed :white_check_mark:' : 'Failed :x:'}</p>`]
+    ])
         .addTable(await getScansSummaryTable(appId))
         .addHeading(':signal_strength: Security Findings', 2)
         .addHeading(`:telescope: Filter Set: ${filterSet}`, 3)
@@ -38877,9 +38944,9 @@ async function fcli(args, silent = true) {
         core.debug(responseData);
         return JSON.parse(responseData);
     }
-    catch (e) {
+    catch (err) {
         core.error(`${errorData}`);
-        throw new Error(`${e}`);
+        throw err;
     }
 }
 exports.fcli = fcli;
@@ -38989,7 +39056,7 @@ var __importStar = (this && this.__importStar) || function (mod) {
     return result;
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.getAppVersionNewVulnsCount = exports.getAppVersionVulnsCount = void 0;
+exports.getAppVersionVulnsCountTotal = exports.getAppVersionNewVulnsCount = exports.getAppVersionVulnsCount = void 0;
 const utils = __importStar(__nccwpck_require__(1314));
 const filterset = __importStar(__nccwpck_require__(6671));
 const core = __importStar(__nccwpck_require__(2186));
@@ -39035,6 +39102,15 @@ async function getAppVersionNewVulnsCount(appId, filterSet, analysisType) {
     return await getAppVersionVulnsCount(appId, filterSet, analysisType, true);
 }
 exports.getAppVersionNewVulnsCount = getAppVersionNewVulnsCount;
+async function getAppVersionVulnsCountTotal(appId, filterSet, analysisType, newIssues = false) {
+    const count = await getAppVersionVulnsCount(appId, filterSet, analysisType, newIssues);
+    let total = 0;
+    count.forEach(item => {
+        total += item["totalCount"];
+    });
+    return total;
+}
+exports.getAppVersionVulnsCountTotal = getAppVersionVulnsCountTotal;
 
 
 /***/ }),
@@ -39196,6 +39272,14 @@ module.exports = require("path");
 
 "use strict";
 module.exports = require("perf_hooks");
+
+/***/ }),
+
+/***/ 7282:
+/***/ ((module) => {
+
+"use strict";
+module.exports = require("process");
 
 /***/ }),
 

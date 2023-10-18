@@ -144,8 +144,7 @@ function getLink(link: string): string {
     return `<a target="_blank" rel="noopener noreferrer" href="${link}">:link:</a>`
 }
 
-export async function setJobSummary(app: string, version: string, base_url: string): Promise<any> {
-    const filterSet: string = 'Security Auditor View'
+export async function setJobSummary(app: string, version: string, passedSecurityage:boolean, filterSet: string, base_url: string): Promise<any> {
     const appId = await appversion.getAppVersionId(app, version)
 
     const securityRating = await performanceindicator.getPerformanceIndicatorValueByName(appId, 'Fortify Security Rating')
@@ -159,8 +158,13 @@ export async function setJobSummary(app: string, version: string, base_url: stri
         .addImage('https://cdn.asp.events/CLIENT_CloserSt_D86EA381_5056_B739_5482D50A1A831DDD/sites/CSWA-2023/media/libraries/exhibitors/Ezone-cover.png/fit-in/1500x9999/filters:no_upscale()', 'Fortify by OpenText CyberSecurity', {width: "600"})
         .addHeading('Fortify AST Results')
         .addHeading(':clipboard: Executive Summary', 2)
-        .addTable([[`<b>Application</b>`, app, `<b>Application Version</b>`, `${version} ${getLink(appVersionUrl)}`]])
-        .addTable([[`<p><b>Fortify Security Rating</b> ${getLink(securityRatingsUrl)}:   ${securityStars}</p>`]])
+        .addTable([
+            [`<b>Application</b>`, app, `<b>Application Version</b>`, `${version} ${getLink(appVersionUrl)}`],
+            [`<p><b>Date</b> :   ${new Date().toLocaleString('fr-FR')}</p>`]
+        ])
+        .addTable([
+            [`<p><b>Fortify Security Rating</b> ${getLink(securityRatingsUrl)}:   ${securityStars}</p>`],
+            [`<p><b>Security Gate Status</b> :   ${passedSecurityage ? 'Passed :white_check_mark:' : 'Failed :x:'  }</p>`]])
         .addTable(await getScansSummaryTable(appId))
         .addHeading(':signal_strength: Security Findings', 2)
         .addHeading(`:telescope: Filter Set: ${filterSet}`, 3)

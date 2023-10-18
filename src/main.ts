@@ -3,6 +3,8 @@ import * as session from './session'
 import * as appversion from './appversion'
 import * as sast from './sast'
 import * as summary from './summary'
+import * as securitygate from './securitygate'
+import * as process from "process";
 
 const INPUT = {
     ssc_base_url: core.getInput('ssc_base_url', {required: true}),
@@ -11,11 +13,15 @@ const INPUT = {
     ssc_ci_password: core.getInput('ssc_ci_password', {required: false}),
     ssc_app: core.getInput('ssc_app', {required: true}),
     ssc_version: core.getInput('ssc_version', {required: true}),
+    sast_scan: core.getBooleanInput('sast_scan', {required: false}),
     sast_client_auth_token: core.getInput('sast_client_auth_token', {
         required: false
     }),
     sast_build_options: core.getInput('sast_build_options', {required: false}),
-    sha: core.getInput('sha', {required: false})
+    sha: core.getInput('sha', {required: false}),
+    security_gate_action: core.getInput('security_gate_action', {required: false}),
+    security_gate_filterset: core.getInput('security_gate_filterset', {required: false}),
+    summary_filterset: core.getInput('summary_filterset', {required: false})
 }
 
 /**
@@ -26,108 +32,75 @@ export async function run(): Promise<void> {
     try {
         /** Login  */
         core.info(`Login to Fortify solutions`)
-        try {
-            if (INPUT.ssc_ci_token) {
-                core.debug('Login to SSC using Token')
-                await session.loginSscWithToken(INPUT.ssc_base_url, INPUT.ssc_ci_token)
-                core.info('SSC Login Success')
-            } else if (INPUT.ssc_ci_username && INPUT.ssc_ci_password) {
-                core.debug('Login to SSC using Username Password')
-                await session.loginSscWithUsernamePassword(
-                    INPUT.ssc_base_url,
-                    INPUT.ssc_ci_username,
-                    INPUT.ssc_ci_password
-                )
-                core.info('SSC Login Success')
-            } else if (await session.hasActiveSscSession(INPUT.ssc_base_url)) {
-                core.info('Existing default SSC login session found.')
-            } else {
-                core.setFailed(
-                    'SSC: Missing credentials. Specify CI Token or Username+Password'
-                )
-                throw new Error(
-                    'SSC: Credentials missing and no existing default login session exists'
-                )
-            }
-        } catch (err) {
-            core.setFailed(`${err}`)
-            throw new Error('Login to SSC failed!')
-        }
-        try {
-            if (INPUT.ssc_ci_token) {
-                await session.loginSastWithToken(
-                    INPUT.ssc_base_url,
-                    INPUT.ssc_ci_token,
-                    INPUT.sast_client_auth_token
-                )
-                core.info('ScanCentral SAST Login Success')
-            } else if (INPUT.ssc_ci_username && INPUT.ssc_ci_password) {
-                await session.loginSastWithUsernamePassword(
-                    INPUT.ssc_base_url,
-                    INPUT.ssc_ci_username,
-                    INPUT.ssc_ci_password,
-                    INPUT.sast_client_auth_token
-                )
-                core.info('ScanCentral SAST Login Success')
-            } else if (await session.hasActiveSastSession(INPUT.ssc_base_url)) {
-                core.info('Existing default ScanCentral SAST login session found.')
-            } else {
-                core.setFailed(
-                    'ScanCentral SAST: Missing credentials. Specify CI Token or Username+Password'
-                )
-                throw new Error(
-                    'ScanCentral SAST: Credentials missing and no existing default login session exists'
-                )
-            }
-        } catch (err) {
-            core.setFailed(`${err}`)
-            throw new Error('Login to ScanCentral SAST failed!')
-        }
+        await session.login(INPUT).catch(error => {
+            core.setFailed(`${error.message}`)
+            process.exit(core.ExitCode.Failure)
+        })
 
         /** Does the AppVersion exists ? */
         core.info(`Checking if AppVersion ${INPUT.ssc_app}:${INPUT.ssc_version} exists`)
-        let appVersionExists = false
-        try {
-            appVersionExists = await appversion.appVersionExists(INPUT.ssc_app, INPUT.ssc_version)
-        } catch (err) {
+        await appversion.appVersionExists(INPUT.ssc_app, INPUT.ssc_version).then(appVersionExists => {
+            if (!appVersionExists) {
+                core.warning(`AppVersion ${INPUT.ssc_app}:${INPUT.ssc_version} not found.`)
+                core.setFailed('Scan not executed because AppVersion ${INPUT.ssc_app}:${INPUT.ssc_version} not found.')
+                process.exit(core.ExitCode.Failure)
+            }
+        }).catch(error => {
+            core.error(`${error.message}`)
             core.setFailed(`Failed to check if ${INPUT.ssc_app}:${INPUT.ssc_version} exists`)
-            throw new Error(`${err}`)
-        }
-        if (!appVersionExists) {
-            core.warning(`AppVersion ${INPUT.ssc_app}:${INPUT.ssc_version} not found.`)
-            core.setFailed('Scan not executed because AppVersion ${INPUT.ssc_app}:${INPUT.ssc_version} not found.')
-        }
+            process.exit(core.ExitCode.Failure)
+        })
         core.info(`AppVersion ${INPUT.ssc_app}:${INPUT.ssc_version} exists`)
 
         /** Source code packaging */
         core.info(`Packaging source code with "${INPUT.sast_build_options}"`)
-        let packaged = -1
-        try {
-            packaged = await sast.packageSourceCode(INPUT.sast_build_options)
+        await sast.packageSourceCode(INPUT.sast_build_options).then(packaged => {
             if (packaged != 0) {
                 throw new Error('Source code packaging failed')
             }
-        } catch (err) {
+        }).catch(error => {
+            core.error(error.message)
             core.setFailed(`Failed to package source code with "${INPUT.sast_build_options}"`)
-            throw new Error(`${err}`)
-        }
+            process.exit(core.ExitCode.Failure)
+        })
 
         /** SAST Scan Execution */
-        // try {
-        //     core.info(`Submitting scan`)
-        //     let jobToken = await sast.startSastScan(INPUT.ssc_app, INPUT.ssc_version)
-        //     core.info('Waiting for scan completion...')
-        //     if (!(await sast.waitForSastScan(jobToken))) {
-        //         core.setFailed('SAST Scan Failed')
-        //     } else {
-        //         core.info(`SAST Scan is successfuly executed and submitted to ${INPUT.ssc_app}:${INPUT.ssc_version}`)
-        //     }
-        // } catch (e) {
-        //     throw new Error(`${e}`)
-        // }
+        if (INPUT.sast_scan) {
+            core.info(`Submitting SAST scan`)
+            const jobToken: string = await sast.startSastScan(INPUT.ssc_app, INPUT.ssc_version).catch(error => {
+                core.error(error.message)
+                core.setFailed(`SAST start scan failed`)
+                process.exit(core.ExitCode.Failure)
+            })
+            await sast.waitForSastScan(jobToken).then(result => {
+                if (!result) {
+                    throw new Error('SAST Scan Failed')
+                } else {
+                    core.info(`SAST Scan is successfuly executed and submitted to ${INPUT.ssc_app}:${INPUT.ssc_version}`)
+                }
+            }).catch(error => {
+                core.error(error.message)
+                core.setFailed(`Wait fo SAST start scan failed`)
+                process.exit(core.ExitCode.Failure)
+            })
+        }
+
+        /** RUN Security Gate */
+        const passedSecurityGate = await securitygate.run(INPUT)
+        if (!passedSecurityGate) {
+            switch (INPUT.security_gate_action.toLowerCase()) {
+                case 'warn':
+                    core.warning('Security Gate Failure')
+                    break
+                case 'exit':
+                    core.setFailed('Security Gate Failure')
+                    break
+            }
+        }
 
         /** Job Summary */
-        await summary.setJobSummary(INPUT.ssc_app, INPUT.ssc_version, INPUT.ssc_base_url)
+        await summary.setJobSummary(INPUT.ssc_app, INPUT.ssc_version, passedSecurityGate, INPUT.summary_filterset, INPUT.ssc_base_url)
+
 
         core.setOutput('time', new Date().toTimeString())
     } catch (error) {

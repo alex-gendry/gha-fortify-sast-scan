@@ -3,7 +3,7 @@ import * as filterset from './filterset'
 import * as core from '@actions/core'
 
 
-export async function getAppVersionVulnsCount(appId: number | string, filterSet:string, analysisType?: String, newIssues?: boolean): Promise<any> {
+export async function getAppVersionVulnsCount(appId: number | string, filterSet: string, analysisType?: String, newIssues?: boolean): Promise<any> {
     let query = ""
     if (newIssues) {
         query = "[issue age]:NEW"
@@ -42,6 +42,16 @@ export async function getAppVersionVulnsCount(appId: number | string, filterSet:
 }
 
 
-export async function getAppVersionNewVulnsCount(appId: number | string, filterSet:string, analysisType?: String): Promise<any> {
+export async function getAppVersionNewVulnsCount(appId: number | string, filterSet: string, analysisType?: String): Promise<any> {
     return await getAppVersionVulnsCount(appId, filterSet, analysisType, true)
+}
+
+export async function getAppVersionVulnsCountTotal(appId: number | string, filterSet: string, analysisType?: String, newIssues: boolean = false): Promise<any> {
+    const count: any[] = await getAppVersionVulnsCount(appId, filterSet, analysisType, newIssues)
+    let total: number = 0
+    count.forEach(item => {
+        total += item["totalCount"]
+    })
+
+    return total
 }
