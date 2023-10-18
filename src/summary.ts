@@ -63,16 +63,19 @@ export async function setJobSummary(app: string, version: string): Promise<any> 
     const lastDastScan = await artifact.getLatestDastArtifact(appId)
     const lastScaScan = await artifact.getLatestScaArtifact(appId)
     const securityRating = await performanceindicator.getPerformanceIndicatorValueByName(appId, 'Fortify Security Rating')
+    let n = 0
+    const securityStars:string = ":white_circle::white_circle::white_circle::white_circle::white_circle:".replace(/white_circle/g, match => n++ < securityRating ? "star" : match)
 
     await core.summary
         .addImage('https://cdn.asp.events/CLIENT_CloserSt_D86EA381_5056_B739_5482D50A1A831DDD/sites/CSWA-2023/media/libraries/exhibitors/Ezone-cover.png/fit-in/1500x9999/filters:no_upscale()', 'Fortify by OpenText CyberSecurity', {width: "600"})
         .addHeading('Fortify AST Results')
         .addHeading('Executive Summary', 2)
-        .addDetails("details", `${app} - ${version} - ${securityRating}`)
+        .addRaw(`<p><b>Fortify Security Rating</b>:   ${securityStars}</p>`)
         .addTable([
-            [`<b>Application</b>`, app, '', `<b>Last Successful SAST Scan</b>`,new Date(lastSastScan["lastScanDate"]).toLocaleString('fr-FR') ],
-            [`<b>Application Version</b>`, version, '', `<b>Last Successful DAST Scan</b>`,new Date(lastDastScan["lastScanDate"]).toLocaleString('fr-FR') ],
-            ['', '', '', `<b>Last Successful SCA Scan</b>`,new Date(lastScaScan["lastScanDate"]).toLocaleString('fr-FR') ]
+            [`<b>Application</b>`, app,`<b>Application Version</b>`, version] ,
+            [`<b>Last Successful SAST Scan</b>`,new Date(lastSastScan["lastScanDate"]).toLocaleString('fr-FR') ],
+            [`<b>Last Successful DAST Scan</b>`,new Date(lastDastScan["lastScanDate"]).toLocaleString('fr-FR') ],
+            [ `<b>Last Successful SCA Scan</b>`,new Date(lastScaScan["lastScanDate"]).toLocaleString('fr-FR') ]
         ])
         .addSeparator()
         .addHeading('Security Findings', 2)
