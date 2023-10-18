@@ -38661,6 +38661,9 @@ async function getScansSummaryTable(appId) {
     }));
     return scanRows;
 }
+function getLink(link) {
+    return `<a target="_blank" rel="noopener noreferrer" href="${link}">:link:</a>`;
+}
 async function setJobSummary(app, version, base_url) {
     const appId = await appversion.getAppVersionId(app, version);
     const securityRating = await performanceindicator.getPerformanceIndicatorValueByName(appId, 'Fortify Security Rating');
@@ -38673,16 +38676,14 @@ async function setJobSummary(app, version, base_url) {
         .addHeading('Fortify AST Results')
         .addHeading('Executive Summary', 2)
         .addLink(` :link:`, appVersionUrl)
-        .addTable([[`<b>Application</b>`, app, `<b>Application Version</b>`, `${version}`]])
-        .addLink(` :link:`, securityRatingsUrl)
-        .addTable([[`<p><b>Fortify Security Rating</b>:   ${securityStars}</p>`]])
+        .addTable([[`<b>Application</b>`, app, `<b>Application Version</b>`, `${version} ${getLink(appVersionUrl)}`]])
+        .addTable([[`<p><b>Fortify Security Rating</b> ${getLink(securityRatingsUrl)}:   ${securityStars}</p>`]])
         .addTable(await getScansSummaryTable(appId))
         .addHeading('Security Findings', 2)
         .addHeading(':new: Newly Added Security Findings', 2)
         .addTable(await getNewVulnsTable(appId, 'Security Auditor View'))
         .addHeading(':signal_strength: All Security Findings', 2)
         .addTable(await getVulnsByScanProductTable(appId, 'Security Auditor View'))
-        .addLink('View staging deployment!', 'https://github.com')
         .write();
 }
 exports.setJobSummary = setJobSummary;
