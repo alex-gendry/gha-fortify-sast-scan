@@ -209,6 +209,6 @@ export function daysOrToday(diffDays:number) {
     if(diffDays < 1 ){
         return "Today"
     } else {
-        return `${diffDays} days ago`
+        return `${diffDays} day${diffDays > 1 ? "s" : ""} ago`
     }
 }

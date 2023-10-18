@@ -38666,13 +38666,15 @@ async function setJobSummary(app, version, base_url) {
     const securityRating = await performanceindicator.getPerformanceIndicatorValueByName(appId, 'Fortify Security Rating');
     let n = 0;
     const securityStars = ":white_circle::white_circle::white_circle::white_circle::white_circle:".replace(/white_circle/g, match => n++ < securityRating ? "star" : match);
-    const appVersionURL = `${base_url}/html/ssc/version/${appId}/audit`;
+    const appVersionUrl = `${base_url}/html/ssc/version/${appId}/audit`;
+    const securityRatingsUrl = `${base_url}/html/ssc/version/${appId}/trend?versionTrendDateRange=YEAR&versionTrendParam=performanceIndicators%3A%3AFortifySecurityRating`;
     await core.summary
         .addImage('https://cdn.asp.events/CLIENT_CloserSt_D86EA381_5056_B739_5482D50A1A831DDD/sites/CSWA-2023/media/libraries/exhibitors/Ezone-cover.png/fit-in/1500x9999/filters:no_upscale()', 'Fortify by OpenText CyberSecurity', { width: "600" })
         .addHeading('Fortify AST Results')
         .addHeading('Executive Summary', 2)
+        .addLink(` :link:`, appVersionUrl)
         .addTable([[`<b>Application</b>`, app, `<b>Application Version</b>`, `${version}`]])
-        .addLink(` [:link:]`, appVersionURL)
+        .addLink(` :link:`, securityRatingsUrl)
         .addTable([[`<p><b>Fortify Security Rating</b>:   ${securityStars}</p>`]])
         .addTable(await getScansSummaryTable(appId))
         .addHeading('Security Findings', 2)
@@ -38915,7 +38917,7 @@ function daysOrToday(diffDays) {
         return "Today";
     }
     else {
-        return `${diffDays} days ago`;
+        return `${diffDays} day${diffDays > 1 ? "s" : ""} ago`;
     }
 }
 exports.daysOrToday = daysOrToday;
