@@ -38551,15 +38551,14 @@ async function createVulnsByScanProductTable(appId, filterSet = "Security Audito
         const totalCount = jp.query(totalVulns, `$..[?(@.id=="${folder["name"]}")].totalCount`)[0];
         totalRow.push(totalCount ? `${totalCount}` : `${0}`);
     });
-    core.debug(sastRow.toString());
-    core.debug(dastRow.toString());
-    core.debug(scaRow.toString());
-    core.debug(totalRow.toString());
     return [
         headers,
         sastRow, dastRow, scaRow, totalRow
     ];
 }
+// async function getAppSummaryTable(appId:string) {
+//
+// }
 async function setJobSummary(app, version) {
     const appId = await appversion.getAppVersionId(app, version);
     const lastSastScan = await artifact.getLatestSastArtifact(appId);
@@ -38575,6 +38574,44 @@ async function setJobSummary(app, version) {
         ['', '', '', `<b>Last Successful SAST Scan</b>`, lastSastScan["lastScanDate"]]
     ])
         .addSeparator()
+        .addRaw(`<table width="80%" cellspacing="0" cellpadding="5">
+    <tbody>
+    <tr>
+        <td class="text">
+            <table width="400" cellspacing="0">
+                <tbody>
+                <tr>
+                    <td><b>Application Name</b></td>
+                    <td>PetClinic</td>
+                </tr>
+                <tr>
+                    <td><b>Application Version</b></td>
+                    <td>1.0</td>
+                </tr>
+                </tbody>
+            </table>
+
+        <td>
+            <table width="400" cellspacing="0">
+                <tbody>
+                <tr>
+                    <td>Last SAST Scan</td>
+                    <td>2023-04-18T09:02:19</td>
+                </tr>
+                <tr>
+                    <td>Last DAST Scan</td>
+                    <td>2023-04-18T09:02:19</td>
+                </tr>
+                <tr>
+                    <td>Last SCA Scan</td>
+                    <td>2023-04-18T09:02:19</td>
+                </tr>
+                </tbody>
+            </table>
+        </td>
+    </tr>
+    </tbody>
+</table>`)
         .addHeading('Security Findings', 2)
         .addTable(await createVulnsByScanProductTable(appId, 'Information'))
         .addLink('View staging deployment!', 'https://github.com')
