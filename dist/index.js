@@ -38642,11 +38642,11 @@ async function getVulnsByScanProductTable(appId, filterSet = "Security Auditor V
                     else {
                         cell = `${count} (${countNew} :new:)`;
                     }
-                    total += count;
                     totalNew += countNew;
-                    folderTotals[folder["name"]] += count;
                     folderTotalsNew[folder["name"]] += countNew;
                 }
+                total += count;
+                folderTotals[folder["name"]] += count;
             }
             row.push(cell);
             core.debug(`${scanType} : ${total} / ${count}`);
