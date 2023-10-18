@@ -38225,7 +38225,7 @@ exports.getPerformanceIndicatorValueByName = exports.getPerformanceIndicatorByNa
 const utils = __importStar(__nccwpck_require__(1314));
 const core = __importStar(__nccwpck_require__(2186));
 async function getPerformanceIndicatorByName(appId, performanceIndicatorName) {
-    const url = `/api/v1/projectVersions/${appId}/performanceIndicatorHistories?q=name:"${performanceIndicatorName}"`;
+    const url = `/api/v1/projectVersions/${appId}/performanceIndicatorHistories?q=name:${encodeURI(performanceIndicatorName)}`;
     core.debug(url);
     let jsonRes = await utils.fcli([
         'ssc',

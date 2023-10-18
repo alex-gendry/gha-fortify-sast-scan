@@ -7,7 +7,7 @@ export async function getPerformanceIndicatorByName(
     appId: string|number,
     performanceIndicatorName: string): Promise<any> {
 
-    const url = `/api/v1/projectVersions/${appId}/performanceIndicatorHistories?q=name:"${performanceIndicatorName}"`
+    const url = `/api/v1/projectVersions/${appId}/performanceIndicatorHistories?q=name:${encodeURI(performanceIndicatorName)}`
     core.debug(url)
     let jsonRes = await utils.fcli([
         'ssc',
