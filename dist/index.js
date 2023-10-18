@@ -38616,18 +38616,42 @@ async function getVulnsByScanProductTable(appId, filterSet = "Security Auditor V
     headers.push({ data: `Total`, header: true });
     await Promise.all(scanTypesList.map(async (scanType) => {
         let total = 0;
+        let totalNew = 0;
         const vulns = await vuln.getAppVersionVulnsCount(appId, filterSet, scanType, newIssues);
         const newVulns = await vuln.getAppVersionVulnsCount(appId, filterSet, scanType, true);
         let row = [`${utils.normalizeScanType(scanType)}`];
         folders.forEach((folder) => {
             const count = jp.query(vulns, `$..[?(@.id=="${folder["name"]}")].totalCount`)[0];
-            const newCount = jp.query(newVulns, `$..[?(@.id=="${folder["name"]}")].totalCount`)[0];
-            row.push(count ? `${count} ${newCount ? `(:new: ${newCount})` : ""}` : `${0}`);
-            total += count ? count : 0;
+            const countNew = jp.query(newVulns, `$..[?(@.id=="${folder["name"]}")].totalCount`)[0];
+            let cell = "";
+            if (!count && !countNew) {
+                cell = `0`;
+            }
+            else {
+                if (count === countNew) {
+                    cell = `${count} :new:`;
+                }
+                else {
+                    cell = `${count} (${countNew} :new:)`;
+                }
+                total += count;
+                totalNew += countNew;
+            }
+            row.push(cell);
             core.debug(`${scanType} : ${total} / ${count}`);
         });
-        row.push(`${total}`);
-        core.debug(`${total}`);
+        let cell = "";
+        if (total === 0) {
+            cell = "0";
+        }
+        else if (total === totalNew) {
+            cell = `${total} :new:`;
+        }
+        else {
+            cell = `${total} (${totalNew} :new:)`;
+        }
+        row.push(cell);
+        core.debug(cell);
         rows.push(row);
     }));
     return [headers].concat(rows);

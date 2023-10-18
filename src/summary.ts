@@ -41,21 +41,42 @@ async function getVulnsByScanProductTable(appId: string | number, filterSet: str
 
     await Promise.all(scanTypesList.map(async scanType => {
         let total: number = 0
+        let totalNew: number = 0
         const vulns = await vuln.getAppVersionVulnsCount(appId, filterSet, scanType, newIssues)
         const newVulns = await vuln.getAppVersionVulnsCount(appId, filterSet, scanType, true)
         let row: string[] = [`${utils.normalizeScanType(scanType)}`]
 
         folders.forEach((folder) => {
-            const count:number = jp.query(vulns, `$..[?(@.id=="${folder["name"]}")].totalCount`)[0]
-            const newCount:number = jp.query(newVulns, `$..[?(@.id=="${folder["name"]}")].totalCount`)[0]
-            row.push(count ? `${count} ${newCount ? `(:new: ${newCount})` : ""}` : `${0}`)
-            total += count ? count : 0
+            const count: number = jp.query(vulns, `$..[?(@.id=="${folder["name"]}")].totalCount`)[0]
+            const countNew: number = jp.query(newVulns, `$..[?(@.id=="${folder["name"]}")].totalCount`)[0]
+            let cell: string = ""
+            if (!count && !countNew) {
+                cell = `0`
+            } else {
+                if (count === countNew) {
+                    cell = `${count} :new:`
+                } else {
+                    cell = `${count} (${countNew} :new:)`
+                }
+                total += count
+                totalNew += countNew
+            }
+
+            row.push(cell)
 
             core.debug(`${scanType} : ${total} / ${count}`)
         })
 
-        row.push(`${total}`)
-        core.debug(`${total}`)
+        let cell: string = ""
+        if (total === 0){
+            cell = "0"
+        } else if (total === totalNew) {
+            cell = `${total} :new:`
+        } else {
+            cell = `${total} (${totalNew} :new:)`
+        }
+        row.push(cell)
+        core.debug(cell)
         rows.push(row)
     }))
 
@@ -64,7 +85,7 @@ async function getVulnsByScanProductTable(appId: string | number, filterSet: str
 }
 
 async function getNewVulnsByScanProductTable(appId: string | number, filterSet: string = "Security Auditor View") {
-    return await getVulnsByScanProductTable(appId, filterSet,true)
+    return await getVulnsByScanProductTable(appId, filterSet, true)
 }
 
 async function getNewVulnsTable(appId: string | number, filterSet: string = "Security Auditor View"): Promise<any> {
@@ -108,7 +129,7 @@ async function getScansSummaryTable(appId: string | number): Promise<any[]> {
     return scanRows
 }
 
-function getLink(link : string):string {
+function getLink(link: string): string {
     return `<a target="_blank" rel="noopener noreferrer" href="${link}">:link:</a>`
 }
 
