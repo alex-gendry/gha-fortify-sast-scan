@@ -67,7 +67,7 @@ jobs:
           sast_scan: false
           sast_client_auth_token: ${{ secrets.FTFY_SAST_CLIENT_TOKEN }}
           sast_build_options: "-bt none"
-          security_gate_action: warn
+          security_gate_action: exit
           security_gate_filterset: Critical & High
           summary_filterset: Critical & High
 
