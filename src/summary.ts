@@ -47,7 +47,7 @@ async function getVulnsByScanProductTable(appId: string | number, filterSet: str
         folders.forEach((folder) => {
             const count:number = jp.query(vulns, `$..[?(@.id=="${folder["name"]}")].totalCount`)[0]
             row.push(count ? `${count}` : `${0}`)
-            total += count
+            total += count ? count : 0
 
             core.debug(`${scanType} : ${total} / ${count}`)
         })
@@ -74,7 +74,7 @@ async function getNewVulnsTable(appId: string | number, filterSet: string = "Sec
         headers.push({data: `${stringToHeader(folder["name"])}`, header: true})
         const count = jp.query(vulns, `$..[?(@.id=="${folder["name"]}")].totalCount`)[0]
         row.push(count ? `${count}` : `${0}`)
-        total += count
+        total += count ? count : 0
     })
 
     headers.push({data: `Total`, header: true})

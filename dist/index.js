@@ -38621,7 +38621,7 @@ async function getVulnsByScanProductTable(appId, filterSet = "Security Auditor V
         folders.forEach((folder) => {
             const count = jp.query(vulns, `$..[?(@.id=="${folder["name"]}")].totalCount`)[0];
             row.push(count ? `${count}` : `${0}`);
-            total += count;
+            total += count ? count : 0;
             core.debug(`${scanType} : ${total} / ${count}`);
         });
         row.push(`${total}`);
@@ -38641,7 +38641,7 @@ async function getNewVulnsTable(appId, filterSet = "Security Auditor View") {
         headers.push({ data: `${stringToHeader(folder["name"])}`, header: true });
         const count = jp.query(vulns, `$..[?(@.id=="${folder["name"]}")].totalCount`)[0];
         row.push(count ? `${count}` : `${0}`);
-        total += count;
+        total += count ? count : 0;
     });
     headers.push({ data: `Total`, header: true });
     row.push(`${total}`);
