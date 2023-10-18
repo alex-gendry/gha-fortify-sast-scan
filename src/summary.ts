@@ -71,9 +71,9 @@ export async function setJobSummary(app: string, version: string): Promise<any> 
         .addHeading('Fortify AST Results')
         .addHeading('Executive Summary', 2)
         .addTable([
-            [`<b>Application</b>`, app, '', `<b>Last Successful SAST Scan</b>`,new Date(lastSastScan["lastScanDate"]).toLocaleDateString() ],
-            [`<b>Application Version</b>`, version, '', `<b>Last Successful DAST Scan</b>`,new Date(lastDastScan["lastScanDate"]).toLocaleDateString() ],
-            ['', '', '', `<b>Last Successful SCA Scan</b>`,new Date(lastScaScan["lastScanDate"]).toLocaleDateString() ]
+            [`<b>Application</b>`, app, '', `<b>Last Successful SAST Scan</b>`,new Date(lastSastScan["lastScanDate"]).toLocaleString('fr-FR') ],
+            [`<b>Application Version</b>`, version, '', `<b>Last Successful DAST Scan</b>`,new Date(lastDastScan["lastScanDate"]).toLocaleString('fr-FR') ],
+            ['', '', '', `<b>Last Successful SCA Scan</b>`,new Date(lastScaScan["lastScanDate"]).toLocaleString('fr-FR') ]
         ])
         .addSeparator()
         .addHeading('Security Findings', 2)
