@@ -26,7 +26,7 @@ jobs:
           java-version: 11
 
       - name: Download Fortify ScanCentral Client
-        uses: fortify/gha-setup-scancentral-client@v1
+        uses: fortify/gha-setup-scancentral-client@v2
         with:
           version: 23.1.0
           client-auth-token: ${{ secrets.FTFY_SAST_CLIENT_TOKEN }}
