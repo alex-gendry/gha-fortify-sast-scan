@@ -38617,10 +38617,12 @@ async function getVulnsByScanProductTable(appId, filterSet = "Security Auditor V
     await Promise.all(scanTypesList.map(async (scanType) => {
         let total = 0;
         const vulns = await vuln.getAppVersionVulnsCount(appId, filterSet, scanType, newIssues);
+        const newVulns = await vuln.getAppVersionVulnsCount(appId, filterSet, scanType, true);
         let row = [`${utils.normalizeScanType(scanType)}`];
         folders.forEach((folder) => {
             const count = jp.query(vulns, `$..[?(@.id=="${folder["name"]}")].totalCount`)[0];
-            row.push(count ? `${count}` : `${0}`);
+            const newCount = jp.query(newVulns, `$..[?(@.id=="${folder["name"]}")].totalCount`)[0];
+            row.push(count ? `${count} ${newCount ? `(:new: ${newCount})` : ""}` : `${0}`);
             total += count ? count : 0;
             core.debug(`${scanType} : ${total} / ${count}`);
         });
