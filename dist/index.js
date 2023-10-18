@@ -38632,7 +38632,9 @@ async function setJobSummary(app, version) {
         .addHeading('Executive Summary', 2)
         .addRaw(`<p><b>Fortify Security Rating</b>:   ${securityStars}</p>`)
         .addTable([
-        [`<b>Application</b>`, app, `<b>Application Version</b>`, version],
+        [`<b>Application</b>`, app, `<b>Application Version</b>`, version]
+    ])
+        .addTable([
         [`<b>Last Successful SAST Scan</b>`, new Date(lastSastScan["lastScanDate"]).toLocaleString('fr-FR')],
         [`<b>Last Successful DAST Scan</b>`, new Date(lastDastScan["lastScanDate"]).toLocaleString('fr-FR')],
         [`<b>Last Successful SCA Scan</b>`, new Date(lastScaScan["lastScanDate"]).toLocaleString('fr-FR')]
