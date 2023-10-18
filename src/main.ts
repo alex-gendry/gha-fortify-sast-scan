@@ -52,20 +52,23 @@ export async function run(): Promise<void> {
         })
         core.info(`AppVersion ${INPUT.ssc_app}:${INPUT.ssc_version} exists`)
 
-        /** Source code packaging */
-        core.info(`Packaging source code with "${INPUT.sast_build_options}"`)
-        await sast.packageSourceCode(INPUT.sast_build_options).then(packaged => {
-            if (packaged != 0) {
-                throw new Error('Source code packaging failed')
-            }
-        }).catch(error => {
-            core.error(error.message)
-            core.setFailed(`Failed to package source code with "${INPUT.sast_build_options}"`)
-            process.exit(core.ExitCode.Failure)
-        })
+
 
         /** SAST Scan Execution */
         if (INPUT.sast_scan) {
+            /** Source code packaging */
+            core.info(`Packaging source code with "${INPUT.sast_build_options}"`)
+            await sast.packageSourceCode(INPUT.sast_build_options).then(packaged => {
+                if (packaged != 0) {
+                    throw new Error('Source code packaging failed')
+                }
+            }).catch(error => {
+                core.error(error.message)
+                core.setFailed(`Failed to package source code with "${INPUT.sast_build_options}"`)
+                process.exit(core.ExitCode.Failure)
+            })
+
+            /** SAST scan submisison */
             core.info(`Submitting SAST scan`)
             const jobToken: string = await sast.startSastScan(INPUT.ssc_app, INPUT.ssc_version).catch(error => {
                 core.error(error.message)

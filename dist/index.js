@@ -38130,19 +38130,20 @@ async function run() {
             process.exit(core.ExitCode.Failure);
         });
         core.info(`AppVersion ${INPUT.ssc_app}:${INPUT.ssc_version} exists`);
-        /** Source code packaging */
-        core.info(`Packaging source code with "${INPUT.sast_build_options}"`);
-        await sast.packageSourceCode(INPUT.sast_build_options).then(packaged => {
-            if (packaged != 0) {
-                throw new Error('Source code packaging failed');
-            }
-        }).catch(error => {
-            core.error(error.message);
-            core.setFailed(`Failed to package source code with "${INPUT.sast_build_options}"`);
-            process.exit(core.ExitCode.Failure);
-        });
         /** SAST Scan Execution */
         if (INPUT.sast_scan) {
+            /** Source code packaging */
+            core.info(`Packaging source code with "${INPUT.sast_build_options}"`);
+            await sast.packageSourceCode(INPUT.sast_build_options).then(packaged => {
+                if (packaged != 0) {
+                    throw new Error('Source code packaging failed');
+                }
+            }).catch(error => {
+                core.error(error.message);
+                core.setFailed(`Failed to package source code with "${INPUT.sast_build_options}"`);
+                process.exit(core.ExitCode.Failure);
+            });
+            /** SAST scan submisison */
             core.info(`Submitting SAST scan`);
             const jobToken = await sast.startSastScan(INPUT.ssc_app, INPUT.ssc_version).catch(error => {
                 core.error(error.message);
@@ -38777,9 +38778,9 @@ async function setJobSummary(app, version, passedSecurityage, filterSet, base_ur
         .addImage('https://cdn.asp.events/CLIENT_CloserSt_D86EA381_5056_B739_5482D50A1A831DDD/sites/CSWA-2023/media/libraries/exhibitors/Ezone-cover.png/fit-in/1500x9999/filters:no_upscale()', 'Fortify by OpenText CyberSecurity', { width: "600" })
         .addHeading('Fortify AST Results')
         .addHeading(':clipboard: Executive Summary', 2)
+        .addRaw(`:date: ${new Date().toLocaleString('fr-FR')}</>`)
         .addTable([
-        [`<b>Application</b>`, app, `<b>Application Version</b>`, `${version} ${getLink(appVersionUrl)}`],
-        [`<p><b>Date</b> :   ${new Date().toLocaleString('fr-FR')}</p>`]
+        [`<b>Application</b>`, app, `<b>Application Version</b>`, `${version} ${getLink(appVersionUrl)}`]
     ])
         .addTable([
         [`<p><b>Fortify Security Rating</b> ${getLink(securityRatingsUrl)}:   ${securityStars}</p>`],
