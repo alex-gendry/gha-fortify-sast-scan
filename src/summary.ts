@@ -5,7 +5,6 @@ import * as filterset from "./filterset";
 import * as artifact from "./artifact";
 import * as utils from "./utils";
 import * as performanceindicator from "./performanceindicator";
-import {getAppVersionNewVulnsCount} from "./vuln";
 
 function stringToHeader(element: string): string {
     switch (element) {
@@ -41,7 +40,7 @@ async function getVulnsByScanProductTable(appId: string | number, filterSet: str
     headers.push({data: `Total`, header: true})
 
     await Promise.all(scanTypesList.map(async scanType => {
-        let total:number = 0
+        let total: number = 0
         const vulns = await vuln.getAppVersionVulnsCount(appId, filterSet, scanType)
         let row: string[] = [`${utils.normalizeScanType(scanType)}`]
 
@@ -59,12 +58,12 @@ async function getVulnsByScanProductTable(appId: string | number, filterSet: str
 
 }
 
-async function getNewVulnsTable(appId:string|number, filterSet:string = "Security Auditor View") : Promise<any>{
+async function getNewVulnsTable(appId: string | number, filterSet: string = "Security Auditor View"): Promise<any> {
     var jp = require('jsonpath')
 
     let headers: any[] = []
     let row: string[] = []
-    let total:number = 0
+    let total: number = 0
     const folders: any[] = await filterset.getFilterSetFolders(appId, filterSet)
     const vulns = await vuln.getAppVersionNewVulnsCount(appId, filterSet)
 
@@ -100,18 +99,20 @@ async function getScansSummaryTable(appId: string | number): Promise<any[]> {
     return scanRows
 }
 
-export async function setJobSummary(app: string, version: string): Promise<any> {
+export async function setJobSummary(app: string, version: string, base_url: string): Promise<any> {
     const appId = await appversion.getAppVersionId(app, version)
 
     const securityRating = await performanceindicator.getPerformanceIndicatorValueByName(appId, 'Fortify Security Rating')
     let n = 0
     const securityStars: string = ":white_circle::white_circle::white_circle::white_circle::white_circle:".replace(/white_circle/g, match => n++ < securityRating ? "star" : match)
 
+    const appVersionURL: string = `${base_url}/html/ssc/version/${appId}/audit`
+
     await core.summary
         .addImage('https://cdn.asp.events/CLIENT_CloserSt_D86EA381_5056_B739_5482D50A1A831DDD/sites/CSWA-2023/media/libraries/exhibitors/Ezone-cover.png/fit-in/1500x9999/filters:no_upscale()', 'Fortify by OpenText CyberSecurity', {width: "600"})
         .addHeading('Fortify AST Results')
         .addHeading('Executive Summary', 2)
-        .addTable([[`<b>Application</b>`, app, `<b>Application Version</b>`, version]])
+        .addTable([[`<b>Application</b>`, app, `<b>Application Version</b>`, `${version} [:link:](${appVersionURL})`]])
         .addTable([[`<p><b>Fortify Security Rating</b>:   ${securityStars}</p>`]])
         .addTable(await getScansSummaryTable(appId))
         .addHeading('Security Findings', 2)

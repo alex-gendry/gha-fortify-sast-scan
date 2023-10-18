@@ -38192,7 +38192,7 @@ async function run() {
         //     throw new Error(`${e}`)
         // }
         /** Job Summary */
-        await summary.setJobSummary(INPUT.ssc_app, INPUT.ssc_version);
+        await summary.setJobSummary(INPUT.ssc_app, INPUT.ssc_version, INPUT.ssc_base_url);
         core.setOutput('time', new Date().toTimeString());
     }
     catch (error) {
@@ -38659,16 +38659,17 @@ async function getScansSummaryTable(appId) {
     }));
     return scanRows;
 }
-async function setJobSummary(app, version) {
+async function setJobSummary(app, version, base_url) {
     const appId = await appversion.getAppVersionId(app, version);
     const securityRating = await performanceindicator.getPerformanceIndicatorValueByName(appId, 'Fortify Security Rating');
     let n = 0;
     const securityStars = ":white_circle::white_circle::white_circle::white_circle::white_circle:".replace(/white_circle/g, match => n++ < securityRating ? "star" : match);
+    const appVersionURL = `${base_url}/html/ssc/version/${appId}/audit`;
     await core.summary
         .addImage('https://cdn.asp.events/CLIENT_CloserSt_D86EA381_5056_B739_5482D50A1A831DDD/sites/CSWA-2023/media/libraries/exhibitors/Ezone-cover.png/fit-in/1500x9999/filters:no_upscale()', 'Fortify by OpenText CyberSecurity', { width: "600" })
         .addHeading('Fortify AST Results')
         .addHeading('Executive Summary', 2)
-        .addTable([[`<b>Application</b>`, app, `<b>Application Version</b>`, version]])
+        .addTable([[`<b>Application</b>`, app, `<b>Application Version</b>`, `${version} [:link:](${appVersionURL})`]])
         .addTable([[`<p><b>Fortify Security Rating</b>:   ${securityStars}</p>`]])
         .addTable(await getScansSummaryTable(appId))
         .addHeading('Security Findings', 2)

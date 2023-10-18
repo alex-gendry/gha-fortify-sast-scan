@@ -127,7 +127,7 @@ export async function run(): Promise<void> {
         // }
 
         /** Job Summary */
-        await summary.setJobSummary(INPUT.ssc_app, INPUT.ssc_version)
+        await summary.setJobSummary(INPUT.ssc_app, INPUT.ssc_version, INPUT.ssc_base_url)
 
         core.setOutput('time', new Date().toTimeString())
     } catch (error) {
