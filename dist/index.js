@@ -38613,13 +38613,17 @@ async function getVulnsByScanProductTable(appId, filterSet = "Security Auditor V
     folders.forEach((folder) => {
         headers.push({ data: `${stringToHeader(folder["name"])}`, header: true });
     });
+    headers.push({ data: `Total`, header: true });
     await Promise.all(scanTypesList.map(async (scanType) => {
+        let total = 0;
         const vulns = await vuln.getAppVersionVulnsCount(appId, filterSet, scanType);
         let row = [`${utils.normalizeScanType(scanType)}`];
         folders.forEach((folder) => {
             const count = jp.query(vulns, `$..[?(@.id=="${folder["name"]}")].totalCount`)[0];
             row.push(count ? `${count}` : `${0}`);
+            total += count;
         });
+        row.push(`${total}`);
         rows.push(row);
     }));
     return [headers].concat(rows);
@@ -38628,13 +38632,17 @@ async function getNewVulnsTable(appId, filterSet = "Security Auditor View") {
     var jp = __nccwpck_require__(4378);
     let headers = [];
     let row = [];
+    let total = 0;
     const folders = await filterset.getFilterSetFolders(appId, filterSet);
     const vulns = await vuln.getAppVersionNewVulnsCount(appId, filterSet);
     folders.forEach((folder) => {
         headers.push({ data: `${stringToHeader(folder["name"])}`, header: true });
         const count = jp.query(vulns, `$..[?(@.id=="${folder["name"]}")].totalCount`)[0];
         row.push(count ? `${count}` : `${0}`);
+        total += count;
     });
+    headers.push({ data: `Total`, header: true });
+    row.push(`${total}`);
     return [
         headers,
         row

@@ -38,16 +38,20 @@ async function getVulnsByScanProductTable(appId: string | number, filterSet: str
     folders.forEach((folder) => {
         headers.push({data: `${stringToHeader(folder["name"])}`, header: true})
     })
+    headers.push({data: `Total`, header: true})
 
     await Promise.all(scanTypesList.map(async scanType => {
+        let total:number = 0
         const vulns = await vuln.getAppVersionVulnsCount(appId, filterSet, scanType)
         let row: string[] = [`${utils.normalizeScanType(scanType)}`]
 
         folders.forEach((folder) => {
             const count = jp.query(vulns, `$..[?(@.id=="${folder["name"]}")].totalCount`)[0]
             row.push(count ? `${count}` : `${0}`)
+            total += count
         })
 
+        row.push(`${total}`)
         rows.push(row)
     }))
 
@@ -60,6 +64,7 @@ async function getNewVulnsTable(appId:string|number, filterSet:string = "Securit
 
     let headers: any[] = []
     let row: string[] = []
+    let total:number = 0
     const folders: any[] = await filterset.getFilterSetFolders(appId, filterSet)
     const vulns = await vuln.getAppVersionNewVulnsCount(appId, filterSet)
 
@@ -67,7 +72,11 @@ async function getNewVulnsTable(appId:string|number, filterSet:string = "Securit
         headers.push({data: `${stringToHeader(folder["name"])}`, header: true})
         const count = jp.query(vulns, `$..[?(@.id=="${folder["name"]}")].totalCount`)[0]
         row.push(count ? `${count}` : `${0}`)
+        total += count
     })
+
+    headers.push({data: `Total`, header: true})
+    row.push(`${total}`)
 
     return [
         headers,
