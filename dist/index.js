@@ -38180,7 +38180,11 @@ async function run() {
             }
         }
         /** Job Summary */
-        await summary.setJobSummary(INPUT, passedSecurityGate);
+        await summary.setJobSummary(INPUT, passedSecurityGate).catch(error => {
+            core.error(error.message);
+            core.setFailed(`Job Summary construction failed`);
+            process.exit(core.ExitCode.Failure);
+        });
         core.setOutput('time', new Date().toTimeString());
     }
     catch (error) {
@@ -38778,14 +38782,14 @@ async function setJobSummary(INPUT, passedSecurityage) {
     await core.summary
         .addImage('https://cdn.asp.events/CLIENT_CloserSt_D86EA381_5056_B739_5482D50A1A831DDD/sites/CSWA-2023/media/libraries/exhibitors/Ezone-cover.png/fit-in/1500x9999/filters:no_upscale()', 'Fortify by OpenText CyberSecurity', { width: "600" })
         .addHeading('Fortify AST Results')
+        .addRaw(`:date: ${new Date().toLocaleString('fr-FR')}`)
         .addHeading(':clipboard: Executive Summary', 2)
-        .addRaw(`:date: ${new Date().toLocaleString('fr-FR')}</>`)
         .addTable([
         [`<b>Application</b>`, INPUT.ssc_app, `<b>Application Version</b>`, `${getAsLink(INPUT.ssc_version, appVersionUrl)}`]
     ])
         .addTable([
         [`<p><b>${getAsLink("Fortify Security Rating", securityRatingsUrl)}</b>: ${securityStars}</p>`],
-        [`<p><b>${getAsLink("Security Gate Status", securityRatingsUrl)}</b> :   ${passedSecurityage ? 'Passed :white_check_mark:' : 'Failed :x:'}</p>`]
+        [`<p><b>${getAsLink("Security Gate Status", securityGateUrl)}</b> :   ${passedSecurityage ? 'Passed :white_check_mark:' : 'Failed :x:'}</p>`]
     ])
         .addTable(await getScansSummaryTable(appId))
         .addHeading(':signal_strength: Security Findings', 2)
