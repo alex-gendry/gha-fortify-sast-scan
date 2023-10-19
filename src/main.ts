@@ -37,8 +37,11 @@ export async function run(): Promise<void> {
         core.debug(github.context.actor)
         core.debug(github.context.job)
         core.debug(`${github.context.workflow}`)
-        core.debug(`${github.context.issue}`)
-        core.debug(`${github.context.repo}`)
+        core.debug(`${github.context.issue.repo}`)
+        core.debug(`${github.context.issue.number}`)
+        core.debug(`${github.context.issue.owner}`)
+        core.debug(`${github.context.repo.repo}`)
+        core.debug(`${github.context.repo.owner}`)
         process.exit(0)
         /** Login  */
         core.info(`Login to Fortify solutions`)
