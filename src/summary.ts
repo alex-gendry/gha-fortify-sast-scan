@@ -169,7 +169,7 @@ export async function setJobSummary(INPUT: any, passedSecurityage:boolean,): Pro
             [`<p><b>${getAsLink("Security Gate Status",securityGateUrl)}</b> :   ${passedSecurityage ? 'Passed :white_check_mark:' : 'Failed :x:'  }</p>`]])
         .addTable(await getScansSummaryTable(appId))
         .addHeading(':signal_strength: Security Findings', 2)
-        .addRaw(`:telescope: <p><b>Filter Set</b>: ${INPUT.summary_filterset}</p>`, true)
+        .addRaw(`<p>:telescope: <b>Filter Set</b>: ${INPUT.summary_filterset}</p>`, true)
         .addTable(await getVulnsByScanProductTable(appId, INPUT.summary_filterset))
         .write()
 }

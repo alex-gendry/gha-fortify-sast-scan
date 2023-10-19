@@ -67,4 +67,6 @@ export async function waitForSastScan(jobToken: string): Promise<boolean> {
     } else {
         throw new Error(`Scan failed: Fortify returned ${jsonRes['__action__']}`)
     }
+
+    return false
 }

@@ -38162,24 +38162,14 @@ async function run() {
                 core.setFailed(`Wait fo SAST start scan failed`);
                 process.exit(core.ExitCode.Failure);
             });
-            core.info("SAST Scan Completed");
         }
         /** RUN Security Gate */
+        core.info("Running Security Gate");
         const passedSecurityGate = await securitygate.run(INPUT).catch(error => {
             core.error(error.message);
             core.setFailed(`Security Gate run failed`);
             process.exit(core.ExitCode.Failure);
         });
-        if (!passedSecurityGate) {
-            switch (INPUT.security_gate_action.toLowerCase()) {
-                case 'warn':
-                    core.warning('Security Gate Failure');
-                    break;
-                case 'exit':
-                    core.setFailed('Security Gate Failure');
-                    break;
-            }
-        }
         /** Job Summary */
         await summary.setJobSummary(INPUT, passedSecurityGate).catch(error => {
             core.error(error.message);
@@ -38338,6 +38328,7 @@ async function waitForSastScan(jobToken) {
     else {
         throw new Error(`Scan failed: Fortify returned ${jsonRes['__action__']}`);
     }
+    return false;
 }
 exports.waitForSastScan = waitForSastScan;
 
@@ -38376,11 +38367,24 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.run = void 0;
 const vuln = __importStar(__nccwpck_require__(4002));
 const appversion = __importStar(__nccwpck_require__(3538));
+const core = __importStar(__nccwpck_require__(2186));
 async function run(INPUT) {
     const appId = await appversion.getAppVersionId(INPUT.ssc_app, INPUT.ssc_version);
     const count = await vuln.getAppVersionVulnsCountTotal(appId, INPUT.security_gate_filterset);
-    const status = count ? false : true;
-    return status;
+    const passed = count ? false : true;
+    if (!passed) {
+        switch (INPUT.security_gate_action.toLowerCase()) {
+            case 'warn':
+                core.info("Security Gate has been set to Warning only");
+                core.warning('Security Gate Failure');
+                break;
+            case 'block':
+                core.info("Security Gate has been set to Blocking. The job will fail");
+                core.setFailed('Security Gate Failure');
+                break;
+        }
+    }
+    return passed;
 }
 exports.run = run;
 
@@ -38796,7 +38800,7 @@ async function setJobSummary(INPUT, passedSecurityage) {
     ])
         .addTable(await getScansSummaryTable(appId))
         .addHeading(':signal_strength: Security Findings', 2)
-        .addRaw(`:telescope: <p><b>Filter Set</b>: ${INPUT.summary_filterset}</p>`, true)
+        .addRaw(`<p>:telescope: <b>Filter Set</b>: ${INPUT.summary_filterset}</p>`, true)
         .addTable(await getVulnsByScanProductTable(appId, INPUT.summary_filterset))
         .write();
 }

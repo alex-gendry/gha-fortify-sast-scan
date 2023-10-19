@@ -86,25 +86,15 @@ export async function run(): Promise<void> {
                 core.setFailed(`Wait fo SAST start scan failed`)
                 process.exit(core.ExitCode.Failure)
             })
-            core.info("SAST Scan Completed")
         }
 
         /** RUN Security Gate */
+        core.info("Running Security Gate")
         const passedSecurityGate = await securitygate.run(INPUT).catch(error => {
             core.error(error.message)
             core.setFailed(`Security Gate run failed`)
             process.exit(core.ExitCode.Failure)
         })
-        if (!passedSecurityGate) {
-            switch (INPUT.security_gate_action.toLowerCase()) {
-                case 'warn':
-                    core.warning('Security Gate Failure')
-                    break
-                case 'exit':
-                    core.setFailed('Security Gate Failure')
-                    break
-            }
-        }
 
         /** Job Summary */
         await summary.setJobSummary(INPUT, passedSecurityGate).catch(error => {

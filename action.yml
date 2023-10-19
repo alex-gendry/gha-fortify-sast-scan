@@ -36,7 +36,7 @@ inputs:
     default: -bt none
     required: false
   security_gate_action:
-    description: 'Warn or Exit on Security Gate Failure'
+    description: 'Warn or Block on Security Gate Failure'
     default: warn
     required: false
   security_gate_filterset:
