@@ -106,7 +106,7 @@ export function getScanCentralPath(): string {
     }
 }
 
-export async function fcli(args: string[], silent = true): Promise<any> {
+export async function fcli(args: string[], returnStatus: boolean = false, silent = true): Promise<any> {
     let responseData = ''
     let errorData = ''
     try {
@@ -126,7 +126,7 @@ export async function fcli(args: string[], silent = true): Promise<any> {
         const status = await exec.exec(getFcliPath(), args, options)
         core.debug(responseData)
 
-        return JSON.parse(responseData)
+        return returnStatus ? status : JSON.parse(responseData)
     } catch (err: any) {
         core.error('fcli execution failed')
         core.error(`${errorData}`)
@@ -181,33 +181,33 @@ export async function scancentral(args: string[]): Promise<any> {
 }
 
 
+function toTitleCase(str: string): string {
+    const titleCase = str
+        .toLowerCase()
+        .split(' ')
+        .map(word => {
+            return word.charAt(0).toUpperCase() + word.slice(1);
+        })
+        .join(' ');
 
-function toTitleCase(str: string):string {
-  const titleCase = str
-      .toLowerCase()
-      .split(' ')
-      .map(word => {
-        return word.charAt(0).toUpperCase() + word.slice(1);
-      })
-      .join(' ');
-
-  return titleCase;
+    return titleCase;
 }
+
 export function normalizeScanType(scanType: string): string {
-  switch (scanType){
-    case "SCA":
-      return "Fortify SAST"
-      break
-    case "WEBINSPECT":
-      return "Fortify DAST"
-      break
-    default:
-      return toTitleCase(scanType)
-  }
+    switch (scanType) {
+        case "SCA":
+            return "Fortify SAST"
+            break
+        case "WEBINSPECT":
+            return "Fortify DAST"
+            break
+        default:
+            return toTitleCase(scanType)
+    }
 }
 
-export function daysOrToday(diffDays:number) {
-    if(diffDays < 1 ){
+export function daysOrToday(diffDays: number) {
+    if (diffDays < 1) {
         return "Today"
     } else {
         return `${diffDays} day${diffDays > 1 ? "s" : ""} ago`

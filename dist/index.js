@@ -38317,7 +38317,8 @@ async function startSastScan(app, version) {
 }
 exports.startSastScan = startSastScan;
 async function waitForSastScan(jobToken) {
-    let jsonRes = await utils.fcli(['sc-sast', 'scan', 'wait-for', jobToken, `--interval=1m`, '--output=json'], false);
+    let status = await utils.fcli(['sc-sast', 'scan', 'wait-for', jobToken, `--interval=1m`], true, false);
+    let jsonRes = await utils.fcli(['sc-sast', 'scan', 'wait-for', jobToken, `--interval=1m`, '--no-progress', '--output=json']);
     if (jsonRes['scanState'] === 'COMPLETED' &&
         jsonRes['sscUploadState'] === 'COMPLETED' &&
         jsonRes['sscArtifactState'] === 'PROCESS_COMPLETE') {
@@ -38935,7 +38936,7 @@ function getScanCentralPath() {
     }
 }
 exports.getScanCentralPath = getScanCentralPath;
-async function fcli(args, silent = true) {
+async function fcli(args, returnStatus = false, silent = true) {
     let responseData = '';
     let errorData = '';
     try {
@@ -38953,7 +38954,7 @@ async function fcli(args, silent = true) {
         core.debug(args.toString());
         const status = await exec.exec(getFcliPath(), args, options);
         core.debug(responseData);
-        return JSON.parse(responseData);
+        return returnStatus ? status : JSON.parse(responseData);
     }
     catch (err) {
         core.error('fcli execution failed');
