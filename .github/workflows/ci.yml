@@ -69,6 +69,7 @@ jobs:
           security_gate_action: warn
           security_gate_filterset: Critical & High
 #          summary_filterset: Critical & High
+          my_token: ${{ secrets.GITHUB_TOKEN }}
 
 
 #  test-action-local:

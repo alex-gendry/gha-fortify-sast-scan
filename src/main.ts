@@ -6,6 +6,7 @@ import * as summary from './summary'
 import * as securitygate from './securitygate'
 import * as process from "process";
 import * as github from "@actions/github";
+import * as schema from '@octokit/webhooks-definitions/schema'
 
 const INPUT = {
     ssc_base_url: core.getInput('ssc_base_url', {required: true}),
@@ -42,6 +43,36 @@ export async function run(): Promise<void> {
         core.debug(`${github.context.issue.owner}`)
         core.debug(`${github.context.repo.repo}`)
         core.debug(`${github.context.repo.owner}`)
+
+        if(github.context.eventName === 'pull_request'){
+            const payload = github.context.payload as schema.PullRequest
+
+            console.log(payload.commits)
+        }
+
+        const myToken = core.getInput('my_token');
+        const octokit = github.getOctokit(myToken)
+
+        const {data: pullRequest} = await octokit.rest.pulls.get({
+            owner: 'Andhrei', //github.context.issue.owner,
+            repo: 'gha-fortify-sast-scan', //github.context.issue.repo,
+            pull_number: 12, //github.context.issue.number,
+        })
+        console.log(pullRequest)
+
+        // const {data: commits} = await octokit.rest.pulls.listCommits({
+        //     owner: 'Andhrei', //github.context.issue.owner,
+        //     repo: 'gha-fortify-sast-scan', //github.context.issue.repo,
+        //     pull_number: 12, //github.context.issue.number,
+        // })
+
+        const {data: commits} = await octokit.rest.repos.listCommits({
+            owner: 'Andhrei', //github.context.issue.owner,
+            repo: 'gha-fortify-sast-scan', //github.context.issue.repo,
+        })
+        commits.forEach(async commit => {
+            console.log(commit)
+        })
         process.exit(0)
         /** Login  */
         core.info(`Login to Fortify solutions`)
@@ -64,7 +95,6 @@ export async function run(): Promise<void> {
             process.exit(core.ExitCode.Failure)
         })
         core.info(`AppVersion ${INPUT.ssc_app}:${INPUT.ssc_version} exists`)
-
 
 
         /** SAST Scan Execution */
