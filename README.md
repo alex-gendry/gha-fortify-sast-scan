@@ -2,7 +2,7 @@
 
 Build secure software fast with [Fortify](https://www.microfocus.com/en-us/solutions/application-security). Fortify offers end-to-end application security solutions with the flexibility of testing on-premises and on-demand to scale and cover the entire software development lifecycle.  With Fortify, find security issues early and fix at the speed of DevOps.
 
-This GitHub Action utilizes [fcli](https://github.com/fortify/fcli) to create an Application Version in Fortify Software Security Center.
+This GitHub EDITED Action utilizes [fcli](https://github.com/fortify/fcli) to create an Application Version in Fortify Software Security Center.
 The Action can copy the Application State and the Values from another Application version
 
 This GitHub Action utilizes [fcli](https://github.com/fortify/fcli) to create an Application Version in Fortify Software Security Center.
