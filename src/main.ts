@@ -5,6 +5,7 @@ import * as sast from './sast'
 import * as summary from './summary'
 import * as securitygate from './securitygate'
 import * as process from "process";
+import * as github from "@actions/github";
 
 const INPUT = {
     ssc_base_url: core.getInput('ssc_base_url', {required: true}),
@@ -30,6 +31,15 @@ const INPUT = {
  */
 export async function run(): Promise<void> {
     try {
+        core.debug(github.context.action)
+        core.debug(github.context.ref)
+        core.debug(github.context.eventName)
+        core.debug(github.context.actor)
+        core.debug(github.context.job)
+        core.debug(`${github.context.workflow}`)
+        core.debug(`${github.context.issue}`)
+        core.debug(`${github.context.repo}`)
+        process.exit(0)
         /** Login  */
         core.info(`Login to Fortify solutions`)
         await session.login(INPUT).catch(error => {

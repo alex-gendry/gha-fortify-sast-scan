@@ -1,10 +1,12 @@
 import * as core from '@actions/core'
+import * as github from '@actions/github'
 import * as vuln from './vuln'
 import * as appversion from "./appversion";
 import * as filterset from "./filterset";
 import * as artifact from "./artifact";
 import * as utils from "./utils";
 import * as performanceindicator from "./performanceindicator";
+import * as process from "process";
 
 function stringToHeader(element: string): string {
     switch (element) {
@@ -159,7 +161,7 @@ export async function setJobSummary(INPUT: any, passedSecurityage:boolean,): Pro
     await core.summary
         .addImage('https://cdn.asp.events/CLIENT_CloserSt_D86EA381_5056_B739_5482D50A1A831DDD/sites/CSWA-2023/media/libraries/exhibitors/Ezone-cover.png/fit-in/1500x9999/filters:no_upscale()', 'Fortify by OpenText CyberSecurity', {width: "600"})
         .addHeading('Fortify AST Results')
-        .addRaw(`:date: ${new Date().toLocaleString('fr-FR')}`)
+        .addRaw(`:date: Summary Date: ${new Date().toLocaleString('fr-FR')}`)
         .addHeading(':clipboard: Executive Summary', 2)
         .addTable([
             [`<b>Application</b>`, INPUT.ssc_app, `<b>Application Version</b>`, `${getAsLink(INPUT.ssc_version,appVersionUrl)}`]
