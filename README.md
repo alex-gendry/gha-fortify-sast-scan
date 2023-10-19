@@ -7,6 +7,7 @@ The Action can copy the Application State and the Values from another Applicatio
 
 ## Table of Contents
 
+
 * [Requirements](#requirements)
     * [SSC instance](#ssc-instance)
     * [Network connectivity](#network-connectivity)
