@@ -42250,6 +42250,8 @@ const INPUT = {
  */
 async function run() {
     try {
+        const myToken = core.getInput('my_token');
+        const octokit = github.getOctokit(myToken);
         core.debug(github.context.action);
         core.debug(github.context.ref);
         core.debug(github.context.eventName);
@@ -42264,27 +42266,25 @@ async function run() {
         if (github.context.eventName === 'pull_request') {
             const payload = github.context.payload;
             console.log(payload.commits);
+            const { data: pullRequest } = await octokit.rest.pulls.get({
+                owner: 'Andhrei',
+                repo: 'gha-fortify-sast-scan',
+                pull_number: 12, //github.context.issue.number,
+            });
+            console.log(pullRequest);
+            // const {data: commits} = await octokit.rest.pulls.listCommits({
+            //     owner: 'Andhrei', //github.context.issue.owner,
+            //     repo: 'gha-fortify-sast-scan', //github.context.issue.repo,
+            //     pull_number: 12, //github.context.issue.number,
+            // })
+            const { data: commits } = await octokit.rest.repos.listCommits({
+                owner: 'Andhrei',
+                repo: 'gha-fortify-sast-scan', //github.context.issue.repo,
+            });
+            commits.forEach(async (commit) => {
+                console.log(commit);
+            });
         }
-        const myToken = core.getInput('my_token');
-        const octokit = github.getOctokit(myToken);
-        const { data: pullRequest } = await octokit.rest.pulls.get({
-            owner: 'Andhrei',
-            repo: 'gha-fortify-sast-scan',
-            pull_number: 12, //github.context.issue.number,
-        });
-        console.log(pullRequest);
-        // const {data: commits} = await octokit.rest.pulls.listCommits({
-        //     owner: 'Andhrei', //github.context.issue.owner,
-        //     repo: 'gha-fortify-sast-scan', //github.context.issue.repo,
-        //     pull_number: 12, //github.context.issue.number,
-        // })
-        const { data: commits } = await octokit.rest.repos.listCommits({
-            owner: 'Andhrei',
-            repo: 'gha-fortify-sast-scan', //github.context.issue.repo,
-        });
-        commits.forEach(async (commit) => {
-            console.log(commit);
-        });
         process.exit(0);
         /** Login  */
         core.info(`Login to Fortify solutions`);
