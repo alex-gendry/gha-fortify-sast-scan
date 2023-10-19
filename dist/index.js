@@ -42267,9 +42267,9 @@ async function run() {
             const payload = github.context.payload;
             console.log(payload.commits);
             const { data: pullRequest } = await octokit.rest.pulls.get({
-                owner: 'Andhrei',
-                repo: 'gha-fortify-sast-scan',
-                pull_number: 12, //github.context.issue.number,
+                owner: github.context.issue.owner,
+                repo: github.context.issue.repo,
+                pull_number: github.context.issue.number,
             });
             console.log(pullRequest);
             // const {data: commits} = await octokit.rest.pulls.listCommits({
@@ -42278,8 +42278,8 @@ async function run() {
             //     pull_number: 12, //github.context.issue.number,
             // })
             const { data: commits } = await octokit.rest.repos.listCommits({
-                owner: 'Andhrei',
-                repo: 'gha-fortify-sast-scan', //github.context.issue.repo,
+                owner: github.context.issue.owner,
+                repo: github.context.issue.repo,
             });
             commits.forEach(async (commit) => {
                 console.log(commit);

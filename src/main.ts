@@ -54,9 +54,9 @@ export async function run(): Promise<void> {
             console.log(payload.commits)
 
             const {data: pullRequest} = await octokit.rest.pulls.get({
-                owner: 'Andhrei', //github.context.issue.owner,
-                repo: 'gha-fortify-sast-scan', //github.context.issue.repo,
-                pull_number: 12, //github.context.issue.number,
+                owner: github.context.issue.owner,
+                repo: github.context.issue.repo,
+                pull_number: github.context.issue.number,
             })
             console.log(pullRequest)
 
@@ -67,8 +67,8 @@ export async function run(): Promise<void> {
             // })
 
             const {data: commits} = await octokit.rest.repos.listCommits({
-                owner: 'Andhrei', //github.context.issue.owner,
-                repo: 'gha-fortify-sast-scan', //github.context.issue.repo,
+                owner: github.context.issue.owner,
+                repo: github.context.issue.repo,
             })
             commits.forEach(async commit => {
                 console.log(commit)
