@@ -8,19 +8,6 @@ export async function getAppVersionVulnsCount(appId: number | string, filterSet:
     if (newIssues) {
         query = "[issue age]:NEW"
     }
-    if (analysisType) {
-        switch (analysisType) {
-            case "SAST":
-                query = `${query}${query.length ? " AND " : ""}[analysis type]:SCA`
-                break
-            case "DAST":
-                query = `${query}${query.length ? " AND " : ""}[analysis type]:WEBINSPECT`
-                break
-            default:
-                query = `${query}${query.length ? " AND " : ""}[analysis type]:${analysisType}`
-                break
-        }
-    }
     core.debug(query)
     const url = `/api/v1/projectVersions/${appId}/issueGroups?filterset=${await filterset.getFilterSetGuid(appId, filterSet)}&groupingtype=FOLDER${query.length ? `&qm=issues&q=${encodeURI(query)}` : ""}`
     core.debug(url)
