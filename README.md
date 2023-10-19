@@ -5,6 +5,9 @@ Build secure software fast with [Fortify](https://www.microfocus.com/en-us/solut
 This GitHub Action utilizes [fcli](https://github.com/fortify/fcli) to create an Application Version in Fortify Software Security Center.
 The Action can copy the Application State and the Values from another Application version
 
+This GitHub Action utilizes [fcli](https://github.com/fortify/fcli) to create an Application Version in Fortify Software Security Center.
+The Action can copy the Application State and the Values from another Application version
+
 ## Table of Contents
 
 * [Requirements](#requirements)
