@@ -43,6 +43,8 @@ export async function waitForSastScan(jobToken: string): Promise<boolean> {
         ['sc-sast', 'scan', 'wait-for', jobToken, `--interval=1m`, '--no-progress', '--output=json']
     )
 
+    jsonRes = jsonRes[0]
+
     if (
         jsonRes['scanState'] === 'COMPLETED' &&
         jsonRes['sscUploadState'] === 'COMPLETED' &&

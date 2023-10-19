@@ -157,7 +157,7 @@ export function stringToArgsArray(text: string): string[] {
     return arr
 }
 
-export async function scancentral(args: string[]): Promise<any> {
+export async function scancentral(args: string[], silent: boolean = false): Promise<any> {
     let responseData = ''
     let errorData = ''
 
@@ -170,7 +170,7 @@ export async function scancentral(args: string[]): Promise<any> {
                 errorData += data.toString()
             }
         },
-        silent: false
+        silent: silent
     }
 
     const response = await exec.exec(getScanCentralPath(), args, options)

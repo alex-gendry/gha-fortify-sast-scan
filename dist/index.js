@@ -38319,6 +38319,7 @@ exports.startSastScan = startSastScan;
 async function waitForSastScan(jobToken) {
     let status = await utils.fcli(['sc-sast', 'scan', 'wait-for', jobToken, `--interval=1m`], true, false);
     let jsonRes = await utils.fcli(['sc-sast', 'scan', 'wait-for', jobToken, `--interval=1m`, '--no-progress', '--output=json']);
+    jsonRes = jsonRes[0];
     if (jsonRes['scanState'] === 'COMPLETED' &&
         jsonRes['sscUploadState'] === 'COMPLETED' &&
         jsonRes['sscArtifactState'] === 'PROCESS_COMPLETE') {
@@ -38984,7 +38985,7 @@ function stringToArgsArray(text) {
     return arr;
 }
 exports.stringToArgsArray = stringToArgsArray;
-async function scancentral(args) {
+async function scancentral(args, silent = false) {
     let responseData = '';
     let errorData = '';
     const options = {
@@ -38996,7 +38997,7 @@ async function scancentral(args) {
                 errorData += data.toString();
             }
         },
-        silent: false
+        silent: silent
     };
     const response = await exec.exec(getScanCentralPath(), args, options);
     core.debug(responseData);
