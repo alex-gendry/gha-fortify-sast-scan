@@ -38793,7 +38793,7 @@ async function setJobSummary(INPUT, passedSecurityage) {
     ])
         .addTable(await getScansSummaryTable(appId))
         .addHeading(':signal_strength: Security Findings', 2)
-        .addRaw(`:telescope: <h3>Filter Set</h3>: ${INPUT.summary_filterset}`, true)
+        .addRaw(`:telescope: <p><b>Filter Set</b>: ${INPUT.summary_filterset}</p>`, true)
         .addTable(await getVulnsByScanProductTable(appId, INPUT.summary_filterset))
         .write();
 }
