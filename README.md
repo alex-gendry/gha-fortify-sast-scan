@@ -28,6 +28,17 @@ The SSC instance in which you want to create an Application Version needs to be 
 
 | Source | Runner        | Considerations |
 | ------ | ------------- | -------------- |
+
+## Requirements
+
+### SSC instance
+Obviously you will need to have an SSC instance from which you can retrieve Fortify scan results. If you are not already a Fortify customer, check out our [Free Trial](https://www.microfocus.com/en-us/products/application-security-testing/free-trial).
+
+### Network connectivity
+The SSC instance in which you want to create an Application Version needs to be accessible from the GitHub Runner where this action is being executed. Following table lists some considerations:
+
+| Source | Runner        | Considerations |
+| ------ | ------------- | -------------- |
 | SSC    | GitHub-hosted | GitHub lists [IP addresses for GitHub-hosted runners](https://docs.github.com/en/actions/using-github-hosted-runners/about-github-hosted-runners#ip-addresses) that need to be allowed network access to SSC. Exposing an SSC instance to the internet, even if limited to only GitHub IP addresses, could pose a security risk. |
 | SSC    | Self-hosted   | May need to allow network access from the self-hosted runner to SSC if in different network segments |
 
@@ -87,6 +98,16 @@ This example workflow demonstrates how to create an application version in SSC, 
 name: (FTFY) Create Application Version
 on: [workflow dispatch]
 
+jobs:
+  CreateAppVersion:
+    runs-on: ubuntu-latest
+
+    container:
+      image: fortifydocker/fortify-ci-tools
+
+    steps:
+      # Pull SAST issues from Fortify on Demand and generate GitHub-optimized SARIF output
+      - name: Create Application Version
 jobs:
   CreateAppVersion:
     runs-on: ubuntu-latest
