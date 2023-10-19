@@ -38162,6 +38162,7 @@ async function run() {
                 core.setFailed(`Wait fo SAST start scan failed`);
                 process.exit(core.ExitCode.Failure);
             });
+            core.info("SAST Scan Completed");
         }
         /** RUN Security Gate */
         const passedSecurityGate = await securitygate.run(INPUT).catch(error => {
@@ -38955,6 +38956,7 @@ async function fcli(args, silent = true) {
         return JSON.parse(responseData);
     }
     catch (err) {
+        core.error('fcli execution failed');
         core.error(`${errorData}`);
         throw err;
     }

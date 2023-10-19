@@ -56,7 +56,6 @@ jobs:
         uses: ./
         env:
           FCLI_DEFAULT_TOKEN_EXPIRE: "1h"
-
         with:
           ssc_base_url: ${{ vars.FTFY_SSC_BASE_URL}}
           ssc_app: PetClinic
@@ -64,7 +63,7 @@ jobs:
           ssc_ci_token: ${{ secrets.FTFY_CI_TOKEN_ENC }}
           #          ssc_ci_username: ${{ secrets.FTFY_CI_USERNAME }}
           #          ssc_ci_password:  ${{ secrets.FTFY_CI_PASSWORD }}
-          sast_scan: false
+          sast_scan: true
           sast_client_auth_token: ${{ secrets.FTFY_SAST_CLIENT_TOKEN }}
           sast_build_options: "-bt none"
           security_gate_action: warn

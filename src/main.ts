@@ -86,6 +86,7 @@ export async function run(): Promise<void> {
                 core.setFailed(`Wait fo SAST start scan failed`)
                 process.exit(core.ExitCode.Failure)
             })
+            core.info("SAST Scan Completed")
         }
 
         /** RUN Security Gate */

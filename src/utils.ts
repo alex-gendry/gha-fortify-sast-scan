@@ -128,6 +128,7 @@ export async function fcli(args: string[], silent = true): Promise<any> {
 
         return JSON.parse(responseData)
     } catch (err: any) {
+        core.error('fcli execution failed')
         core.error(`${errorData}`)
         throw err
     }
