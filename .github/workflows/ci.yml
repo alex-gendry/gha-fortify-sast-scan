@@ -69,7 +69,7 @@ jobs:
           sast_build_options: "-bt none"
           security_gate_action: warn
           security_gate_filterset: Critical & High
-          summary_filterset: Critical & High
+#          summary_filterset: Critical & High
 
 
 #  test-action-local:
