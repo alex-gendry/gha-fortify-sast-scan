@@ -51,6 +51,22 @@ inputs:
     description: 'SHA used in various FCLI variable names'
     default: ${{ github.run_id }}
     required: false
+      security_gate_action:
+    description: 'Warn or Block on Security Gate Failure'
+    default: warn
+    required: false
+  security_gate_filterset:
+    description: 'FilterSet used for the Security Gate'
+    default: Security Auditor View
+    required: false
+  summary_filterset:
+    description: 'FilterSet used in the Job Summary'
+    default: Security Auditor View
+    required: false
+  sha:
+    description: 'SHA used in various FCLI variable names'
+    default: ${{ github.run_id }}
+    required: false
 
 runs:
   using: node20
