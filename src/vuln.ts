@@ -55,3 +55,47 @@ export async function getAppVersionVulnsCountTotal(appId: number | string, filte
 
     return total
 }
+
+
+export async function getFileNewVulnsInDiffHunk(appId: number | string, file: string, diffHunk: any, fields?: string): Promise<any[]> {
+    let vulns: any[] = []
+
+    const query: string = `[issue age]:NEW AND [analysis type]:"sca" AND file:"${file}" AND line:[${diffHunk.start},${diffHunk.end}]`
+
+    core.debug(`query: ${query}`)
+    const url: string = `/api/v1/projectVersions/${appId}/issues?q=${encodeURI(query)}&qm=issues${fields ? `&fields=${fields}` : ""}`
+    core.debug(`url: ${url}`)
+    let {data: data, count: count, responseCode: responseCode, links: links} = await utils.fcliRest(url)
+    core.debug(`responseCode ${responseCode}`)
+
+    if (200 <= Number(responseCode) && Number(responseCode) < 300) {
+        return data
+    } else {
+        throw new Error(`getFileNewVulnsInDiffHunk failed with code ${responseCode}`)
+    }
+}
+
+export async function addDetails(vulns: any[], fields?: string): Promise<void> {
+    await Promise.all(
+        vulns.map(async vuln => {
+            const url = `/api/v1/issueDetails/${vuln.id}`
+            core.debug(`url: ${url}`)
+            let {data: data, count: count, responseCode: responseCode, links: links} = await utils.fcliRest(url)
+            core.debug(`responseCode ${responseCode}`)
+
+            if (200 <= Number(responseCode) && Number(responseCode) < 300) {
+                if(fields){
+                    vuln.details = {}
+                    fields.split(",").forEach(field => {
+                        vuln.details[field] = data[field]
+                    })
+                } else {
+                    vuln.details = data
+                }
+            } else {
+                core.warning(`addDetails failed with code ${responseCode} for vuln ${vuln.id}`)
+            }
+
+        })
+    )
+}

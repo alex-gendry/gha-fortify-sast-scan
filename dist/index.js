@@ -42225,6 +42225,7 @@ const appversion = __importStar(__nccwpck_require__(3538));
 const sast = __importStar(__nccwpck_require__(7431));
 const summary = __importStar(__nccwpck_require__(2553));
 const securitygate = __importStar(__nccwpck_require__(5594));
+const vuln = __importStar(__nccwpck_require__(4002));
 const process = __importStar(__nccwpck_require__(7282));
 const github = __importStar(__nccwpck_require__(5438));
 const INPUT = {
@@ -42250,42 +42251,6 @@ const INPUT = {
  */
 async function run() {
     try {
-        const myToken = core.getInput('my_token');
-        const octokit = github.getOctokit(myToken);
-        core.debug(github.context.action);
-        core.debug(github.context.ref);
-        core.debug(github.context.eventName);
-        core.debug(github.context.actor);
-        core.debug(github.context.job);
-        core.debug(`${github.context.workflow}`);
-        core.debug(`${github.context.issue.repo}`);
-        core.debug(`${github.context.issue.number}`);
-        core.debug(`${github.context.issue.owner}`);
-        core.debug(`${github.context.repo.repo}`);
-        core.debug(`${github.context.repo.owner}`);
-        if (github.context.eventName === 'pull_request') {
-            const payload = github.context.payload;
-            console.log(payload.commits);
-            const { data: pullRequest } = await octokit.rest.pulls.get({
-                owner: github.context.issue.owner,
-                repo: github.context.issue.repo,
-                pull_number: github.context.issue.number,
-            });
-            console.log(pullRequest);
-            // const {data: commits} = await octokit.rest.pulls.listCommits({
-            //     owner: 'Andhrei', //github.context.issue.owner,
-            //     repo: 'gha-fortify-sast-scan', //github.context.issue.repo,
-            //     pull_number: 12, //github.context.issue.number,
-            // })
-            const { data: commits } = await octokit.rest.repos.listCommits({
-                owner: github.context.issue.owner,
-                repo: github.context.issue.repo,
-            });
-            commits.forEach(async (commit) => {
-                console.log(commit);
-            });
-        }
-        process.exit(0);
         /** Login  */
         core.info(`Login to Fortify solutions`);
         await session.login(INPUT).catch(error => {
@@ -42352,6 +42317,114 @@ async function run() {
             core.setFailed(`Job Summary construction failed`);
             process.exit(core.ExitCode.Failure);
         });
+        const myToken = core.getInput('my_token');
+        const octokit = github.getOctokit(myToken);
+        core.debug(github.context.action);
+        core.debug(github.context.ref);
+        core.debug(github.context.eventName);
+        core.debug(github.context.actor);
+        core.debug(github.context.job);
+        core.debug(`${github.context.workflow}`);
+        core.debug(`${github.context.issue.repo}`);
+        core.debug(`${github.context.issue.number}`);
+        core.debug(`${github.context.issue.owner}`);
+        core.debug(`${github.context.repo.repo}`);
+        core.debug(`${github.context.repo.owner}`);
+        if (github.context.eventName === 'pull_request') {
+            core.info("Pull Request Detected");
+            const { data: commits } = await octokit.rest.pulls.listCommits({
+                owner: github.context.issue.owner,
+                repo: github.context.repo.repo,
+                pull_number: github.context.issue.number,
+            }).catch(error => {
+                core.error(error.message);
+                throw new Error(`Failed to fetch commit list for pull #${github.context.issue.number} from ${github.context.issue.owner}/${github.context.repo.repo}`);
+            });
+            core.debug(`Commits count: ${commits.length}`);
+            await Promise.all(commits.map(async (commit) => {
+                core.debug(`Commit SHA: ${commit.sha}`);
+                const { data: commitData } = await octokit.request(`GET /repos/${github.context.issue.owner}/${github.context.repo.repo}/commits/${commit.sha}`, {
+                    owner: github.context.issue.owner,
+                    repo: github.context.repo.repo,
+                    ref: commit.sha,
+                    headers: {
+                        'X-GitHub-Api-Version': '2022-11-28'
+                    }
+                });
+                const files = commitData.files;
+                let comments = [];
+                let vulns = [];
+                await Promise.all(files.map(async (file) => {
+                    const regex = /@@\W[-+](?<Left>[,\d]*)\W[-+](?<right>[,\d]*)\W@@/gm;
+                    let m;
+                    core.debug(`File: ${file["filename"]} =>`);
+                    while ((m = regex.exec(file["patch"])) !== null) {
+                        if (m.index === regex.lastIndex) {
+                            regex.lastIndex++;
+                        }
+                        let diffElements = Array.from(m[2].split(','), Number);
+                        const diffHunk = {
+                            start: diffElements[0],
+                            end: diffElements[0] + diffElements[0] - 1
+                        };
+                        core.debug(`diff: ${file["filename"]} ${diffHunk.start}:${diffHunk.end}`);
+                        let vulns = await vuln.getFileNewVulnsInDiffHunk(59, file["filename"], diffHunk, 'id');
+                        await vuln.addDetails(vulns, "issueName,traceNodes,fullFileName,shortFileName,brief,friority,lineNumber");
+                        console.log(vulns);
+                        vulns.forEach(vuln => {
+                            comments.push({
+                                path: file["filename"],
+                                line: vuln.details.lineNumber,
+                                body: `
+<p><b>Security Scanning</b> / Fortify SAST</p>
+<h3>${vuln.details.friority} - ${vuln.details.issueName} </h3>
+<p>${vuln.details.brief}</p>`,
+                            });
+                        });
+                        // let route = `POST /repos/${github.context.issue.owner}/${github.context.issue.repo}/pulls/${github.context.issue.number}/comments`
+                        // let options = {
+                        //     owner: github.context.issue.owner,
+                        //     repo: github.context.issue.repo,
+                        //     pull_number: github.context.issue.number,
+                        //     body: `${new Date().toTimeString()}`,
+                        //     commit_id: commit.sha,
+                        //     path: file["filename"],
+                        //     subject_type: 'line',
+                        //     position: 1,
+                        //     line: `${(end / 2) + (start / 2)}`,
+                        //     headers: {
+                        //         'X-GitHub-Api-Version': '2022-11-28'
+                        //     }
+                        // }
+                        // console.log(route)
+                        // console.log(options)
+                        // await octokit.request(route, options).catch(error => {
+                        //     console.log(error)
+                        // }).then(response => {
+                        //     console.log(response)
+                        // })
+                    }
+                }));
+                console.log(comments);
+                let options = {
+                    owner: github.context.issue.owner,
+                    repo: github.context.repo.repo,
+                    pull_number: github.context.issue.number,
+                    commit_id: commit.sha,
+                    body: 'Fortify found potential problems',
+                    event: 'COMMENT',
+                    comments: comments,
+                    headers: {
+                        'X-GitHub-Api-Version': '2022-11-28'
+                    }
+                };
+                await octokit.request(`POST /repos/${github.context.issue.owner}/${github.context.repo.repo}/pulls/${github.context.issue.number}/reviews`, options)
+                    .catch(error => {
+                    console.log(`error: ${error}`);
+                    // process.exit(1)
+                });
+            }));
+        }
         core.setOutput('time', new Date().toTimeString());
     }
     catch (error) {
@@ -43014,7 +43087,7 @@ var __importStar = (this && this.__importStar) || function (mod) {
     return result;
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.daysOrToday = exports.normalizeScanType = exports.scancentral = exports.stringToArgsArray = exports.fcli = exports.getScanCentralPath = exports.getFcliPath = exports.getCopyVulnsBody = exports.getCopyStateBody = exports.getCreateAppVersionBody = void 0;
+exports.daysOrToday = exports.normalizeScanType = exports.scancentral = exports.stringToArgsArray = exports.fcliRest = exports.fcli = exports.getScanCentralPath = exports.getFcliPath = exports.getCopyVulnsBody = exports.getCopyStateBody = exports.getCreateAppVersionBody = void 0;
 const core = __importStar(__nccwpck_require__(2186));
 const exec = __importStar(__nccwpck_require__(1514));
 /**
@@ -43144,6 +43217,16 @@ async function fcli(args, returnStatus = false, silent = true) {
     }
 }
 exports.fcli = fcli;
+async function fcliRest(url) {
+    return (await fcli([
+        'ssc',
+        'rest',
+        'call',
+        url,
+        '--output=json'
+    ]))[0];
+}
+exports.fcliRest = fcliRest;
 function stringToArgsArray(text) {
     const re = /^"[^"]*"$/;
     const re2 = /^([^"]|[^"].*?[^"])$/;
@@ -43250,7 +43333,7 @@ var __importStar = (this && this.__importStar) || function (mod) {
     return result;
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.getAppVersionVulnsCountTotal = exports.getAppVersionNewVulnsCount = exports.getAppVersionVulnsCount = void 0;
+exports.addDetails = exports.getFileNewVulnsInDiffHunk = exports.getAppVersionVulnsCountTotal = exports.getAppVersionNewVulnsCount = exports.getAppVersionVulnsCount = void 0;
 const utils = __importStar(__nccwpck_require__(1314));
 const filterset = __importStar(__nccwpck_require__(6671));
 const core = __importStar(__nccwpck_require__(2186));
@@ -43305,6 +43388,45 @@ async function getAppVersionVulnsCountTotal(appId, filterSet, analysisType, newI
     return total;
 }
 exports.getAppVersionVulnsCountTotal = getAppVersionVulnsCountTotal;
+async function getFileNewVulnsInDiffHunk(appId, file, diffHunk, fields) {
+    let vulns = [];
+    const query = `[issue age]:NEW AND [analysis type]:"sca" AND file:"${file}" AND line:[${diffHunk.start},${diffHunk.end}]`;
+    core.debug(`query: ${query}`);
+    const url = `/api/v1/projectVersions/${appId}/issues?q=${encodeURI(query)}&qm=issues${fields ? `&fields=${fields}` : ""}`;
+    core.debug(`url: ${url}`);
+    let { data: data, count: count, responseCode: responseCode, links: links } = await utils.fcliRest(url);
+    core.debug(`responseCode ${responseCode}`);
+    if (200 <= Number(responseCode) && Number(responseCode) < 300) {
+        return data;
+    }
+    else {
+        throw new Error(`getFileNewVulnsInDiffHunk failed with code ${responseCode}`);
+    }
+}
+exports.getFileNewVulnsInDiffHunk = getFileNewVulnsInDiffHunk;
+async function addDetails(vulns, fields) {
+    await Promise.all(vulns.map(async (vuln) => {
+        const url = `/api/v1/issueDetails/${vuln.id}`;
+        core.debug(`url: ${url}`);
+        let { data: data, count: count, responseCode: responseCode, links: links } = await utils.fcliRest(url);
+        core.debug(`responseCode ${responseCode}`);
+        if (200 <= Number(responseCode) && Number(responseCode) < 300) {
+            if (fields) {
+                vuln.details = {};
+                fields.split(",").forEach(field => {
+                    vuln.details[field] = data[field];
+                });
+            }
+            else {
+                vuln.details = data;
+            }
+        }
+        else {
+            core.warning(`addDetails failed with code ${responseCode} for vuln ${vuln.id}`);
+        }
+    }));
+}
+exports.addDetails = addDetails;
 
 
 /***/ }),
