@@ -134,6 +134,16 @@ export async function fcli(args: string[], returnStatus: boolean = false, silent
     }
 }
 
+export async function fcliRest(url: string){
+    return (await fcli([
+        'ssc',
+        'rest',
+        'call',
+        url,
+        '--output=json'
+    ]))[0]
+}
+
 export function stringToArgsArray(text: string): string[] {
     const re = /^"[^"]*"$/
     const re2 = /^([^"]|[^"].*?[^"])$/
