@@ -87,7 +87,7 @@ async function getVulnsByScanProductTable(appId: string | number, filterSet: str
     let total: number = 0
     let totalNew: number = 0
     folders.forEach((folder) => {
-        totalRow.push(getTotalAndNewCell(folderTotals[folder["name"]],folderTotalsNew[folder["name"]]))
+        totalRow.push(getTotalAndNewCell(folderTotals[folder["name"]], folderTotalsNew[folder["name"]]))
         total += folderTotals[folder["name"]]
         totalNew += folderTotalsNew[folder["name"]]
     })
@@ -143,14 +143,18 @@ async function getScansSummaryTable(appId: string | number): Promise<any[]> {
     return scanRows
 }
 
-function getAsLink(text:string, link: string): string {
+function getAsLink(text: string, link: string): string {
     return `<a target="_blank" href="${link}">${text}</a>`
 }
 
-export async function setJobSummary(INPUT: any, passedSecurityage:boolean,): Promise<any> {
+export async function setJobSummary(INPUT: any, passedSecurityage: boolean,): Promise<any> {
     const appId = await appversion.getAppVersionId(INPUT.ssc_app, INPUT.ssc_version)
 
-    const securityRating = await performanceindicator.getPerformanceIndicatorValueByName(appId, 'Fortify Security Rating')
+    const securityRating: number = await performanceindicator.getPerformanceIndicatorValueByName(appId, 'Fortify Security Rating').catch(error => {
+        core.warning("Failed to get Security Rating")
+
+        return 0
+    })
     let n = 0
     const securityStars: string = ":white_circle::white_circle::white_circle::white_circle::white_circle:".replace(/white_circle/g, match => n++ < securityRating ? "star" : match)
 
@@ -164,11 +168,11 @@ export async function setJobSummary(INPUT: any, passedSecurityage:boolean,): Pro
         .addRaw(`:date: Summary Date: ${new Date().toLocaleString('fr-FR')}`)
         .addHeading(':clipboard: Executive Summary', 2)
         .addTable([
-            [`<b>Application</b>`, INPUT.ssc_app, `<b>Application Version</b>`, `${getAsLink(INPUT.ssc_version,appVersionUrl)}`]
+            [`<b>Application</b>`, INPUT.ssc_app, `<b>Application Version</b>`, `${getAsLink(INPUT.ssc_version, appVersionUrl)}`]
         ])
         .addTable([
-            [`<p><b>${getAsLink("Fortify Security Rating",securityRatingsUrl)}</b>: ${securityStars}</p>`],
-            [`<p><b>${getAsLink("Security Gate Status",securityGateUrl)}</b> :   ${passedSecurityage ? 'Passed :white_check_mark:' : 'Failed :x:'  }</p>`]])
+            [`<p><b>${getAsLink("Fortify Security Rating", securityRatingsUrl)}</b>: ${securityStars}</p>`],
+            [`<p><b>${getAsLink("Security Gate Status", securityGateUrl)}</b> :   ${passedSecurityage ? 'Passed :white_check_mark:' : 'Failed :x:'}</p>`]])
         .addTable(await getScansSummaryTable(appId))
         .addHeading(':signal_strength: Security Findings', 2)
         .addRaw(`<p>:telescope: <b>Filter Set</b>: ${INPUT.summary_filterset}</p>`, true)

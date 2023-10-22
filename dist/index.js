@@ -43029,7 +43029,10 @@ function getAsLink(text, link) {
 }
 async function setJobSummary(INPUT, passedSecurityage) {
     const appId = await appversion.getAppVersionId(INPUT.ssc_app, INPUT.ssc_version);
-    const securityRating = await performanceindicator.getPerformanceIndicatorValueByName(appId, 'Fortify Security Rating');
+    const securityRating = await performanceindicator.getPerformanceIndicatorValueByName(appId, 'Fortify Security Rating').catch(error => {
+        core.warning("Failed to get Security Rating");
+        return 0;
+    });
     let n = 0;
     const securityStars = ":white_circle::white_circle::white_circle::white_circle::white_circle:".replace(/white_circle/g, match => n++ < securityRating ? "star" : match);
     const appVersionUrl = `${INPUT.ssc_base_url}/html/ssc/version/${appId}/audit`;
