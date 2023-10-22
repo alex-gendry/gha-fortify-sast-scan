@@ -51,7 +51,7 @@ inputs:
     description: 'SHA used in various FCLI variable names'
     default: ${{ github.run_id }}
     required: false
-  my_token:
+  gha_token:
     description: 'SHA used in various FCLI variable names'
     default: ${{ secrets.GITHUB_TOKEN }}
     required: false

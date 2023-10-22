@@ -42317,7 +42317,7 @@ async function run() {
             core.setFailed(`Job Summary construction failed`);
             process.exit(core.ExitCode.Failure);
         });
-        const myToken = core.getInput('my_token');
+        const myToken = core.getInput('gha_token');
         const octokit = github.getOctokit(myToken);
         core.debug(github.context.action);
         core.debug(github.context.ref);

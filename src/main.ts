@@ -107,7 +107,7 @@ export async function run(): Promise<void> {
             process.exit(core.ExitCode.Failure)
         })
 
-        const myToken = core.getInput('my_token');
+        const myToken = core.getInput('gha_token');
         const octokit = github.getOctokit(myToken)
 
         core.debug(github.context.action)
