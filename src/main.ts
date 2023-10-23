@@ -118,13 +118,15 @@ export async function run(): Promise<void> {
             core.info(`Scan ${scan.id} succesfully uploaded`)
 
             const scanVulns = await vuln.getNewVulnByScanId(appVersionId,scan.id)
-            const customTagGuid = core.getInput("ssc_commit_customtag_guid")
-            if (await customtag.commitCustomTagExists(customTagGuid)) {
-                core.info("Tagging new vulns with commit SHA")
-                core.info(`Adding CustomTag to ${INPUT.ssc_app}:${INPUT.ssc_version} (${appVersionId})`)
-                if(await appversion.addCustomTag(appVersionId, customTagGuid)){
-                    const scanVulns = await vuln.getNewVulnByScanId(appVersionId, scan.id)
-                    await vuln.tagVulns(appVersionId, scanVulns, customTagGuid, github.context.sha)
+            if(scanVulns.length){
+                const customTagGuid = core.getInput("ssc_commit_customtag_guid")
+                if (await customtag.commitCustomTagExists(customTagGuid)) {
+                    core.info("Tagging new vulns with commit SHA")
+                    core.info(`Adding CustomTag to ${INPUT.ssc_app}:${INPUT.ssc_version} (${appVersionId})`)
+                    if(await appversion.addCustomTag(appVersionId, customTagGuid)){
+                        const scanVulns = await vuln.getNewVulnByScanId(appVersionId, scan.id)
+                        await vuln.tagVulns(appVersionId, scanVulns, customTagGuid, github.context.sha)
+                    }
                 }
             }
         }
