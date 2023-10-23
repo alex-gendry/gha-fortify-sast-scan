@@ -13,7 +13,7 @@ export async function decorate(appVersionId: string | number): Promise<any> {
 
     const {data: commits} = await octokit.rest.pulls.listCommits({
         owner: github.context.issue.owner,
-        repo: "${github.context.issue.repo}",
+        repo: github.context.issue.repo,
         pull_number: github.context.issue.number,
     }).catch((error: any) => {
         core.error(error.message)
@@ -25,7 +25,7 @@ export async function decorate(appVersionId: string | number): Promise<any> {
     await Promise.all(commits.map(async commit => {
         const {data: checkRuns} = await octokit.request('GET /repos/{owner}/{repo}/commits/{ref}/check-runs?check_name={check_name}', {
             owner: github.context.issue.owner,
-            repo: "${github.context.issue.repo}",
+            repo: github.context.issue.repo,
             ref: commit.sha,
             check_name: github.context.job,
             headers: {
@@ -59,17 +59,19 @@ export async function decorate(appVersionId: string | number): Promise<any> {
         try {
             core.debug(`Commit SHA: ${commit.sha}`)
             // Get Commit's Files
-            const {data: commitData} = await octokit.request(`GET /repos/${github.context.issue.owner}/${github.context.issue.repo}/commits/${commit.sha}`, {
-                owner: github.context.issue.owner, repo: github.context.repo.repo, ref: commit.sha, headers: {
+            const {data: commitData} = await octokit.request(`GET /repos/{owner}/{repo}/commits/{ref}`, {
+                owner: github.context.issue.owner,
+                repo: github.context.repo.repo,
+                ref: commit.sha, headers: {
                     'X-GitHub-Api-Version': '2022-11-28'
                 }
             })
 
-            const files: any[] = commitData.files
+            const files: any = commitData.files
             let comments: any[] = []
             let vulns: any[] = []
 
-            await Promise.all(files.map(async file => {
+            await Promise.all(files.map(async function (file: any) {
                 const regex = /@@\W[-+](?<Left>[,\d]*)\W[-+](?<right>[,\d]*)\W@@/gm
                 let m;
                 core.debug(`File: ${file["filename"]} =>`)
