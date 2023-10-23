@@ -42367,6 +42367,7 @@ const summary = __importStar(__nccwpck_require__(2553));
 const securitygate = __importStar(__nccwpck_require__(5594));
 const customtag = __importStar(__nccwpck_require__(8428));
 const vuln = __importStar(__nccwpck_require__(4002));
+const pullrequest = __importStar(__nccwpck_require__(5885));
 const process = __importStar(__nccwpck_require__(7282));
 const github = __importStar(__nccwpck_require__(5438));
 const artifact = __importStar(__nccwpck_require__(4571));
@@ -42415,7 +42416,8 @@ async function run() {
         }
         core.info(`AppVersion ${INPUT.ssc_app}:${INPUT.ssc_version} exists (${appVersionId})`);
         /** SAST Scan Execution */
-        if (INPUT.sast_scan) {
+        if (INPUT.sast_scan && github.context.eventName === "push") {
+            core.info("Pull Request Detected");
             /** Source code packaging */
             core.info(`Packaging source code with "${INPUT.sast_build_options}"`);
             const packagePath = "package.zip";
@@ -42477,6 +42479,11 @@ async function run() {
                 }
             }
         }
+        else if (github.context.eventName === 'pull_request') {
+            core.info("Pull Request Detected");
+            await pullrequest.decorate(appVersionId);
+        }
+        process.exit(1);
         /** RUN Security Gate */
         core.info("Running Security Gate");
         const passedSecurityGate = await securitygate.run(INPUT).catch(error => {
@@ -42490,103 +42497,6 @@ async function run() {
             core.setFailed(`Job Summary construction failed`);
             process.exit(core.ExitCode.Failure);
         });
-        const myToken = core.getInput('gha_token');
-        const octokit = github.getOctokit(myToken);
-        if (github.context.eventName === 'pull_request') {
-            core.info("Pull Request Detected");
-            const { data: commits } = await octokit.rest.pulls.listCommits({
-                owner: github.context.issue.owner,
-                repo: github.context.repo.repo,
-                pull_number: github.context.issue.number,
-            }).catch(error => {
-                core.error(error.message);
-                throw new Error(`Failed to fetch commit list for pull #${github.context.issue.number} from ${github.context.issue.owner}/${github.context.repo.repo}`);
-            });
-            core.debug(`Commits count: ${commits.length}`);
-            await Promise.all(commits.map(async (commit) => {
-                core.debug(`Commit SHA: ${commit.sha}`);
-                const { data: commitData } = await octokit.request(`GET /repos/${github.context.issue.owner}/${github.context.repo.repo}/commits/${commit.sha}`, {
-                    owner: github.context.issue.owner,
-                    repo: github.context.repo.repo,
-                    ref: commit.sha,
-                    headers: {
-                        'X-GitHub-Api-Version': '2022-11-28'
-                    }
-                });
-                const files = commitData.files;
-                let comments = [];
-                let vulns = [];
-                await Promise.all(files.map(async (file) => {
-                    const regex = /@@\W[-+](?<Left>[,\d]*)\W[-+](?<right>[,\d]*)\W@@/gm;
-                    let m;
-                    core.debug(`File: ${file["filename"]} =>`);
-                    while ((m = regex.exec(file["patch"])) !== null) {
-                        if (m.index === regex.lastIndex) {
-                            regex.lastIndex++;
-                        }
-                        let diffElements = Array.from(m[2].split(','), Number);
-                        const diffHunk = {
-                            start: diffElements[0],
-                            end: diffElements[0] + diffElements[0] - 1
-                        };
-                        core.debug(`diff: ${file["filename"]} ${diffHunk.start}:${diffHunk.end}`);
-                        let vulns = await vuln.getFileNewVulnsInDiffHunk(59, file["filename"], diffHunk, 'id');
-                        await vuln.addDetails(vulns, "issueName,traceNodes,fullFileName,shortFileName,brief,friority,lineNumber");
-                        console.log(vulns);
-                        vulns.forEach(vuln => {
-                            comments.push({
-                                path: file["filename"],
-                                line: vuln.details.lineNumber,
-                                body: `
-<p><b>Security Scanning</b> / Fortify SAST</p>
-<h3>${vuln.details.friority} - ${vuln.details.issueName} </h3>
-<p>${vuln.details.brief}</p>`,
-                            });
-                        });
-                        // let route = `POST /repos/${github.context.issue.owner}/${github.context.issue.repo}/pulls/${github.context.issue.number}/comments`
-                        // let options = {
-                        //     owner: github.context.issue.owner,
-                        //     repo: github.context.issue.repo,
-                        //     pull_number: github.context.issue.number,
-                        //     body: `${new Date().toTimeString()}`,
-                        //     commit_id: commit.sha,
-                        //     path: file["filename"],
-                        //     subject_type: 'line',
-                        //     position: 1,
-                        //     line: `${(end / 2) + (start / 2)}`,
-                        //     headers: {
-                        //         'X-GitHub-Api-Version': '2022-11-28'
-                        //     }
-                        // }
-                        // console.log(route)
-                        // console.log(options)
-                        // await octokit.request(route, options).catch(error => {
-                        //     console.log(error)
-                        // }).then(response => {
-                        //     console.log(response)
-                        // })
-                    }
-                }));
-                console.log(comments);
-                let options = {
-                    owner: github.context.issue.owner,
-                    repo: github.context.repo.repo,
-                    pull_number: github.context.issue.number,
-                    commit_id: commit.sha,
-                    body: 'Fortify found potential problems',
-                    event: 'COMMENT',
-                    comments: comments,
-                    headers: {
-                        'X-GitHub-Api-Version': '2022-11-28'
-                    }
-                };
-                await octokit.request(`POST /repos/${github.context.issue.owner}/${github.context.repo.repo}/pulls/${github.context.issue.number}/reviews`, options)
-                    .catch(error => {
-                    console.log(`error: ${error}`);
-                    // process.exit(1)
-                });
-            }));
-        }
         core.setOutput('time', new Date().toTimeString());
     }
     catch (error) {
@@ -42657,6 +42567,146 @@ async function getPerformanceIndicatorValueByName(appId, performanceIndicatorNam
     return parseFloat(jsonRes["value"]);
 }
 exports.getPerformanceIndicatorValueByName = getPerformanceIndicatorValueByName;
+
+
+/***/ }),
+
+/***/ 5885:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+
+"use strict";
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.decorate = void 0;
+const github = __importStar(__nccwpck_require__(5438));
+const core = __importStar(__nccwpck_require__(2186));
+const vuln = __importStar(__nccwpck_require__(4002));
+async function decorate(appVersionId) {
+    const myToken = core.getInput('gha_token');
+    const octokit = github.getOctokit(myToken);
+    core.info(`Decorating pull request #${github.context.issue.number} from ${github.context.issue.owner}:${github.context.repo.repo}`);
+    const { data: commits } = await octokit.rest.pulls.listCommits({
+        owner: github.context.issue.owner,
+        repo: "${github.context.issue.repo}",
+        pull_number: github.context.issue.number,
+    }).catch((error) => {
+        core.error(error.message);
+        throw new Error(`Failed to fetch commit list for pull #${github.context.issue.number} from ${github.context.issue.owner}/${github.context.repo.repo}`);
+    });
+    core.debug(`Commits count: ${commits.length}`);
+    await Promise.all(commits.map(async (commit) => {
+        const { data: checkRuns } = await octokit.request('GET /repos/{owner}/{repo}/commits/{ref}/check-runs?check_name={check_name}', {
+            owner: github.context.issue.owner,
+            repo: "${github.context.issue.repo}",
+            ref: commit.sha,
+            check_name: github.context.job,
+            headers: {
+                'X-GitHub-Api-Version': '2022-11-28'
+            }
+        });
+        await Promise.all(checkRuns.check_runs.map(async function (checkRun) {
+            while (["stale", "in_progress", "queued", "requested", "waiting", "pending"].includes(checkRun.status)) {
+                core.info(`Waiting for ${checkRun.name}:${commit.commit.message}[${commit.sha}] to be completed. Curent status: ${checkRun.status}`);
+                await new Promise((resolve) => setTimeout(resolve, 10 * 1000));
+                checkRun = await octokit.request('GET /repos/{owner}/{repo}/check-runs/{check_run_id}', {
+                    owner: github.context.issue.owner,
+                    repo: github.context.issue.repo,
+                    check_run_id: checkRun.id,
+                    headers: {
+                        'X-GitHub-Api-Version': '2022-11-28'
+                    }
+                });
+            }
+            core.debug(`${checkRun.id} is ${checkRun.status} `);
+        }));
+    }));
+    core.info("All PR's related commits check runs are completed");
+    await Promise.all(commits.map(async (commit) => {
+        try {
+            core.debug(`Commit SHA: ${commit.sha}`);
+            // Get Commit's Files
+            const { data: commitData } = await octokit.request(`GET /repos/${github.context.issue.owner}/${github.context.issue.repo}/commits/${commit.sha}`, {
+                owner: github.context.issue.owner, repo: github.context.repo.repo, ref: commit.sha, headers: {
+                    'X-GitHub-Api-Version': '2022-11-28'
+                }
+            });
+            const files = commitData.files;
+            let comments = [];
+            let vulns = [];
+            await Promise.all(files.map(async (file) => {
+                const regex = /@@\W[-+](?<Left>[,\d]*)\W[-+](?<right>[,\d]*)\W@@/gm;
+                let m;
+                core.debug(`File: ${file["filename"]} =>`);
+                while ((m = regex.exec(file["patch"])) !== null) {
+                    if (m.index === regex.lastIndex) {
+                        regex.lastIndex++;
+                    }
+                    let diffElements = Array.from(m[2].split(','), Number);
+                    const diffHunk = {
+                        start: diffElements[0], end: diffElements[0] + diffElements[0] - 1
+                    };
+                    core.debug(`diff: ${file["filename"]} ${diffHunk.start}:${diffHunk.end}`);
+                    let vulns = await vuln.getFileNewVulnsInDiffHunk(appVersionId, commit.sha, file["filename"], diffHunk, 'id');
+                    await vuln.addDetails(vulns, "issueName,traceNodes,fullFileName,shortFileName,brief,friority,lineNumber");
+                    vulns.forEach(vuln => {
+                        comments.push({
+                            path: file["filename"], line: vuln.details.lineNumber, body: `
+<p><b>Security Scanning</b> / Fortify SAST</p>
+<h3>${vuln.details.friority} - ${vuln.details.issueName} </h3>
+<p>${vuln.details.brief}</p>`,
+                        });
+                    });
+                }
+            }));
+            if (comments.length) {
+                await octokit.request('POST /repos/{owner}/{repo}/pulls/{pull_number}/reviews', {
+                    owner: github.context.issue.owner,
+                    repo: github.context.repo.repo,
+                    pull_number: github.context.issue.number,
+                    commit_id: commit.sha,
+                    body: 'Fortify found potential problems',
+                    event: "COMMENT",
+                    comments: comments,
+                    headers: {
+                        'X-GitHub-Api-Version': '2022-11-28'
+                    }
+                }).catch(error => {
+                    console.log(`error: ${error}`);
+                    // process.exit(1)
+                });
+            }
+        }
+        catch (error) {
+            core.warning(`Failed to process commit ${commit.sha}:
+                ${error.message}`);
+        }
+    }));
+    core.info("Decoration finished.");
+}
+exports.decorate = decorate;
 
 
 /***/ }),
@@ -43602,9 +43652,9 @@ async function getNewVulnByScanId(appId, scanId) {
     return vulns;
 }
 exports.getNewVulnByScanId = getNewVulnByScanId;
-async function getFileNewVulnsInDiffHunk(appId, file, diffHunk, fields) {
+async function getFileNewVulnsInDiffHunk(appId, commitSha, file, diffHunk, fields) {
     let vulns = [];
-    const query = `[analysis type]:"sca" AND file:"${file}" AND line:[${diffHunk.start},${diffHunk.end}]`;
+    const query = `[analysis type]:"sca" AND file:"${file}" AND line:[${diffHunk.start},${diffHunk.end}] AND commit:${commitSha}`;
     core.debug(`query: ${query}`);
     const url = `/api/v1/projectVersions/${appId}/issues?q=${encodeURI(query)}&qm=issues${fields ? `&fields=${fields}` : ""}`;
     core.debug(`url: ${url}`);

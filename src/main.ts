@@ -7,6 +7,7 @@ import * as summary from './summary'
 import * as securitygate from './securitygate'
 import * as customtag from './customtag'
 import * as vuln from './vuln'
+import * as pullrequest from './pullrequest'
 import * as process from "process";
 import * as github from "@actions/github";
 
@@ -65,7 +66,8 @@ export async function run(): Promise<void> {
 
 
         /** SAST Scan Execution */
-        if (INPUT.sast_scan) {
+        if (INPUT.sast_scan && github.context.eventName === "push") {
+            core.info("Pull Request Detected")
             /** Source code packaging */
             core.info(`Packaging source code with "${INPUT.sast_build_options}"`)
             const packagePath = "package.zip"
@@ -117,20 +119,25 @@ export async function run(): Promise<void> {
             })
             core.info(`Scan ${scan.id} succesfully uploaded`)
 
-            const scanVulns = await vuln.getNewVulnByScanId(appVersionId,scan.id)
-            if(scanVulns.length){
+            const scanVulns = await vuln.getNewVulnByScanId(appVersionId, scan.id)
+            if (scanVulns.length) {
                 const customTagGuid = core.getInput("ssc_commit_customtag_guid")
                 if (await customtag.commitCustomTagExists(customTagGuid)) {
                     core.info("Tagging new vulns with commit SHA")
                     core.info(`Adding CustomTag to ${INPUT.ssc_app}:${INPUT.ssc_version} (${appVersionId})`)
-                    if(await appversion.addCustomTag(appVersionId, customTagGuid)){
+                    if (await appversion.addCustomTag(appVersionId, customTagGuid)) {
                         const scanVulns = await vuln.getNewVulnByScanId(appVersionId, scan.id)
                         await vuln.tagVulns(appVersionId, scanVulns, customTagGuid, github.context.sha)
                     }
                 }
             }
+        } else if (github.context.eventName === 'pull_request') {
+            core.info("Pull Request Detected")
+
+            await pullrequest.decorate(appVersionId)
         }
 
+        process.exit(1)
         /** RUN Security Gate */
         core.info("Running Security Gate")
         const passedSecurityGate = await securitygate.run(INPUT).catch(error => {
@@ -145,121 +152,6 @@ export async function run(): Promise<void> {
             core.setFailed(`Job Summary construction failed`)
             process.exit(core.ExitCode.Failure)
         })
-
-        const myToken = core.getInput('gha_token');
-        const octokit = github.getOctokit(myToken)
-
-        if (github.context.eventName === 'pull_request') {
-            core.info("Pull Request Detected")
-
-            const {data: commits} = await octokit.rest.pulls.listCommits({
-                owner: github.context.issue.owner,
-                repo: github.context.repo.repo,
-                pull_number: github.context.issue.number,
-            }).catch(error => {
-                core.error(error.message)
-                throw new Error(`Failed to fetch commit list for pull #${github.context.issue.number} from ${github.context.issue.owner}/${github.context.repo.repo}`)
-            })
-
-            core.debug(`Commits count: ${commits.length}`)
-
-            await Promise.all(
-                commits.map(async commit => {
-                    core.debug(`Commit SHA: ${commit.sha}`)
-                    const {data: commitData} = await octokit.request(`GET /repos/${github.context.issue.owner}/${github.context.repo.repo}/commits/${commit.sha}`, {
-                        owner: github.context.issue.owner,
-                        repo: github.context.repo.repo,
-                        ref: commit.sha,
-                        headers: {
-                            'X-GitHub-Api-Version': '2022-11-28'
-                        }
-                    })
-
-                    const files: any[] = commitData.files
-                    let comments: any[] = []
-                    let vulns: any[] = []
-
-                    await Promise.all(
-                        files.map(async file => {
-                            const regex = /@@\W[-+](?<Left>[,\d]*)\W[-+](?<right>[,\d]*)\W@@/gm
-                            let m;
-                            core.debug(`File: ${file["filename"]} =>`)
-                            while ((m = regex.exec(file["patch"])) !== null) {
-                                if (m.index === regex.lastIndex) {
-                                    regex.lastIndex++;
-                                }
-
-                                let diffElements: number[] = Array.from(m[2].split(','), Number)
-                                const diffHunk: any = {
-                                    start: diffElements[0],
-                                    end: diffElements[0] + diffElements[0] - 1
-                                }
-                                core.debug(`diff: ${file["filename"]} ${diffHunk.start}:${diffHunk.end}`)
-
-                                let vulns = await vuln.getFileNewVulnsInDiffHunk(59, file["filename"], diffHunk, 'id')
-
-                                await vuln.addDetails(vulns, "issueName,traceNodes,fullFileName,shortFileName,brief,friority,lineNumber")
-
-                                console.log(vulns)
-                                vulns.forEach(vuln => {
-                                    comments.push({
-                                        path: file["filename"],
-                                        line: vuln.details.lineNumber,
-                                        body: `
-<p><b>Security Scanning</b> / Fortify SAST</p>
-<h3>${vuln.details.friority} - ${vuln.details.issueName} </h3>
-<p>${vuln.details.brief}</p>`,
-                                    })
-                                })
-
-                                // let route = `POST /repos/${github.context.issue.owner}/${github.context.issue.repo}/pulls/${github.context.issue.number}/comments`
-                                // let options = {
-                                //     owner: github.context.issue.owner,
-                                //     repo: github.context.issue.repo,
-                                //     pull_number: github.context.issue.number,
-                                //     body: `${new Date().toTimeString()}`,
-                                //     commit_id: commit.sha,
-                                //     path: file["filename"],
-                                //     subject_type: 'line',
-                                //     position: 1,
-                                //     line: `${(end / 2) + (start / 2)}`,
-                                //     headers: {
-                                //         'X-GitHub-Api-Version': '2022-11-28'
-                                //     }
-                                // }
-                                // console.log(route)
-                                // console.log(options)
-                                // await octokit.request(route, options).catch(error => {
-                                //     console.log(error)
-                                // }).then(response => {
-                                //     console.log(response)
-                                // })
-                            }
-                        })
-                    )
-                    console.log(comments)
-                    let options = {
-                        owner: github.context.issue.owner,
-                        repo: github.context.repo.repo,
-                        pull_number: github.context.issue.number,
-                        commit_id: commit.sha,
-                        body: 'Fortify found potential problems',
-                        event: 'COMMENT',
-                        comments: comments,
-                        headers: {
-                            'X-GitHub-Api-Version': '2022-11-28'
-                        }
-                    }
-
-                    await octokit.request(`POST /repos/${github.context.issue.owner}/${github.context.repo.repo}/pulls/${github.context.issue.number}/reviews`, options)
-                        .catch(error => {
-                            console.log(`error: ${error}`)
-                            // process.exit(1)
-                        })
-                })
-            )
-        }
-
 
         core.setOutput('time', new Date().toTimeString())
     } catch (error) {

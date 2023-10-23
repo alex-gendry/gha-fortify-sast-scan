@@ -85,10 +85,10 @@ export async function getNewVulnByScanId(appId: number | string, scanId: number 
     return vulns
 }
 
-export async function getFileNewVulnsInDiffHunk(appId: number | string, file: string, diffHunk: any, fields?: string): Promise<any[]> {
+export async function getFileNewVulnsInDiffHunk(appId: number | string, commitSha: string, file: string, diffHunk: any, fields?: string): Promise<any[]> {
     let vulns: any[] = []
 
-    const query: string = `[analysis type]:"sca" AND file:"${file}" AND line:[${diffHunk.start},${diffHunk.end}]`
+    const query: string = `[analysis type]:"sca" AND file:"${file}" AND line:[${diffHunk.start},${diffHunk.end}] AND commit:${commitSha}`
 
     core.debug(`query: ${query}`)
     const url: string = `/api/v1/projectVersions/${appId}/issues?q=${encodeURI(query)}&qm=issues${fields ? `&fields=${fields}` : ""}`
