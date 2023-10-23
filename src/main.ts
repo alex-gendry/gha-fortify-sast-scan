@@ -5,6 +5,7 @@ import * as appversion from './appversion'
 import * as sast from './sast'
 import * as summary from './summary'
 import * as securitygate from './securitygate'
+import * as customtag from './customtag'
 import * as vuln from './vuln'
 import * as process from "process";
 import * as github from "@actions/github";
@@ -21,6 +22,7 @@ const INPUT = {
     ssc_ci_password: core.getInput('ssc_ci_password', {required: false}),
     ssc_app: core.getInput('ssc_app', {required: true}),
     ssc_version: core.getInput('ssc_version', {required: true}),
+    ssc_commit_customtag_guid: core.getInput('ssc_commit_customtag_guid', {required: true}),
     sast_scan: core.getBooleanInput('sast_scan', {required: false}),
     sast_client_auth_token: core.getInput('sast_client_auth_token', {
         required: false
@@ -94,6 +96,9 @@ export async function run(): Promise<void> {
                 core.setFailed(`Wait fo SAST start scan failed`)
                 process.exit(core.ExitCode.Failure)
             })
+
+            // const jobToken = "f63a7e04-a1df-410a-ade7-ad0885df333f"
+
             const fprPath = await artifact.downloadArtifact(jobToken).catch(error => {
                 core.error(error.message)
                 core.setFailed(`Failed to download scan artifact for job ${jobToken}`)
@@ -106,12 +111,23 @@ export async function run(): Promise<void> {
             })
             const scan = await artifact.waitForArtifactUpload(artifactId).catch(error => {
                 core.error(error.message)
-                core.setFailed(`Failed to wait for scan artifact processing [artifactId: ${artifactId} / appVersion: ${appVersionId} `)
+                core.setFailed(`Failed to wait for scan artifact processing [artifactId: ${artifactId} / appVersion: ${appVersionId}]`)
                 process.exit(core.ExitCode.Failure)
             })
+            core.info(`Scan ${scan.id} succesfully uploaded`)
 
-            core.info(`Scan ${scan.id} succesfuly uploaded`)
+            const scanVulns = await vuln.getNewVulnByScanId(appVersionId,scan.id)
+            const customTagGuid = core.getInput("ssc_commit_customtag_guid")
+            if (await customtag.commitCustomTagExists(customTagGuid)) {
+                core.info("Tagging new vulns with commit SHA")
+                core.info(`Adding CustomTag to ${INPUT.ssc_app}:${INPUT.ssc_version} (${appVersionId})`)
+                if(await appversion.addCustomTag(appVersionId, customTagGuid)){
+                    const scanVulns = await vuln.getNewVulnByScanId(appVersionId, scan.id)
+                    await vuln.tagVulns(appVersionId, scanVulns, customTagGuid, github.context.sha)
+                }
+            }
 
+            process.exit(1)
         }
 
         /** RUN Security Gate */
@@ -131,19 +147,6 @@ export async function run(): Promise<void> {
 
         const myToken = core.getInput('gha_token');
         const octokit = github.getOctokit(myToken)
-
-        core.debug(github.context.action)
-        core.debug(github.context.ref)
-        core.debug(github.context.eventName)
-        core.debug(github.context.actor)
-        core.debug(github.context.job)
-        core.debug(`${github.context.workflow}`)
-        core.debug(`${github.context.issue.repo}`)
-        core.debug(`${github.context.issue.number}`)
-        core.debug(`${github.context.issue.owner}`)
-        core.debug(`${github.context.repo.repo}`)
-        core.debug(`${github.context.repo.owner}`)
-
 
         if (github.context.eventName === 'pull_request') {
             core.info("Pull Request Detected")

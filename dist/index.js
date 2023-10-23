@@ -41816,7 +41816,7 @@ var __importStar = (this && this.__importStar) || function (mod) {
     return result;
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.appVersionExists = exports.getAppVersionId = void 0;
+exports.addCustomTag = exports.appVersionExists = exports.getAppVersionId = void 0;
 const utils = __importStar(__nccwpck_require__(1314));
 const core = __importStar(__nccwpck_require__(2186));
 async function getAppVersionId(app, version) {
@@ -42050,6 +42050,21 @@ async function createAppVersion(app, version) {
         return false;
     }
 }
+async function addCustomTag(appId, customTagGuid) {
+    const url = `/api/v1/projectVersions/${appId}/customTags`;
+    const body = {
+        guid: customTagGuid
+    };
+    let { data: data, count: count, responseCode: responseCode, links: links } = await utils.fcliRest(url, "POST", JSON.stringify(body));
+    if (200 <= Number(responseCode) && Number(responseCode) < 300) {
+        return true;
+    }
+    else {
+        core.error(`Adding CustomTag ${customTagGuid} to appVersion ${appId} failed with code ${responseCode}`);
+        return false;
+    }
+}
+exports.addCustomTag = addCustomTag;
 
 
 /***/ }),
@@ -42170,7 +42185,9 @@ async function downloadArtifact(jobToken) {
         };
         const filePath = "scan.fpr";
         const fpr = fs_1.default.createWriteStream(filePath);
-        let response = await httpRequest.get(utils.getSastBaseUrl() + `/rest/v2/job/${jobToken}/FPR`);
+        const url = await utils.getSastBaseUrl() + `/rest/v2/job/${jobToken}/FPR`;
+        core.debug(`url: ${url}`);
+        let response = await httpRequest.get(url);
         const message = await response.message.pipe(fpr);
         return filePath;
     }
@@ -42182,15 +42199,11 @@ async function downloadArtifact(jobToken) {
 exports.downloadArtifact = downloadArtifact;
 async function waitForArtifactUpload(artifactId) {
     try {
-        let args = [
-            'ssc',
-            'appversion-artifact',
-            'wait-for',
-            artifactId.toString(),
-            `--while="REQUIRE_AUTH|SCHED_PROCESSING|PROCESSING"`,
-            '--output=json'
-        ];
-        const response = await utils.fcli(args);
+        await utils.fcli(['ssc', 'appversion-artifact', 'wait-for', artifactId.toString(), `--while=REQUIRE_AUTH|SCHED_PROCESSING|PROCESSING`,
+            `--on-failure-state=terminate`, `--on-unknown-state=terminate`, `--interval=10s`], true, false);
+        let response = (await utils.fcli(['ssc', 'appversion-artifact', 'wait-for', artifactId.toString(), `--while=REQUIRE_AUTH|SCHED_PROCESSING|PROCESSING`,
+            `--on-failure-state=terminate`, `--on-unknown-state=terminate`,
+            `--interval=10s`, '--no-progress', '--output=json',]))[0];
         if (response.status === "PROCESS_COMPLETE") {
             return { id: response._embed.scans[0].id, date: response.lastScanDate };
         }
@@ -42204,6 +42217,59 @@ async function waitForArtifactUpload(artifactId) {
     }
 }
 exports.waitForArtifactUpload = waitForArtifactUpload;
+
+
+/***/ }),
+
+/***/ 8428:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+
+"use strict";
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.commitCustomTagExists = void 0;
+const core = __importStar(__nccwpck_require__(2186));
+const utils = __importStar(__nccwpck_require__(1314));
+async function commitCustomTagExists(guid) {
+    core.debug(`Checking if CustomTag ${guid} exists`);
+    let { data: data, count: count, responseCode: responseCode, links: links } = await utils.fcliRest(`/api/v1/customTags?q=guid:${guid}`);
+    core.debug(responseCode);
+    if (200 <= Number(responseCode) && Number(responseCode) < 300) {
+        if (count != 0) {
+            core.debug(`Custom tag ${guid} found : ${data[0].name}`);
+            return true;
+        }
+        return false;
+    }
+    else {
+        core.error(`commitCustomTagExists failed with code ${responseCode}`);
+        return false;
+    }
+}
+exports.commitCustomTagExists = commitCustomTagExists;
 
 
 /***/ }),
@@ -42299,6 +42365,7 @@ const appversion = __importStar(__nccwpck_require__(3538));
 const sast = __importStar(__nccwpck_require__(7431));
 const summary = __importStar(__nccwpck_require__(2553));
 const securitygate = __importStar(__nccwpck_require__(5594));
+const customtag = __importStar(__nccwpck_require__(8428));
 const vuln = __importStar(__nccwpck_require__(4002));
 const process = __importStar(__nccwpck_require__(7282));
 const github = __importStar(__nccwpck_require__(5438));
@@ -42310,6 +42377,7 @@ const INPUT = {
     ssc_ci_password: core.getInput('ssc_ci_password', { required: false }),
     ssc_app: core.getInput('ssc_app', { required: true }),
     ssc_version: core.getInput('ssc_version', { required: true }),
+    ssc_commit_customtag_guid: core.getInput('ssc_commit_customtag_guid', { required: true }),
     sast_scan: core.getBooleanInput('sast_scan', { required: false }),
     sast_client_auth_token: core.getInput('sast_client_auth_token', {
         required: false
@@ -42326,6 +42394,17 @@ const INPUT = {
  */
 async function run() {
     try {
+        core.debug(github.context.action);
+        core.debug(github.context.ref);
+        core.debug(github.context.eventName);
+        core.debug(github.context.actor);
+        core.debug(github.context.job);
+        core.debug(`${github.context.workflow}`);
+        core.debug(`${github.context.issue.repo}`);
+        core.debug(`${github.context.issue.number}`);
+        core.debug(`${github.context.issue.owner}`);
+        core.debug(`${github.context.repo.repo}`);
+        core.debug(`${github.context.repo.owner}`);
         /** Login  */
         core.info(`Login to Fortify solutions`);
         await session.login(INPUT).catch(error => {
@@ -42378,6 +42457,7 @@ async function run() {
                 core.setFailed(`Wait fo SAST start scan failed`);
                 process.exit(core.ExitCode.Failure);
             });
+            // const jobToken = "f63a7e04-a1df-410a-ade7-ad0885df333f"
             const fprPath = await artifact.downloadArtifact(jobToken).catch(error => {
                 core.error(error.message);
                 core.setFailed(`Failed to download scan artifact for job ${jobToken}`);
@@ -42390,10 +42470,21 @@ async function run() {
             });
             const scan = await artifact.waitForArtifactUpload(artifactId).catch(error => {
                 core.error(error.message);
-                core.setFailed(`Failed to wait for scan artifact processing [artifactId: ${artifactId} / appVersion: ${appVersionId} `);
+                core.setFailed(`Failed to wait for scan artifact processing [artifactId: ${artifactId} / appVersion: ${appVersionId}]`);
                 process.exit(core.ExitCode.Failure);
             });
-            core.info(`Scan ${scan.id} succesfuly uploaded`);
+            core.info(`Scan ${scan.id} succesfully uploaded`);
+            const scanVulns = await vuln.getNewVulnByScanId(appVersionId, scan.id);
+            const customTagGuid = core.getInput("ssc_commit_customtag_guid");
+            if (await customtag.commitCustomTagExists(customTagGuid)) {
+                core.info("Tagging new vulns with commit SHA");
+                core.info(`Adding CustomTag to ${INPUT.ssc_app}:${INPUT.ssc_version} (${appVersionId})`);
+                if (await appversion.addCustomTag(appVersionId, customTagGuid)) {
+                    const scanVulns = await vuln.getNewVulnByScanId(appVersionId, scan.id);
+                    await vuln.tagVulns(appVersionId, scanVulns, customTagGuid, github.context.sha);
+                }
+            }
+            process.exit(1);
         }
         /** RUN Security Gate */
         core.info("Running Security Gate");
@@ -42410,17 +42501,6 @@ async function run() {
         });
         const myToken = core.getInput('gha_token');
         const octokit = github.getOctokit(myToken);
-        core.debug(github.context.action);
-        core.debug(github.context.ref);
-        core.debug(github.context.eventName);
-        core.debug(github.context.actor);
-        core.debug(github.context.job);
-        core.debug(`${github.context.workflow}`);
-        core.debug(`${github.context.issue.repo}`);
-        core.debug(`${github.context.issue.number}`);
-        core.debug(`${github.context.issue.owner}`);
-        core.debug(`${github.context.repo.repo}`);
-        core.debug(`${github.context.repo.owner}`);
         if (github.context.eventName === 'pull_request') {
             core.info("Pull Request Detected");
             const { data: commits } = await octokit.rest.pulls.listCommits({
@@ -42647,8 +42727,11 @@ async function startSastScan(packagePath) {
 }
 exports.startSastScan = startSastScan;
 async function waitForSastScan(jobToken) {
-    let scanStatus = await utils.fcli(['sc-sast', 'scan', 'wait-for', jobToken, `--status-type=scan`, `--while=PENDING|QUEUED|RUNNING`, `--interval=1m`, `--on-failure-state=terminate`, `--on-unknown-state=terminate`], true, false);
-    let jsonRes = await utils.fcli(['sc-sast', 'scan', 'wait-for', jobToken, `--interval=1m`, `--status-type=scan`, `--while=PENDING|QUEUED|RUNNING`, '--no-progress', '--output=json', `--on-failure-state=terminate`, `--on-unknown-state=terminate`]);
+    await utils.fcli(['sc-sast', 'scan', 'wait-for', jobToken, `--status-type=scan`, `--while=PENDING|QUEUED|RUNNING`,
+        `--interval=1m`, `--on-failure-state=terminate`, `--on-unknown-state=terminate`], true, false);
+    let jsonRes = await utils.fcli(['sc-sast', 'scan', 'wait-for', jobToken, `--status-type=scan`, `--while=PENDING|QUEUED|RUNNING`,
+        `--interval=1m`, '--no-progress', '--output=json',
+        `--on-failure-state=terminate`, `--on-unknown-state=terminate`]);
     jsonRes = jsonRes[0];
     if (jsonRes['scanState'] === 'COMPLETED'
     // && jsonRes['sscUploadState'] === 'COMPLETED'
@@ -43312,14 +43395,17 @@ async function fcli(args, returnStatus = false, silent = true) {
     }
 }
 exports.fcli = fcli;
-async function fcliRest(url) {
-    return (await fcli([
+async function fcliRest(url, method = "GET", body) {
+    let args = [
         'ssc',
         'rest',
         'call',
         url,
+        `--request=${method}`,
         '--output=json'
-    ]))[0];
+    ];
+    body ? args.push(`--data=${body}`) : null;
+    return (await fcli(args))[0];
 }
 exports.fcliRest = fcliRest;
 function stringToArgsArray(text) {
@@ -43443,7 +43529,7 @@ var __importStar = (this && this.__importStar) || function (mod) {
     return result;
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.addDetails = exports.getFileNewVulnsInDiffHunk = exports.getAppVersionVulnsCountTotal = exports.getAppVersionNewVulnsCount = exports.getAppVersionVulnsCount = void 0;
+exports.tagVulns = exports.addDetails = exports.getFileNewVulnsInDiffHunk = exports.getNewVulnByScanId = exports.getAppVersionVulnsCountTotal = exports.getAppVersionNewVulnsCount = exports.getAppVersionVulnsCount = void 0;
 const utils = __importStar(__nccwpck_require__(1314));
 const filterset = __importStar(__nccwpck_require__(6671));
 const core = __importStar(__nccwpck_require__(2186));
@@ -43498,9 +43584,36 @@ async function getAppVersionVulnsCountTotal(appId, filterSet, analysisType, newI
     return total;
 }
 exports.getAppVersionVulnsCountTotal = getAppVersionVulnsCountTotal;
+async function getNewVulnByScanId(appId, scanId) {
+    let vulns = [];
+    const query = `[issue age]:NEW AND [analysis type]:"sca"`;
+    let next = true;
+    let url = `/api/v1/projectVersions/${appId}/issues?q=${encodeURI(query)}&qm=issues&fields=id,revision,lastScanId`;
+    while (next) {
+        core.debug(`url: ${url}`);
+        let { data: data, count: count, responseCode: responseCode, links: links } = await utils.fcliRest(url);
+        core.debug(`responseCode ${responseCode}`);
+        if (200 <= Number(responseCode) && Number(responseCode) < 300) {
+            var jp = __nccwpck_require__(4378);
+            vulns = vulns.concat(jp.query(data, `$..[?(@.lastScanId=="${scanId}")]`));
+            if (links.next) {
+                next = true;
+                url = links.next.href.replace(core.getInput("ssc_base_url"), "");
+            }
+            else {
+                next = false;
+            }
+        }
+        else {
+            throw new Error(`getNewVulnByScanId failed with code ${responseCode}`);
+        }
+    }
+    return vulns;
+}
+exports.getNewVulnByScanId = getNewVulnByScanId;
 async function getFileNewVulnsInDiffHunk(appId, file, diffHunk, fields) {
     let vulns = [];
-    const query = `[issue age]:NEW AND [analysis type]:"sca" AND file:"${file}" AND line:[${diffHunk.start},${diffHunk.end}]`;
+    const query = `[analysis type]:"sca" AND file:"${file}" AND line:[${diffHunk.start},${diffHunk.end}]`;
     core.debug(`query: ${query}`);
     const url = `/api/v1/projectVersions/${appId}/issues?q=${encodeURI(query)}&qm=issues${fields ? `&fields=${fields}` : ""}`;
     core.debug(`url: ${url}`);
@@ -43537,6 +43650,27 @@ async function addDetails(vulns, fields) {
     }));
 }
 exports.addDetails = addDetails;
+async function tagVulns(appId, vulns, guid, value) {
+    let body = {
+        "customTagAudit": {
+            "customTagGuid": guid,
+            "textValue": value
+        },
+        "issues": vulns
+    };
+    core.debug(body);
+    let { data: data, count: count, responseCode: responseCode, links: links } = await utils.fcliRest(`/api/v1/projectVersions/${appId}/issues/action/updateTag`, "POST", JSON.stringify(body));
+    core.debug(responseCode);
+    if (200 <= Number(responseCode) && Number(responseCode) < 300) {
+        return true;
+    }
+    else {
+        core.error(`AppVersion Commit failed with code ${responseCode}`);
+        return false;
+    }
+    return true;
+}
+exports.tagVulns = tagVulns;
 
 
 /***/ }),

@@ -134,14 +134,18 @@ export async function fcli(args: string[], returnStatus: boolean = false, silent
     }
 }
 
-export async function fcliRest(url: string){
-    return (await fcli([
+export async function fcliRest(url: string, method: string = "GET", body?: string) {
+    let args : string[] = [
         'ssc',
         'rest',
         'call',
         url,
+        `--request=${method}`,
         '--output=json'
-    ]))[0]
+    ]
+    body ? args.push(`--data=${body}`) : null
+
+    return (await fcli(args))[0]
 }
 
 export function stringToArgsArray(text: string): string[] {
@@ -191,8 +195,7 @@ export async function scancentral(args: string[], silent: boolean = false): Prom
 }
 
 
-
-export async function scancentralRest(url: string){
+export async function scancentralRest(url: string) {
     return (await scancentral([
         'sc-sast',
         'rest',

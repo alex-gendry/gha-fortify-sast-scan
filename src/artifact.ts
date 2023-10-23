@@ -105,7 +105,9 @@ export async function downloadArtifact(jobToken: string): Promise<any> {
         const filePath: string = "scan.fpr"
 
         const fpr = fs.createWriteStream(filePath)
-        let response = await httpRequest.get(utils.getSastBaseUrl() + `/rest/v2/job/${jobToken}/FPR`)
+        const url: string = await utils.getSastBaseUrl() + `/rest/v2/job/${jobToken}/FPR`
+        core.debug(`url: ${url}`)
+        let response = await httpRequest.get(url)
         const message = await response.message.pipe(fpr)
 
         return filePath
@@ -117,15 +119,16 @@ export async function downloadArtifact(jobToken: string): Promise<any> {
 
 export async function waitForArtifactUpload(artifactId: string | number): Promise<any> {
     try {
-        let args: string[] = [
-            'ssc',
-            'appversion-artifact',
-            'wait-for',
-            artifactId.toString(),
-            `--while="REQUIRE_AUTH|SCHED_PROCESSING|PROCESSING"`,
-            '--output=json'
-        ]
-        const response = await utils.fcli(args)
+        await utils.fcli(
+            ['ssc', 'appversion-artifact', 'wait-for', artifactId.toString(), `--while=REQUIRE_AUTH|SCHED_PROCESSING|PROCESSING`,
+                `--on-failure-state=terminate`, `--on-unknown-state=terminate`, `--interval=10s`],
+            true, false)
+
+        let response = (await utils.fcli(
+            ['ssc', 'appversion-artifact', 'wait-for', artifactId.toString(), `--while=REQUIRE_AUTH|SCHED_PROCESSING|PROCESSING`,
+                `--on-failure-state=terminate`, `--on-unknown-state=terminate`,
+                `--interval=10s`, '--no-progress', '--output=json',]
+        ))[0]
 
         if (response.status === "PROCESS_COMPLETE") {
             return {id: response._embed.scans[0].id, date: response.lastScanDate}

@@ -1,7 +1,7 @@
 import * as utils from './utils'
 import * as core from '@actions/core'
 
-export async function packageSourceCode(buildOpts: string, packagePath : string): Promise<number> {
+export async function packageSourceCode(buildOpts: string, packagePath: string): Promise<number> {
     return await utils.scancentral(
         ['package'].concat(
             utils.stringToArgsArray(buildOpts).concat(['-o', packagePath])
@@ -9,7 +9,7 @@ export async function packageSourceCode(buildOpts: string, packagePath : string)
     )
 }
 
-export async function startSastScan(packagePath : string): Promise<string> {
+export async function startSastScan(packagePath: string): Promise<string> {
     let jsonRes = await utils.fcli([
         'sc-sast',
         'scan',
@@ -32,12 +32,15 @@ export async function startSastScan(packagePath : string): Promise<string> {
 }
 
 export async function waitForSastScan(jobToken: string): Promise<boolean> {
-    let scanStatus = await utils.fcli(
-        ['sc-sast', 'scan', 'wait-for', jobToken, `--status-type=scan`, `--while=PENDING|QUEUED|RUNNING`, `--interval=1m`, `--on-failure-state=terminate` , `--on-unknown-state=terminate`],
+    await utils.fcli(
+        ['sc-sast', 'scan', 'wait-for', jobToken, `--status-type=scan`, `--while=PENDING|QUEUED|RUNNING`,
+            `--interval=1m`, `--on-failure-state=terminate`, `--on-unknown-state=terminate`],
         true, false
     )
     let jsonRes = await utils.fcli(
-        ['sc-sast', 'scan', 'wait-for', jobToken, `--interval=1m`, `--status-type=scan`, `--while=PENDING|QUEUED|RUNNING`, '--no-progress', '--output=json', `--on-failure-state=terminate`, `--on-unknown-state=terminate`]
+        ['sc-sast', 'scan', 'wait-for', jobToken, `--status-type=scan`, `--while=PENDING|QUEUED|RUNNING`,
+            `--interval=1m`, '--no-progress', '--output=json',
+            `--on-failure-state=terminate`, `--on-unknown-state=terminate`]
     )
 
     jsonRes = jsonRes[0]
