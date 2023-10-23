@@ -34,11 +34,12 @@ export async function decorate(appVersionId: string | number): Promise<any> {
         })
 
         await Promise.all(checkRuns.check_runs.map(async function (checkRun: any) {
-            while (["stale", "in_progress", "queued", "requested", "waiting", "pending"].includes(checkRun.status)) {
+            let checkRunStatus =checkRun.status
+            while (["stale", "in_progress", "queued", "requested", "waiting", "pending"].includes(checkRunStatus)) {
                 core.info(`Waiting for ${checkRun.name}:${commit.commit.message}[${commit.sha}] to be completed. Curent status: ${checkRun.status}`)
                 await new Promise((resolve) => setTimeout(resolve, 10 * 1000))
 
-                checkRun = await octokit.request('GET /repos/{owner}/{repo}/check-runs/{check_run_id}', {
+                const {data: tmp} = await octokit.request('GET /repos/{owner}/{repo}/check-runs/{check_run_id}', {
                     owner: github.context.issue.owner,
                     repo: github.context.issue.repo,
                     check_run_id: checkRun.id,
@@ -46,9 +47,11 @@ export async function decorate(appVersionId: string | number): Promise<any> {
                         'X-GitHub-Api-Version': '2022-11-28'
                     }
                 })
+
+                checkRunStatus = tmp.status
             }
 
-            core.info(`${checkRun.id} is ${checkRun.status} `)
+            core.info(`${checkRun.id} is ${checkRunStatus} `)
         }));
 
     }))
