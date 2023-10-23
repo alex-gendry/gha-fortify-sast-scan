@@ -122,7 +122,7 @@ export async function waitForArtifactUpload(artifactId: string | number): Promis
             'appversion-artifact',
             'wait-for',
             artifactId.toString(),
-            `--while-any=REQUIRE_AUTH,SCHED_PROCESSING,PROCESSING`,
+            `--while="REQUIRE_AUTH|SCHED_PROCESSING|PROCESSING"`,
             '--output=json'
         ]
         const response = await utils.fcli(args)

@@ -58,7 +58,7 @@ export async function run(): Promise<void> {
             core.setFailed('Scan not executed because AppVersion ${INPUT.ssc_app}:${INPUT.ssc_version} not found.')
             process.exit(core.ExitCode.Failure)
         }
-        core.info(`AppVersion ${INPUT.ssc_app}:${INPUT.ssc_version} exists (${appVersionId}`)
+        core.info(`AppVersion ${INPUT.ssc_app}:${INPUT.ssc_version} exists (${appVersionId})`)
 
 
         /** SAST Scan Execution */

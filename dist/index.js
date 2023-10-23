@@ -42187,7 +42187,7 @@ async function waitForArtifactUpload(artifactId) {
             'appversion-artifact',
             'wait-for',
             artifactId.toString(),
-            `--while-any=REQUIRE_AUTH,SCHED_PROCESSING,PROCESSING`,
+            `--while="REQUIRE_AUTH|SCHED_PROCESSING|PROCESSING"`,
             '--output=json'
         ];
         const response = await utils.fcli(args);
@@ -42344,7 +42344,7 @@ async function run() {
             core.setFailed('Scan not executed because AppVersion ${INPUT.ssc_app}:${INPUT.ssc_version} not found.');
             process.exit(core.ExitCode.Failure);
         }
-        core.info(`AppVersion ${INPUT.ssc_app}:${INPUT.ssc_version} exists (${appVersionId}`);
+        core.info(`AppVersion ${INPUT.ssc_app}:${INPUT.ssc_version} exists (${appVersionId})`);
         /** SAST Scan Execution */
         if (INPUT.sast_scan) {
             /** Source code packaging */
@@ -42647,8 +42647,8 @@ async function startSastScan(packagePath) {
 }
 exports.startSastScan = startSastScan;
 async function waitForSastScan(jobToken) {
-    let scanStatus = await utils.fcli(['sc-sast', 'scan', 'wait-for', jobToken, `--status-type=scan`, `--while-any=PENDING,QUEUED,RUNNING`, `--interval=1m`], true, false);
-    let jsonRes = await utils.fcli(['sc-sast', 'scan', 'wait-for', jobToken, `--interval=1m`, `--status-type=scan`, `--while-any=PENDING,QUEUED,RUNNING`, '--no-progress', '--output=json']);
+    let scanStatus = await utils.fcli(['sc-sast', 'scan', 'wait-for', jobToken, `--status-type=scan`, `--while="PENDING|QUEUED|RUNNING"`, `--interval=1m`], true, false);
+    let jsonRes = await utils.fcli(['sc-sast', 'scan', 'wait-for', jobToken, `--interval=1m`, `--status-type=scan`, `--while="PENDING|QUEUED|RUNNING"`, '--no-progress', '--output=json']);
     jsonRes = jsonRes[0];
     if (jsonRes['scanState'] === 'COMPLETED' &&
         jsonRes['sscUploadState'] === 'COMPLETED' &&

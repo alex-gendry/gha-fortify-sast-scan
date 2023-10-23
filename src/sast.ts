@@ -33,11 +33,11 @@ export async function startSastScan(packagePath : string): Promise<string> {
 
 export async function waitForSastScan(jobToken: string): Promise<boolean> {
     let scanStatus = await utils.fcli(
-        ['sc-sast', 'scan', 'wait-for', jobToken, `--status-type=scan`, `--while-any=PENDING,QUEUED,RUNNING`, `--interval=1m`],
+        ['sc-sast', 'scan', 'wait-for', jobToken, `--status-type=scan`, `--while="PENDING|QUEUED|RUNNING"`, `--interval=1m`],
         true, false
     )
     let jsonRes = await utils.fcli(
-        ['sc-sast', 'scan', 'wait-for', jobToken, `--interval=1m`, `--status-type=scan`, `--while-any=PENDING,QUEUED,RUNNING`, '--no-progress', '--output=json']
+        ['sc-sast', 'scan', 'wait-for', jobToken, `--interval=1m`, `--status-type=scan`, `--while="PENDING|QUEUED|RUNNING"`, '--no-progress', '--output=json']
     )
 
     jsonRes = jsonRes[0]
