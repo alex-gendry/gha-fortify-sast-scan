@@ -42483,7 +42483,6 @@ async function run() {
             core.info("Pull Request Detected");
             await pullrequest.decorate(appVersionId);
         }
-        process.exit(1);
         /** RUN Security Gate */
         core.info("Running Security Gate");
         const passedSecurityGate = await securitygate.run(INPUT).catch(error => {
