@@ -83,7 +83,7 @@ export async function uploadArtifact(appId: string | number, filePath: string): 
 
         const response = await utils.fcli(args)
 
-        if (response.status in ["REQUIRE_AUTH", "SCHED_PROCESSING", "PROCESSING", "PROCESSED"] ) {
+        if (["REQUIRE_AUTH", "SCHED_PROCESSING", "PROCESSING", "PROCESSED"].includes(response.status) ) {
             return response.id
         } else {
             throw new Error(`Artifact Upload finished with status ${response.status}`)

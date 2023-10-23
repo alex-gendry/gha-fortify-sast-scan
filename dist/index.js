@@ -42162,7 +42162,7 @@ async function uploadArtifact(appId, filePath) {
             '--output=json'
         ];
         const response = await utils.fcli(args);
-        if (response.status in ["REQUIRE_AUTH", "SCHED_PROCESSING", "PROCESSING", "PROCESSED"]) {
+        if (["REQUIRE_AUTH", "SCHED_PROCESSING", "PROCESSING", "PROCESSED"].includes(response.status)) {
             return response.id;
         }
         else {
