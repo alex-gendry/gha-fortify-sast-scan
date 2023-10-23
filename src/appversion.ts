@@ -26,7 +26,7 @@ export async function getAppVersionId(
 export async function appVersionExists(
   app: string,
   version: string
-): Promise<boolean> {
+): Promise<number|string> {
   let jsonRes = await utils.fcli([
     'ssc',
     'appversion',
@@ -37,9 +37,9 @@ export async function appVersionExists(
   ])
 
   if (jsonRes.length === 0) {
-    return false
+    return -1
   } else {
-    return true
+    return jsonRes[0].id
   }
 }
 

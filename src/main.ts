@@ -1,4 +1,5 @@
 import * as core from '@actions/core'
+import * as exec from '@actions/exec'
 import * as session from './session'
 import * as appversion from './appversion'
 import * as sast from './sast'
@@ -7,8 +8,11 @@ import * as securitygate from './securitygate'
 import * as vuln from './vuln'
 import * as process from "process";
 import * as github from "@actions/github";
+
 import * as schema from '@octokit/webhooks-definitions/schema'
 import {addDetails} from "./vuln";
+import {HttpClient, HttpClientResponse} from "@actions/http-client";
+import * as artifact from "./artifact";
 
 const INPUT = {
     ssc_base_url: core.getInput('ssc_base_url', {required: true}),
@@ -34,7 +38,6 @@ const INPUT = {
  */
 export async function run(): Promise<void> {
     try {
-
         /** Login  */
         core.info(`Login to Fortify solutions`)
         await session.login(INPUT).catch(error => {
@@ -44,25 +47,26 @@ export async function run(): Promise<void> {
 
         /** Does the AppVersion exists ? */
         core.info(`Checking if AppVersion ${INPUT.ssc_app}:${INPUT.ssc_version} exists`)
-        await appversion.appVersionExists(INPUT.ssc_app, INPUT.ssc_version).then(appVersionExists => {
-            if (!appVersionExists) {
-                core.warning(`AppVersion ${INPUT.ssc_app}:${INPUT.ssc_version} not found.`)
-                core.setFailed('Scan not executed because AppVersion ${INPUT.ssc_app}:${INPUT.ssc_version} not found.')
-                process.exit(core.ExitCode.Failure)
-            }
-        }).catch(error => {
+        const appVersionId = await appversion.appVersionExists(INPUT.ssc_app, INPUT.ssc_version).catch(error => {
             core.error(`${error.message}`)
             core.setFailed(`Failed to check if ${INPUT.ssc_app}:${INPUT.ssc_version} exists`)
             process.exit(core.ExitCode.Failure)
         })
-        core.info(`AppVersion ${INPUT.ssc_app}:${INPUT.ssc_version} exists`)
+
+        if (appVersionId === -1) {
+            core.warning(`AppVersion ${INPUT.ssc_app}:${INPUT.ssc_version} not found.`)
+            core.setFailed('Scan not executed because AppVersion ${INPUT.ssc_app}:${INPUT.ssc_version} not found.')
+            process.exit(core.ExitCode.Failure)
+        }
+        core.info(`AppVersion ${INPUT.ssc_app}:${INPUT.ssc_version} exists (${appVersionId}`)
 
 
         /** SAST Scan Execution */
         if (INPUT.sast_scan) {
             /** Source code packaging */
             core.info(`Packaging source code with "${INPUT.sast_build_options}"`)
-            await sast.packageSourceCode(INPUT.sast_build_options).then(packaged => {
+            const packagePath = "package.zip"
+            await sast.packageSourceCode(INPUT.sast_build_options, packagePath).then(packaged => {
                 if (packaged != 0) {
                     throw new Error('Source code packaging failed')
                 }
@@ -74,7 +78,7 @@ export async function run(): Promise<void> {
 
             /** SAST scan submisison */
             core.info(`Submitting SAST scan`)
-            const jobToken: string = await sast.startSastScan(INPUT.ssc_app, INPUT.ssc_version).catch(error => {
+            const jobToken: string = await sast.startSastScan(packagePath).catch(error => {
                 core.error(error.message)
                 core.setFailed(`SAST start scan failed`)
                 process.exit(core.ExitCode.Failure)
@@ -83,13 +87,31 @@ export async function run(): Promise<void> {
                 if (!result) {
                     throw new Error('SAST Scan Failed')
                 } else {
-                    core.info(`SAST Scan is successfuly executed and submitted to ${INPUT.ssc_app}:${INPUT.ssc_version}`)
+                    core.info(`SAST Scan is successfuly executed`)
                 }
             }).catch(error => {
                 core.error(error.message)
                 core.setFailed(`Wait fo SAST start scan failed`)
                 process.exit(core.ExitCode.Failure)
             })
+            const fprPath = await artifact.downloadArtifact(jobToken).catch(error => {
+                core.error(error.message)
+                core.setFailed(`Failed to download scan artifact for job ${jobToken}`)
+                process.exit(core.ExitCode.Failure)
+            })
+            const artifactId = await artifact.uploadArtifact(appVersionId, fprPath).catch(error => {
+                core.error(error.message)
+                core.setFailed(`Failed to upload scan artifact for appVersion ${appVersionId}`)
+                process.exit(core.ExitCode.Failure)
+            })
+            const scan = await artifact.waitForArtifactUpload(artifactId).catch(error => {
+                core.error(error.message)
+                core.setFailed(`Failed to wait for scan artifact processing [artifactId: ${artifactId} / appVersion: ${appVersionId} `)
+                process.exit(core.ExitCode.Failure)
+            })
+
+            core.info(`Scan ${scan.id} succesfuly uploaded`)
+
         }
 
         /** RUN Security Gate */
@@ -121,7 +143,6 @@ export async function run(): Promise<void> {
         core.debug(`${github.context.issue.owner}`)
         core.debug(`${github.context.repo.repo}`)
         core.debug(`${github.context.repo.owner}`)
-
 
 
         if (github.context.eventName === 'pull_request') {

@@ -1,9 +1,11 @@
 import * as utils from "./utils";
 import * as core from '@actions/core'
+import * as http from "@actions/http-client";
+import fs from "fs";
 
 async function getAppVersionArtifacts(
-    appId: string|number,
-    scanType?: string, status:string|boolean="PROCESS_COMPLETE"): Promise<any> {
+    appId: string | number,
+    scanType?: string, status: string | boolean = "PROCESS_COMPLETE"): Promise<any> {
     let args = [
         'ssc',
         'appversion-artifact',
@@ -23,46 +25,115 @@ async function getAppVersionArtifacts(
 }
 
 export async function getLatestArtifact(
-    appId: string|number,
+    appId: string | number,
     scanType: string
 ): Promise<any> {
-    let jsonRes = await getAppVersionArtifacts(appId,scanType)
+    let jsonRes = await getAppVersionArtifacts(appId, scanType)
 
     return jsonRes[0]
 }
+
 export async function getLatestSastArtifact(
-    appId: string|number
+    appId: string | number
 ): Promise<any> {
-    let jsonRes = await getAppVersionArtifacts(appId,"SCA")
+    let jsonRes = await getAppVersionArtifacts(appId, "SCA")
 
     return jsonRes[0]
 }
 
 export async function getLatestDastArtifact(
-    appId: string|number
+    appId: string | number
 ): Promise<any> {
-    let jsonRes = await getAppVersionArtifacts(appId,"WEBINSPECT")
+    let jsonRes = await getAppVersionArtifacts(appId, "WEBINSPECT")
 
     return jsonRes[0]
 }
 
 export async function getLatestScaArtifact(
-    appId: string|number
+    appId: string | number
 ): Promise<any> {
-    let jsonRes = await getAppVersionArtifacts(appId,"SONATYPE")
+    let jsonRes = await getAppVersionArtifacts(appId, "SONATYPE")
 
     return jsonRes[0]
 }
 
-export async function getScanTypesList(appId: string|number): Promise<string[]> {
+export async function getScanTypesList(appId: string | number): Promise<string[]> {
     let artifacts = await getAppVersionArtifacts(appId)
     var jp = require('jsonpath')
 
     const scanTypes = jp.query(artifacts, `$.*.scanTypes`).filter(
-        (scanType:any, i:any, arr:any[]) => arr.findIndex(t => t === scanType) === i
+        (scanType: any, i: any, arr: any[]) => arr.findIndex(t => t === scanType) === i
     )
     core.debug(scanTypes)
 
     return scanTypes
 }
 
+export async function uploadArtifact(appId: string | number, filePath: string): Promise<any> {
+    try {
+        let args = [
+            'ssc',
+            'appversion-artifact',
+            'upload',
+            filePath,
+            `--appversion=${appId}`,
+            // `--engine-type=${engineType}`,
+            '--output=json'
+        ]
+
+        const response = await utils.fcli(args)
+
+        if (response.status === "SCHED_PROCESSING") {
+            return response.id
+        } else {
+            throw new Error(`Artifact Upload finished with status ${response.status}`)
+        }
+    } catch (e: any) {
+        core.error(e.message)
+        throw new Error("uploadArtifact failed")
+    }
+}
+
+export async function downloadArtifact(jobToken: string): Promise<any> {
+    try {
+        const httpRequest: http.HttpClient = new http.HttpClient()
+        httpRequest.requestOptions = {
+            headers: {
+                "fortify-client": core.getInput("sast_client_auth_token")
+            }
+        }
+        const filePath: string = "scan.fpr"
+
+        const fpr = fs.createWriteStream(filePath)
+        let response = await httpRequest.get(utils.getSastBaseUrl() + `/rest/v2/job/${jobToken}/FPR`)
+        const message = await response.message.pipe(fpr)
+
+        return filePath
+    } catch (e: any) {
+        core.error(e.message)
+        throw new Error("downloadArtifact failed")
+    }
+}
+
+export async function waitForArtifactUpload(artifactId: string | number): Promise<any> {
+    try {
+        let args: string[] = [
+            'ssc',
+            'appversion-artifact',
+            'wait-for',
+            artifactId.toString(),
+            `--while-any=REQUIRE_AUTH,SCHED_PROCESSING,PROCESSING`,
+            '--output=json'
+        ]
+        const response = await utils.fcli(args)
+
+        if (response.status === "PROCESS_COMPLETE") {
+            return {id: response._embed.scans[0].id, date: response.lastScanDate}
+        } else {
+            throw new Error(`Wait-For Artifact Upload finished with status ${response.status}`)
+        }
+    } catch (e: any) {
+        core.error(e.message)
+        throw new Error("waitForArtifactUpload failed")
+    }
+}

@@ -191,6 +191,23 @@ export async function scancentral(args: string[], silent: boolean = false): Prom
 }
 
 
+
+export async function scancentralRest(url: string){
+    return (await scancentral([
+        'sc-sast',
+        'rest',
+        'call',
+        url,
+        '--output=json'
+    ]))[0]
+}
+
+export async function getSastBaseUrl(): Promise<string> {
+    const urls = (await fcli("sc-sast session list -o json".split(" ")))[0].url
+
+    return urls.match(/(?<=SC-SAST: ).*/gm)
+}
+
 function toTitleCase(str: string): string {
     const titleCase = str
         .toLowerCase()

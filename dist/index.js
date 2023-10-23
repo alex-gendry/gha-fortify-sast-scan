@@ -41848,10 +41848,10 @@ async function appVersionExists(app, version) {
         '--output=json'
     ]);
     if (jsonRes.length === 0) {
-        return false;
+        return -1;
     }
     else {
-        return true;
+        return jsonRes[0].id;
     }
 }
 exports.appVersionExists = appVersionExists;
@@ -42082,10 +42082,15 @@ var __importStar = (this && this.__importStar) || function (mod) {
     __setModuleDefault(result, mod);
     return result;
 };
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.getScanTypesList = exports.getLatestScaArtifact = exports.getLatestDastArtifact = exports.getLatestSastArtifact = exports.getLatestArtifact = void 0;
+exports.waitForArtifactUpload = exports.downloadArtifact = exports.uploadArtifact = exports.getScanTypesList = exports.getLatestScaArtifact = exports.getLatestDastArtifact = exports.getLatestSastArtifact = exports.getLatestArtifact = void 0;
 const utils = __importStar(__nccwpck_require__(1314));
 const core = __importStar(__nccwpck_require__(2186));
+const http = __importStar(__nccwpck_require__(6255));
+const fs_1 = __importDefault(__nccwpck_require__(7147));
 async function getAppVersionArtifacts(appId, scanType, status = "PROCESS_COMPLETE") {
     let args = [
         'ssc',
@@ -42130,6 +42135,75 @@ async function getScanTypesList(appId) {
     return scanTypes;
 }
 exports.getScanTypesList = getScanTypesList;
+async function uploadArtifact(appId, filePath) {
+    try {
+        let args = [
+            'ssc',
+            'appversion-artifact',
+            'upload',
+            filePath,
+            `--appversion=${appId}`,
+            // `--engine-type=${engineType}`,
+            '--output=json'
+        ];
+        const response = await utils.fcli(args);
+        if (response.status === "SCHED_PROCESSING") {
+            return response.id;
+        }
+        else {
+            throw new Error(`Artifact Upload finished with status ${response.status}`);
+        }
+    }
+    catch (e) {
+        core.error(e.message);
+        throw new Error("uploadArtifact failed");
+    }
+}
+exports.uploadArtifact = uploadArtifact;
+async function downloadArtifact(jobToken) {
+    try {
+        const httpRequest = new http.HttpClient();
+        httpRequest.requestOptions = {
+            headers: {
+                "fortify-client": core.getInput("sast_client_auth_token")
+            }
+        };
+        const filePath = "scan.fpr";
+        const fpr = fs_1.default.createWriteStream(filePath);
+        let response = await httpRequest.get(utils.getSastBaseUrl() + `/rest/v2/job/${jobToken}/FPR`);
+        const message = await response.message.pipe(fpr);
+        return filePath;
+    }
+    catch (e) {
+        core.error(e.message);
+        throw new Error("downloadArtifact failed");
+    }
+}
+exports.downloadArtifact = downloadArtifact;
+async function waitForArtifactUpload(artifactId) {
+    try {
+        let args = [
+            'ssc',
+            'appversion-artifact',
+            'wait-for',
+            artifactId.toString(),
+            `--while-any=REQUIRE_AUTH,SCHED_PROCESSING,PROCESSING`,
+            '--output=json'
+        ];
+        const response = await utils.fcli(args);
+        if (response.status === "PROCESS_COMPLETE") {
+            return { id: response._embed.scans[0].id, date: response.lastScanDate };
+        }
+        else {
+            throw new Error(`Wait-For Artifact Upload finished with status ${response.status}`);
+        }
+    }
+    catch (e) {
+        core.error(e.message);
+        throw new Error("waitForArtifactUpload failed");
+    }
+}
+exports.waitForArtifactUpload = waitForArtifactUpload;
 
 
 /***/ }),
@@ -42228,6 +42302,7 @@ const securitygate = __importStar(__nccwpck_require__(5594));
 const vuln = __importStar(__nccwpck_require__(4002));
 const process = __importStar(__nccwpck_require__(7282));
 const github = __importStar(__nccwpck_require__(5438));
+const artifact = __importStar(__nccwpck_require__(4571));
 const INPUT = {
     ssc_base_url: core.getInput('ssc_base_url', { required: true }),
     ssc_ci_token: core.getInput('ssc_ci_token', { required: false }),
@@ -42259,23 +42334,23 @@ async function run() {
         });
         /** Does the AppVersion exists ? */
         core.info(`Checking if AppVersion ${INPUT.ssc_app}:${INPUT.ssc_version} exists`);
-        await appversion.appVersionExists(INPUT.ssc_app, INPUT.ssc_version).then(appVersionExists => {
-            if (!appVersionExists) {
-                core.warning(`AppVersion ${INPUT.ssc_app}:${INPUT.ssc_version} not found.`);
-                core.setFailed('Scan not executed because AppVersion ${INPUT.ssc_app}:${INPUT.ssc_version} not found.');
-                process.exit(core.ExitCode.Failure);
-            }
-        }).catch(error => {
+        const appVersionId = await appversion.appVersionExists(INPUT.ssc_app, INPUT.ssc_version).catch(error => {
             core.error(`${error.message}`);
             core.setFailed(`Failed to check if ${INPUT.ssc_app}:${INPUT.ssc_version} exists`);
             process.exit(core.ExitCode.Failure);
         });
-        core.info(`AppVersion ${INPUT.ssc_app}:${INPUT.ssc_version} exists`);
+        if (appVersionId === -1) {
+            core.warning(`AppVersion ${INPUT.ssc_app}:${INPUT.ssc_version} not found.`);
+            core.setFailed('Scan not executed because AppVersion ${INPUT.ssc_app}:${INPUT.ssc_version} not found.');
+            process.exit(core.ExitCode.Failure);
+        }
+        core.info(`AppVersion ${INPUT.ssc_app}:${INPUT.ssc_version} exists (${appVersionId}`);
         /** SAST Scan Execution */
         if (INPUT.sast_scan) {
             /** Source code packaging */
             core.info(`Packaging source code with "${INPUT.sast_build_options}"`);
-            await sast.packageSourceCode(INPUT.sast_build_options).then(packaged => {
+            const packagePath = "package.zip";
+            await sast.packageSourceCode(INPUT.sast_build_options, packagePath).then(packaged => {
                 if (packaged != 0) {
                     throw new Error('Source code packaging failed');
                 }
@@ -42286,7 +42361,7 @@ async function run() {
             });
             /** SAST scan submisison */
             core.info(`Submitting SAST scan`);
-            const jobToken = await sast.startSastScan(INPUT.ssc_app, INPUT.ssc_version).catch(error => {
+            const jobToken = await sast.startSastScan(packagePath).catch(error => {
                 core.error(error.message);
                 core.setFailed(`SAST start scan failed`);
                 process.exit(core.ExitCode.Failure);
@@ -42296,13 +42371,29 @@ async function run() {
                     throw new Error('SAST Scan Failed');
                 }
                 else {
-                    core.info(`SAST Scan is successfuly executed and submitted to ${INPUT.ssc_app}:${INPUT.ssc_version}`);
+                    core.info(`SAST Scan is successfuly executed`);
                 }
             }).catch(error => {
                 core.error(error.message);
                 core.setFailed(`Wait fo SAST start scan failed`);
                 process.exit(core.ExitCode.Failure);
             });
+            const fprPath = await artifact.downloadArtifact(jobToken).catch(error => {
+                core.error(error.message);
+                core.setFailed(`Failed to download scan artifact for job ${jobToken}`);
+                process.exit(core.ExitCode.Failure);
+            });
+            const artifactId = await artifact.uploadArtifact(appVersionId, fprPath).catch(error => {
+                core.error(error.message);
+                core.setFailed(`Failed to upload scan artifact for appVersion ${appVersionId}`);
+                process.exit(core.ExitCode.Failure);
+            });
+            const scan = await artifact.waitForArtifactUpload(artifactId).catch(error => {
+                core.error(error.message);
+                core.setFailed(`Failed to wait for scan artifact processing [artifactId: ${artifactId} / appVersion: ${appVersionId} `);
+                process.exit(core.ExitCode.Failure);
+            });
+            core.info(`Scan ${scan.id} succesfuly uploaded`);
         }
         /** RUN Security Gate */
         core.info("Running Security Gate");
@@ -42531,19 +42622,19 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.waitForSastScan = exports.startSastScan = exports.packageSourceCode = void 0;
 const utils = __importStar(__nccwpck_require__(1314));
 const core = __importStar(__nccwpck_require__(2186));
-async function packageSourceCode(buildOpts) {
-    return await utils.scancentral(['package'].concat(utils.stringToArgsArray(buildOpts).concat(['-o', 'package.zip'])));
+async function packageSourceCode(buildOpts, packagePath) {
+    return await utils.scancentral(['package'].concat(utils.stringToArgsArray(buildOpts).concat(['-o', packagePath])));
 }
 exports.packageSourceCode = packageSourceCode;
-async function startSastScan(app, version) {
+async function startSastScan(packagePath) {
     let jsonRes = await utils.fcli([
         'sc-sast',
         'scan',
         'start',
-        '--upload',
-        `--appversion=${app}:${version}`,
+        // '--upload',
+        // `--appversion=${app}:${version}`,
         `--sensor-version=23.1.0`,
-        `--package-file=package.zip`,
+        `--package-file=${packagePath}`,
         '--output=json'
     ]);
     if (jsonRes['__action__'] == 'SCAN_REQUESTED') {
@@ -43090,7 +43181,7 @@ var __importStar = (this && this.__importStar) || function (mod) {
     return result;
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.daysOrToday = exports.normalizeScanType = exports.scancentral = exports.stringToArgsArray = exports.fcliRest = exports.fcli = exports.getScanCentralPath = exports.getFcliPath = exports.getCopyVulnsBody = exports.getCopyStateBody = exports.getCreateAppVersionBody = void 0;
+exports.daysOrToday = exports.normalizeScanType = exports.getSastBaseUrl = exports.scancentralRest = exports.scancentral = exports.stringToArgsArray = exports.fcliRest = exports.fcli = exports.getScanCentralPath = exports.getFcliPath = exports.getCopyVulnsBody = exports.getCopyStateBody = exports.getCreateAppVersionBody = void 0;
 const core = __importStar(__nccwpck_require__(2186));
 const exec = __importStar(__nccwpck_require__(1514));
 /**
@@ -43271,6 +43362,21 @@ async function scancentral(args, silent = false) {
     return response;
 }
 exports.scancentral = scancentral;
+async function scancentralRest(url) {
+    return (await scancentral([
+        'sc-sast',
+        'rest',
+        'call',
+        url,
+        '--output=json'
+    ]))[0];
+}
+exports.scancentralRest = scancentralRest;
+async function getSastBaseUrl() {
+    const urls = (await fcli("sc-sast session list -o json".split(" ")))[0].url;
+    return urls.match(/(?<=SC-SAST: ).*/gm);
+}
+exports.getSastBaseUrl = getSastBaseUrl;
 function toTitleCase(str) {
     const titleCase = str
         .toLowerCase()
