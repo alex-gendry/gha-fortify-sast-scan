@@ -42474,7 +42474,6 @@ async function run() {
                     await vuln.tagVulns(appVersionId, scanVulns, customTagGuid, github.context.sha);
                 }
             }
-            process.exit(1);
         }
         /** RUN Security Gate */
         core.info("Running Security Gate");

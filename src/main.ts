@@ -127,8 +127,6 @@ export async function run(): Promise<void> {
                     await vuln.tagVulns(appVersionId, scanVulns, customTagGuid, github.context.sha)
                 }
             }
-
-            process.exit(1)
         }
 
         /** RUN Security Gate */
