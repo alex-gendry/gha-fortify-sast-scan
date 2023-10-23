@@ -8,18 +8,17 @@ jobs:
   test-action:
     name: GitHub Actions Test
     env:
-
       FCLI_EXECUTABLE_LOCATION: "."
 
-    #    container:
-    #      image: fortifydocker/fortify-ci-tools
+    container:
+      image: fortifydocker/fortify-ci-tools
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         id: checkout
         uses: actions/checkout@v4
-#
-#      - name: Setup Java
+
+      - name: Setup Java
         uses: actions/setup-java@v1
         with:
           java-version: 11
@@ -33,8 +32,8 @@ jobs:
       - name: Download CLIs
         run: |
           wget -qO- https://github.com/fortify/fcli/releases/download/v1.3.2/fcli-linux.tgz | tar zxf -
-#
-#      # GitHub Action for Application Version creation
+
+      # GitHub Action for Application Version creation
       - name: Create Application Version
         uses: agendry-pub/gha-ssc-create-application-version@v1
         with:
