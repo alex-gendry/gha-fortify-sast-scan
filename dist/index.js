@@ -42647,12 +42647,13 @@ async function startSastScan(packagePath) {
 }
 exports.startSastScan = startSastScan;
 async function waitForSastScan(jobToken) {
-    let scanStatus = await utils.fcli(['sc-sast', 'scan', 'wait-for', jobToken, `--status-type=scan`, `--while="PENDING|QUEUED|RUNNING"`, `--interval=1m`], true, false);
-    let jsonRes = await utils.fcli(['sc-sast', 'scan', 'wait-for', jobToken, `--interval=1m`, `--status-type=scan`, `--while=PENDING|QUEUED|RUNNING`, '--no-progress', '--output=json']);
+    let scanStatus = await utils.fcli(['sc-sast', 'scan', 'wait-for', jobToken, `--status-type=scan`, `--while=PENDING|QUEUED|RUNNING`, `--interval=1m`, `--on-failure-state=terminate`, `--on-unknown-state=terminate`], true, false);
+    let jsonRes = await utils.fcli(['sc-sast', 'scan', 'wait-for', jobToken, `--interval=1m`, `--status-type=scan`, `--while=PENDING|QUEUED|RUNNING`, '--no-progress', '--output=json', `--on-failure-state=terminate`, `--on-unknown-state=terminate`]);
     jsonRes = jsonRes[0];
-    if (jsonRes['scanState'] === 'COMPLETED' &&
-        jsonRes['sscUploadState'] === 'COMPLETED' &&
-        jsonRes['sscArtifactState'] === 'PROCESS_COMPLETE') {
+    if (jsonRes['scanState'] === 'COMPLETED'
+    // && jsonRes['sscUploadState'] === 'COMPLETED'
+    // && jsonRes['sscArtifactState'] === 'PROCESS_COMPLETE'
+    ) {
         core.debug(`Scan ${jsonRes['jobToken']} COMPLETED`);
         return true;
     }
