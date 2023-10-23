@@ -42639,7 +42639,7 @@ async function decorate(appVersionId) {
                     }
                 });
             }
-            core.debug(`${checkRun.id} is ${checkRun.status} `);
+            core.info(`${checkRun.id} is ${checkRun.status} `);
         }));
     }));
     core.info("All PR's related commits check runs are completed");

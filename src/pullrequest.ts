@@ -48,7 +48,7 @@ export async function decorate(appVersionId: string | number): Promise<any> {
                 })
             }
 
-            core.debug(`${checkRun.id} is ${checkRun.status} `)
+            core.info(`${checkRun.id} is ${checkRun.status} `)
         }));
 
     }))
