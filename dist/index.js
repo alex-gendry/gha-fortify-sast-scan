@@ -42648,7 +42648,7 @@ async function startSastScan(packagePath) {
 exports.startSastScan = startSastScan;
 async function waitForSastScan(jobToken) {
     let scanStatus = await utils.fcli(['sc-sast', 'scan', 'wait-for', jobToken, `--status-type=scan`, `--while="PENDING|QUEUED|RUNNING"`, `--interval=1m`], true, false);
-    let jsonRes = await utils.fcli(['sc-sast', 'scan', 'wait-for', jobToken, `--interval=1m`, `--status-type=scan`, `--while="PENDING|QUEUED|RUNNING"`, '--no-progress', '--output=json']);
+    let jsonRes = await utils.fcli(['sc-sast', 'scan', 'wait-for', jobToken, `--interval=1m`, `--status-type=scan`, `--while=PENDING|QUEUED|RUNNING`, '--no-progress', '--output=json']);
     jsonRes = jsonRes[0];
     if (jsonRes['scanState'] === 'COMPLETED' &&
         jsonRes['sscUploadState'] === 'COMPLETED' &&
