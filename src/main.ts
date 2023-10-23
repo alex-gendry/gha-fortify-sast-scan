@@ -31,7 +31,8 @@ const INPUT = {
     sha: core.getInput('sha', {required: false}),
     security_gate_action: core.getInput('security_gate_action', {required: false}),
     security_gate_filterset: core.getInput('security_gate_filterset', {required: false}),
-    summary_filterset: core.getInput('summary_filterset', {required: false})
+    summary_filterset: core.getInput('summary_filterset', {required: false}),
+    gha_token: core.getInput('gha_token', {required: false}),
 }
 
 /**

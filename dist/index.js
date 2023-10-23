@@ -42386,7 +42386,8 @@ const INPUT = {
     sha: core.getInput('sha', { required: false }),
     security_gate_action: core.getInput('security_gate_action', { required: false }),
     security_gate_filterset: core.getInput('security_gate_filterset', { required: false }),
-    summary_filterset: core.getInput('summary_filterset', { required: false })
+    summary_filterset: core.getInput('summary_filterset', { required: false }),
+    gha_token: core.getInput('gha_token', { required: false }),
 };
 /**
  * The main function for the action.
@@ -42394,17 +42395,6 @@ const INPUT = {
  */
 async function run() {
     try {
-        core.debug(github.context.action);
-        core.debug(github.context.ref);
-        core.debug(github.context.eventName);
-        core.debug(github.context.actor);
-        core.debug(github.context.job);
-        core.debug(`${github.context.workflow}`);
-        core.debug(`${github.context.issue.repo}`);
-        core.debug(`${github.context.issue.number}`);
-        core.debug(`${github.context.issue.owner}`);
-        core.debug(`${github.context.repo.repo}`);
-        core.debug(`${github.context.repo.owner}`);
         /** Login  */
         core.info(`Login to Fortify solutions`);
         await session.login(INPUT).catch(error => {
