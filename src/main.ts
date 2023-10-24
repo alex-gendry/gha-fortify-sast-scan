@@ -56,8 +56,11 @@ export async function run(): Promise<void> {
                 INPUT.ssc_version = github.context.ref
                 break
             case "pull_request":
-                if (github.context.payload.pull_request)
+                core.info("PullRequest")
+                if (github.context.payload.pull_request) {
+                    core.info(github.context.payload.pull_request.head.ref)
                     INPUT.ssc_version = github.context.payload.pull_request.head.ref
+                }
         }
 
 

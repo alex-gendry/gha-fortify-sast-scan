@@ -42403,15 +42403,16 @@ async function run() {
             process.exit(core.ExitCode.Failure);
         });
         /** Set Version base on git event (push or PR) */
-        if (!INPUT.ssc_version) {
-            switch (github.context.eventName) {
-                case "push":
-                    INPUT.ssc_version = github.context.ref;
-                    break;
-                case "pull_request":
-                    if (github.context.payload.pull_request)
-                        INPUT.ssc_version = github.context.payload.pull_request.head.ref;
-            }
+        switch (github.context.eventName) {
+            case "push":
+                INPUT.ssc_version = github.context.ref;
+                break;
+            case "pull_request":
+                core.info("PullRequest");
+                if (github.context.payload.pull_request) {
+                    core.info(github.context.payload.pull_request.head.ref);
+                    INPUT.ssc_version = github.context.payload.pull_request.head.ref;
+                }
         }
         /** Does the AppVersion exists ? */
         core.info(`Checking if AppVersion ${INPUT.ssc_app}:${INPUT.ssc_version} exists`);
