@@ -42132,6 +42132,17 @@ async function runAppVersionCreation(app, version, source_app, source_version) {
         });
         throw new Error(`Failed to commit AppVersion ${appVersion.project.name}:${appVersion.name} (id: ${appVersion.id})`);
     });
+    /** COPY VULNS: run the AppVersion Copy vulns */
+    if (core.getInput('copy_vulns') && sourceAppVersionId) {
+        core.info(`Copying Vulnerabilities from ${source_app}:${source_version} to ${app}:${version}`);
+        if (await copyAppVersionVulns(sourceAppVersionId, appVersion['id'])) {
+            core.info(`Copying Vulnerabilities from ${source_app}:${source_version} to ${app}:${version}` + " ..... " + utils.bgGreen('Success'));
+        }
+        else {
+            core.warning(`Copying Vulnerabilities from ${source_app}:${source_version} to ${app}:${version}` + " ..... " + utils.bgRed('Failure'));
+            core.warning(`SKIPPING`);
+        }
+    }
     return appVersion.id;
 }
 async function getOrCreateAppVersionId(app, version, source_app, source_version) {
