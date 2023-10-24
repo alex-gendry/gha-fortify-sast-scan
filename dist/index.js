@@ -42079,7 +42079,8 @@ async function runAppVersionCreation(app, version, source_app, source_version) {
     core.info(`AppVersion ${appVersion.project.name}:${appVersion.name} created (id: ${appVersion.id})`);
     /** COPY STATE: run the AppVersion Copy  */
     let sourceAppVersionId;
-    if (source_app && source_version) {
+    if (source_version) {
+        source_app = source_app ? source_app : app;
         core.info(`Copying state from ${source_app}:${source_version} to ${app}:${version}`);
         await getAppVersionId(source_app, source_version)
             .catch(error => {
@@ -42460,7 +42461,7 @@ const pullrequest = __importStar(__nccwpck_require__(5885));
 const process = __importStar(__nccwpck_require__(7282));
 const github = __importStar(__nccwpck_require__(5438));
 const artifact = __importStar(__nccwpck_require__(4571));
-const appversion_1 = __nccwpck_require__(3538);
+const pullrequest_1 = __nccwpck_require__(5885);
 const INPUT = {
     ssc_base_url: core.getInput('ssc_base_url', { required: true }),
     ssc_ci_token: core.getInput('ssc_ci_token', { required: false }),
@@ -42468,11 +42469,11 @@ const INPUT = {
     ssc_ci_password: core.getInput('ssc_ci_password', { required: false }),
     ssc_app: core.getInput('ssc_app', { required: true }),
     ssc_version: core.getInput('ssc_version', { required: false }),
+    ssc_source_app: core.getInput('ssc_source_app', { required: false }),
+    ssc_source_version: core.getInput('ssc_source_version', { required: false }),
     ssc_commit_customtag_guid: core.getInput('ssc_commit_customtag_guid', { required: true }),
     sast_scan: core.getBooleanInput('sast_scan', { required: false }),
-    sast_client_auth_token: core.getInput('sast_client_auth_token', {
-        required: false
-    }),
+    sast_client_auth_token: core.getInput('sast_client_auth_token', { required: false }),
     sast_build_options: core.getInput('sast_build_options', { required: false }),
     sha: core.getInput('sha', { required: false }),
     security_gate_action: core.getInput('security_gate_action', { required: false }),
@@ -42491,17 +42492,27 @@ async function run() {
             core.setFailed(`${error.message}`);
             process.exit(core.ExitCode.Failure);
         });
-        /** Set Version base on git event (push or PR) */
+        /** Set Version base on git event (PR)*/
         if (github.context.eventName === "pull_request") {
-            if (github.context.payload.pull_request) {
-                INPUT.ssc_version = github.context.payload.pull_request.head.ref;
+            core.info("Pull Request detected");
+            core.info("Waiting for PR's related commits check runs to complete");
+            const completed = await (0, pullrequest_1.waitForPullRunsCompleted)().catch(error => {
+                core.warning(`Something went wrong while waiting for PR's related commits check runs to complete: ${error.message}`);
+            });
+            if (completed) {
+                core.info("All PR's related commits check runs are completed");
             }
+            else {
+                core.warning("All PR's related commits check runs did not complete");
+            }
+            core.info(`Copy AppVersion from ${INPUT.ssc_app}:${github.context.payload.head.ref}`);
+            INPUT.ssc_source_app = INPUT.ssc_app;
+            INPUT.ssc_source_version = github.context.payload.head.ref;
         }
         /** Does the AppVersion exists ? */
-        const appVersionId = await (0, appversion_1.getOrCreateAppVersionId)(INPUT.ssc_app, INPUT.ssc_version);
+        const appVersionId = await appversion.getOrCreateAppVersionId(INPUT.ssc_app, INPUT.ssc_version, INPUT.ssc_source_app, INPUT.ssc_source_version);
         /** SAST Scan Execution */
-        if (INPUT.sast_scan && github.context.eventName === "push") {
-            core.info("Pull Request Detected");
+        if (INPUT.sast_scan) {
             /** Source code packaging */
             core.info(`Packaging source code with "${INPUT.sast_build_options}"`);
             const packagePath = "package.zip";
@@ -42563,7 +42574,7 @@ async function run() {
                 }
             }
         }
-        else if (github.context.eventName === 'pull_request') {
+        if (github.context.eventName === 'pull_request') {
             core.info("Pull Request Detected");
             await pullrequest.decorate(appVersionId);
         }
@@ -42683,7 +42694,7 @@ var __importStar = (this && this.__importStar) || function (mod) {
     return result;
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.decorate = void 0;
+exports.decorate = exports.waitForPullRunsCompleted = void 0;
 const github = __importStar(__nccwpck_require__(5438));
 const core = __importStar(__nccwpck_require__(2186));
 const vuln = __importStar(__nccwpck_require__(4002));
@@ -42704,8 +42715,7 @@ async function getSelfCheckRunId() {
         throw new Error(`Failed to fetch self job id for run ${github.context.runId} [${github.context.issue.owner}:${github.context.issue.repo}]`);
     }
 }
-async function decorate(appVersionId) {
-    core.info(`Decorating pull request #${github.context.issue.number} from ${github.context.issue.owner}:${github.context.repo.repo}`);
+async function waitForPullRunsCompleted() {
     const selfJobId = await getSelfCheckRunId();
     const { data: commits } = await octokit.rest.pulls.listCommits({
         owner: github.context.issue.owner, repo: github.context.issue.repo, pull_number: github.context.issue.number,
@@ -42744,7 +42754,17 @@ async function decorate(appVersionId) {
             }
         }));
     }));
-    core.info("All PR's related commits check runs are completed");
+    return true;
+}
+exports.waitForPullRunsCompleted = waitForPullRunsCompleted;
+async function decorate(appVersionId) {
+    core.info(`Decorating pull request #${github.context.issue.number} from ${github.context.issue.owner}:${github.context.repo.repo}`);
+    const { data: commits } = await octokit.rest.pulls.listCommits({
+        owner: github.context.issue.owner, repo: github.context.issue.repo, pull_number: github.context.issue.number,
+    }).catch((error) => {
+        core.error(error.message);
+        throw new Error(`Failed to fetch commit list for pull #${github.context.issue.number} from ${github.context.issue.owner}/${github.context.repo.repo}`);
+    });
     await Promise.all(commits.map(async (commit) => {
         try {
             core.debug(`Commit SHA: ${commit.sha}`);
@@ -42770,7 +42790,8 @@ async function decorate(appVersionId) {
                         start: diffElements[0], end: diffElements[0] + diffElements[0] - 1
                     };
                     core.debug(`diff: ${file["filename"]} ${diffHunk.start}:${diffHunk.end}`);
-                    let vulns = await vuln.getFileNewVulnsInDiffHunk(appVersionId, commit.sha, file["filename"], diffHunk, 'id');
+                    const query = `[analysis type]:"sca" AND file:"${file}" AND line:[${diffHunk.start},${diffHunk.end}] AND commit:${commit.sha}`;
+                    let vulns = await vuln.getAppVersionVulns(appVersionId, query, 'id');
                     await vuln.addDetails(vulns, "issueName,traceNodes,fullFileName,shortFileName,brief,friority,lineNumber");
                     vulns.forEach(vuln => {
                         comments.push({
@@ -43693,7 +43714,7 @@ var __importStar = (this && this.__importStar) || function (mod) {
     return result;
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.tagVulns = exports.addDetails = exports.getFileNewVulnsInDiffHunk = exports.getNewVulnByScanId = exports.getAppVersionVulnsCountTotal = exports.getAppVersionNewVulnsCount = exports.getAppVersionVulnsCount = void 0;
+exports.tagVulns = exports.addDetails = exports.getAppVersionVulns = exports.getNewVulnByScanId = exports.getAppVersionVulnsCountTotal = exports.getAppVersionNewVulnsCount = exports.getAppVersionVulnsCount = void 0;
 const utils = __importStar(__nccwpck_require__(1314));
 const filterset = __importStar(__nccwpck_require__(6671));
 const core = __importStar(__nccwpck_require__(2186));
@@ -43775,11 +43796,16 @@ async function getNewVulnByScanId(appId, scanId) {
     return vulns;
 }
 exports.getNewVulnByScanId = getNewVulnByScanId;
-async function getFileNewVulnsInDiffHunk(appId, commitSha, file, diffHunk, fields) {
+async function getAppVersionVulns(appId, query, fields) {
     let vulns = [];
-    const query = `[analysis type]:"sca" AND file:"${file}" AND line:[${diffHunk.start},${diffHunk.end}] AND commit:${commitSha}`;
-    core.debug(`query: ${query}`);
-    const url = `/api/v1/projectVersions/${appId}/issues?q=${encodeURI(query)}&qm=issues${fields ? `&fields=${fields}` : ""}`;
+    let url = `/api/v1/projectVersions/${appId}/issues`;
+    // ?q=${encodeURI(query)}&qm=issues${fields ? `&fields=${fields}` : ""}
+    if (query && fields) {
+        url += `?q=${encodeURI(query)}&qm=issues&fields=${fields}`;
+    }
+    else if (query || fields) {
+        url += `?${query ? `q=${encodeURI(query)}&qm=issues` : `fields=${fields}`}`;
+    }
     core.debug(`url: ${url}`);
     let { data: data, count: count, responseCode: responseCode, links: links } = await utils.fcliRest(url);
     core.debug(`responseCode ${responseCode}`);
@@ -43790,7 +43816,7 @@ async function getFileNewVulnsInDiffHunk(appId, commitSha, file, diffHunk, field
         throw new Error(`getFileNewVulnsInDiffHunk failed with code ${responseCode}`);
     }
 }
-exports.getFileNewVulnsInDiffHunk = getFileNewVulnsInDiffHunk;
+exports.getAppVersionVulns = getAppVersionVulns;
 async function addDetails(vulns, fields) {
     await Promise.all(vulns.map(async (vuln) => {
         const url = `/api/v1/issueDetails/${vuln.id}`;

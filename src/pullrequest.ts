@@ -25,8 +25,7 @@ async function getSelfCheckRunId(): Promise<number> {
 }
 
 
-export async function decorate(appVersionId: string | number): Promise<any> {
-    core.info(`Decorating pull request #${github.context.issue.number} from ${github.context.issue.owner}:${github.context.repo.repo}`)
+export async function waitForPullRunsCompleted() : Promise<boolean> {
     const selfJobId: number = await getSelfCheckRunId()
     const {data: commits} = await octokit.rest.pulls.listCommits({
         owner: github.context.issue.owner, repo: github.context.issue.repo, pull_number: github.context.issue.number,
@@ -73,8 +72,18 @@ export async function decorate(appVersionId: string | number): Promise<any> {
         }));
 
     }))
+    return true
+}
 
-    core.info("All PR's related commits check runs are completed")
+export async function decorate(appVersionId: string | number): Promise<any> {
+    core.info(`Decorating pull request #${github.context.issue.number} from ${github.context.issue.owner}:${github.context.repo.repo}`)
+
+    const {data: commits} = await octokit.rest.pulls.listCommits({
+        owner: github.context.issue.owner, repo: github.context.issue.repo, pull_number: github.context.issue.number,
+    }).catch((error: any) => {
+        core.error(error.message)
+        throw new Error(`Failed to fetch commit list for pull #${github.context.issue.number} from ${github.context.issue.owner}/${github.context.repo.repo}`)
+    })
 
     await Promise.all(commits.map(async commit => {
         try {
@@ -105,7 +114,8 @@ export async function decorate(appVersionId: string | number): Promise<any> {
                     }
                     core.debug(`diff: ${file["filename"]} ${diffHunk.start}:${diffHunk.end}`)
 
-                    let vulns = await vuln.getFileNewVulnsInDiffHunk(appVersionId, commit.sha, file["filename"], diffHunk, 'id')
+                    const query: string = `[analysis type]:"sca" AND file:"${file}" AND line:[${diffHunk.start},${diffHunk.end}] AND commit:${commit.sha}`
+                    let vulns = await vuln.getAppVersionVulns(appVersionId, query , 'id')
 
                     await vuln.addDetails(vulns, "issueName,traceNodes,fullFileName,shortFileName,brief,friority,lineNumber")
 

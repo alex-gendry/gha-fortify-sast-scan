@@ -1,6 +1,7 @@
 import * as utils from './utils'
 import * as filterset from './filterset'
 import * as core from '@actions/core'
+import * as querystring from "querystring";
 
 
 export async function getAppVersionVulnsCount(appId: number | string, filterSet: string, analysisType?: String, newIssues?: boolean): Promise<any> {
@@ -85,13 +86,16 @@ export async function getNewVulnByScanId(appId: number | string, scanId: number 
     return vulns
 }
 
-export async function getFileNewVulnsInDiffHunk(appId: number | string, commitSha: string, file: string, diffHunk: any, fields?: string): Promise<any[]> {
+export async function getAppVersionVulns(appId: number | string, query?: string, fields?: string): Promise<any[]> {
     let vulns: any[] = []
 
-    const query: string = `[analysis type]:"sca" AND file:"${file}" AND line:[${diffHunk.start},${diffHunk.end}] AND commit:${commitSha}`
-
-    core.debug(`query: ${query}`)
-    const url: string = `/api/v1/projectVersions/${appId}/issues?q=${encodeURI(query)}&qm=issues${fields ? `&fields=${fields}` : ""}`
+    let url: string = `/api/v1/projectVersions/${appId}/issues`
+    // ?q=${encodeURI(query)}&qm=issues${fields ? `&fields=${fields}` : ""}
+    if (query && fields) {
+        url += `?q=${encodeURI(query)}&qm=issues&fields=${fields}`
+    } else if (query || fields) {
+        url += `?${query ? `q=${encodeURI(query)}&qm=issues` : `fields=${fields}`}`
+    }
     core.debug(`url: ${url}`)
     let {data: data, count: count, responseCode: responseCode, links: links} = await utils.fcliRest(url)
     core.debug(`responseCode ${responseCode}`)

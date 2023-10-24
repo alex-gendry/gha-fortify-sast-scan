@@ -310,7 +310,8 @@ async function runAppVersionCreation(app: string, version: string, source_app?: 
 
     /** COPY STATE: run the AppVersion Copy  */
     let sourceAppVersionId
-    if (source_app && source_version) {
+    if (source_version) {
+        source_app = source_app ? source_app : app
         core.info(`Copying state from ${source_app}:${source_version} to ${app}:${version}`)
         await getAppVersionId(source_app, source_version)
             .catch(error => {

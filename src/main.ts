@@ -1,5 +1,4 @@
 import * as core from '@actions/core'
-import * as exec from '@actions/exec'
 import * as session from './session'
 import * as appversion from './appversion'
 import * as sast from './sast'
@@ -10,12 +9,9 @@ import * as vuln from './vuln'
 import * as pullrequest from './pullrequest'
 import * as process from "process";
 import * as github from "@actions/github";
-
-import * as schema from '@octokit/webhooks-definitions/schema'
-import {addDetails} from "./vuln";
-import {HttpClient, HttpClientResponse} from "@actions/http-client";
 import * as artifact from "./artifact";
-import {getOrCreateAppVersionId} from "./appversion";
+import {appVersionExists} from "./appversion";
+import {waitForPullRunsCompleted} from "./pullrequest";
 
 const INPUT = {
     ssc_base_url: core.getInput('ssc_base_url', {required: true}),
@@ -24,11 +20,11 @@ const INPUT = {
     ssc_ci_password: core.getInput('ssc_ci_password', {required: false}),
     ssc_app: core.getInput('ssc_app', {required: true}),
     ssc_version: core.getInput('ssc_version', {required: false}),
+    ssc_source_app: core.getInput('ssc_source_app', {required: false}),
+    ssc_source_version: core.getInput('ssc_source_version', {required: false}),
     ssc_commit_customtag_guid: core.getInput('ssc_commit_customtag_guid', {required: true}),
     sast_scan: core.getBooleanInput('sast_scan', {required: false}),
-    sast_client_auth_token: core.getInput('sast_client_auth_token', {
-        required: false
-    }),
+    sast_client_auth_token: core.getInput('sast_client_auth_token', {required: false}),
     sast_build_options: core.getInput('sast_build_options', {required: false}),
     sha: core.getInput('sha', {required: false}),
     security_gate_action: core.getInput('security_gate_action', {required: false}),
@@ -49,22 +45,28 @@ export async function run(): Promise<void> {
             process.exit(core.ExitCode.Failure)
         })
 
-        /** Set Version base on git event (push or PR) */
-
+        /** Set Version base on git event (PR)*/
         if (github.context.eventName === "pull_request") {
-            if (github.context.payload.pull_request) {
-                INPUT.ssc_version = github.context.payload.pull_request.head.ref
+            core.info("Pull Request detected")
+            core.info("Waiting for PR's related commits check runs to complete")
+            const completed: boolean | void = await waitForPullRunsCompleted().catch(error => {
+                core.warning(`Something went wrong while waiting for PR's related commits check runs to complete: ${error.message}`)
+            })
+            if (completed) {
+                core.info("All PR's related commits check runs are completed")
+            } else {
+                core.warning("All PR's related commits check runs did not complete")
             }
+            core.info(`Copy AppVersion from ${INPUT.ssc_app}:${github.context.payload.head.ref}`)
+            INPUT.ssc_source_app = INPUT.ssc_app
+            INPUT.ssc_source_version = github.context.payload.head.ref
         }
 
-
         /** Does the AppVersion exists ? */
-        const appVersionId = await getOrCreateAppVersionId(INPUT.ssc_app, INPUT.ssc_version)
-
+        const appVersionId = await appversion.getOrCreateAppVersionId(INPUT.ssc_app, INPUT.ssc_version, INPUT.ssc_source_app, INPUT.ssc_source_version)
 
         /** SAST Scan Execution */
-        if (INPUT.sast_scan && github.context.eventName === "push") {
-            core.info("Pull Request Detected")
+        if (INPUT.sast_scan) {
             /** Source code packaging */
             core.info(`Packaging source code with "${INPUT.sast_build_options}"`)
             const packagePath = "package.zip"
@@ -128,7 +130,8 @@ export async function run(): Promise<void> {
                     }
                 }
             }
-        } else if (github.context.eventName === 'pull_request') {
+        }
+        if (github.context.eventName === 'pull_request') {
             core.info("Pull Request Detected")
 
             await pullrequest.decorate(appVersionId)

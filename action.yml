@@ -24,6 +24,12 @@ inputs:
     description: 'Fortify SSC Application Version Name'
     default: ${{ github.ref_name }}
     required: true
+  ssc_source_app:
+    description: 'Fortify SSC Source Application Name to Copy State from'
+    required: false
+  ssc_source_version:
+    description: 'Fortify SSC Source Application Version Name to Copy State from'
+    required: false
   ssc_commit_customtag_guid:
     description: 'guid of the customtag to which push the commit sha'
     default: "bc16a10e-1b08-4516-80a1-f0b4ff4a3e9d"
