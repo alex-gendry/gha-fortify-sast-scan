@@ -42606,14 +42606,27 @@ const github = __importStar(__nccwpck_require__(5438));
 const core = __importStar(__nccwpck_require__(2186));
 const vuln = __importStar(__nccwpck_require__(4002));
 const utils = __importStar(__nccwpck_require__(1314));
-async function decorate(appVersionId) {
-    const myToken = core.getInput('gha_token');
-    const octokit = github.getOctokit(myToken);
-    core.info(`Decorating pull request #${github.context.issue.number} from ${github.context.issue.owner}:${github.context.repo.repo}`);
-    const { data: commits } = await octokit.rest.pulls.listCommits({
+const octokit = github.getOctokit(core.getInput('gha_token'));
+async function getSelfCheckRunId() {
+    const { data } = await octokit.request('GET /repos/{owner}/{repo}/actions/runs/{run_id}/jobs', {
         owner: github.context.issue.owner,
         repo: github.context.issue.repo,
-        pull_number: github.context.issue.number,
+        run_id: github.context.runId, headers: {
+            'X-GitHub-Api-Version': '2022-11-28'
+        }
+    });
+    if (data.total_count) {
+        return data.jobs[0].id;
+    }
+    else {
+        throw new Error(`Failed to fetch self job id for run ${github.context.runId} [${github.context.issue.owner}:${github.context.issue.repo}]`);
+    }
+}
+async function decorate(appVersionId) {
+    core.info(`Decorating pull request #${github.context.issue.number} from ${github.context.issue.owner}:${github.context.repo.repo}`);
+    const selfJobId = await getSelfCheckRunId();
+    const { data: commits } = await octokit.rest.pulls.listCommits({
+        owner: github.context.issue.owner, repo: github.context.issue.repo, pull_number: github.context.issue.number,
     }).catch((error) => {
         core.error(error.message);
         throw new Error(`Failed to fetch commit list for pull #${github.context.issue.number} from ${github.context.issue.owner}/${github.context.repo.repo}`);
@@ -42630,8 +42643,8 @@ async function decorate(appVersionId) {
             }
         });
         await Promise.all(checkRuns.check_runs.map(async function (checkRun) {
-            core.info(`ids: ${checkRun.id} & ${github.context.runId}`);
-            if (checkRun.id != github.context.runId) {
+            core.info(`ids: ${checkRun.id} & ${selfJobId}`);
+            if (checkRun.id != selfJobId) {
                 let checkRunStatus = checkRun.status;
                 while (["stale", "in_progress", "queued", "requested", "waiting", "pending"].includes(checkRunStatus)) {
                     core.info(`Waiting for Run : [${checkRun.id}] ${checkRun.name}:${commit.commit.message} [${commit.sha}] to be completed. Curent status: ${checkRun.status}`);
@@ -42656,9 +42669,7 @@ async function decorate(appVersionId) {
             core.debug(`Commit SHA: ${commit.sha}`);
             // Get Commit's Files
             const { data: commitData } = await octokit.request(`GET /repos/{owner}/{repo}/commits/{ref}`, {
-                owner: github.context.issue.owner,
-                repo: github.context.repo.repo,
-                ref: commit.sha, headers: {
+                owner: github.context.issue.owner, repo: github.context.repo.repo, ref: commit.sha, headers: {
                     'X-GitHub-Api-Version': '2022-11-28'
                 }
             });
