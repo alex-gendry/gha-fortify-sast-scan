@@ -41,10 +41,10 @@ const INPUT = {
  * @returns {Promise<void>} Resolves when the action is complete.
  */
 export async function run(): Promise<void> {
-    try {
-        // console.log(github)
-        // console.log(github.context.runId)
-        // process.exit(1)
+    try{
+        console.log(github.context)
+        console.log(github.context.payload)
+
         /** Login  */
         core.info(`Login to Fortify solutions`)
         await session.login(INPUT).catch(error => {

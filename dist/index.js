@@ -42396,9 +42396,8 @@ const INPUT = {
  */
 async function run() {
     try {
-        // console.log(github)
-        // console.log(github.context.runId)
-        // process.exit(1)
+        console.log(github.context);
+        console.log(github.context.payload);
         /** Login  */
         core.info(`Login to Fortify solutions`);
         await session.login(INPUT).catch(error => {
