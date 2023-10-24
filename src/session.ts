@@ -188,7 +188,7 @@ export async function login(INPUT: any) {
         if (INPUT.ssc_ci_token) {
             core.debug('Login to SSC using Token')
             await loginSscWithToken(INPUT.ssc_base_url, INPUT.ssc_ci_token)
-            core.info('SSC Login Success')
+            core.info(`${styles.bgGreen.open}SSC Login Success${styles.bgGreen.close}`)
         } else if (INPUT.ssc_ci_username && INPUT.ssc_ci_password) {
             core.debug('Login to SSC using Username Password')
             await loginSscWithUsernamePassword(
@@ -196,7 +196,7 @@ export async function login(INPUT: any) {
                 INPUT.ssc_ci_username,
                 INPUT.ssc_ci_password
             )
-            core.info(`${styles.bgGreen.open}\u001b[43mSSC Login Success${styles.bgGreen.close}`)
+            core.info(`${styles.bgGreen.open}SSC Login Success${styles.bgGreen.close}`)
         } else if (await hasActiveSscSession(INPUT.ssc_base_url)) {
             core.info('Existing default SSC login session found.')
         } else {
