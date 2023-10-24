@@ -180,8 +180,8 @@ async function loginSastWithUsernamePassword(
     }
 }
 
-export async function login(INPUT: any) {
-    core.info(`Login to Fortify solutions`)
+export async function loginSsc(INPUT: any) {
+    core.info(`Login to Software Security Center`)
     /** Login to Software Security Center */
     try {
         if (INPUT.ssc_ci_token) {
@@ -207,6 +207,10 @@ export async function login(INPUT: any) {
         core.error(`${err}`)
         throw new Error(`Login to SSC failed!`)
     }
+}
+
+export async function loginSast(INPUT: any) {
+    core.info(`Login to ScanCentral SAST`)
     /** Login to ScanCentral SAST */
     try {
         if (INPUT.ssc_ci_token) {

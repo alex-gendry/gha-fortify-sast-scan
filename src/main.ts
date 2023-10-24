@@ -40,7 +40,11 @@ const INPUT = {
 export async function run(): Promise<void> {
     try {
         /** Login  */
-        await session.login(INPUT).catch(error => {
+        await session.loginSsc(INPUT).catch(error => {
+            core.setFailed(`${error.message}`)
+            process.exit(core.ExitCode.Failure)
+        })
+        await session.loginSast(INPUT).catch(error => {
             core.setFailed(`${error.message}`)
             process.exit(core.ExitCode.Failure)
         })

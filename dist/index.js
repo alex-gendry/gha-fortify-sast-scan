@@ -42488,7 +42488,11 @@ const INPUT = {
 async function run() {
     try {
         /** Login  */
-        await session.login(INPUT).catch(error => {
+        await session.loginSsc(INPUT).catch(error => {
+            core.setFailed(`${error.message}`);
+            process.exit(core.ExitCode.Failure);
+        });
+        await session.loginSast(INPUT).catch(error => {
             core.setFailed(`${error.message}`);
             process.exit(core.ExitCode.Failure);
         });
@@ -43007,7 +43011,7 @@ var __importStar = (this && this.__importStar) || function (mod) {
     return result;
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.login = void 0;
+exports.loginSast = exports.loginSsc = void 0;
 const utils = __importStar(__nccwpck_require__(1314));
 const core = __importStar(__nccwpck_require__(2186));
 async function hasActiveSscSession(base_url) {
@@ -43162,8 +43166,8 @@ async function loginSastWithUsernamePassword(base_url, username, password, clien
         throw new Error(`${err}`);
     }
 }
-async function login(INPUT) {
-    core.info(`Login to Fortify solutions`);
+async function loginSsc(INPUT) {
+    core.info(`Login to Software Security Center`);
     /** Login to Software Security Center */
     try {
         if (INPUT.ssc_ci_token) {
@@ -43189,6 +43193,10 @@ async function login(INPUT) {
         core.error(`${err}`);
         throw new Error(`Login to SSC failed!`);
     }
+}
+exports.loginSsc = loginSsc;
+async function loginSast(INPUT) {
+    core.info(`Login to ScanCentral SAST`);
     /** Login to ScanCentral SAST */
     try {
         if (INPUT.ssc_ci_token) {
@@ -43213,7 +43221,7 @@ async function login(INPUT) {
         throw new Error('Login to ScanCentral SAST failed!');
     }
 }
-exports.login = login;
+exports.loginSast = loginSast;
 
 
 /***/ }),
