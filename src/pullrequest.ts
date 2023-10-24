@@ -35,6 +35,7 @@ export async function decorate(appVersionId: string | number): Promise<any> {
         })
 
         await Promise.all(checkRuns.check_runs.map(async function (checkRun: any) {
+            core.info(`ids: ${checkRun.id} & ${github.context.runId}`)
             if(checkRun.id != github.context.runId){
                 let checkRunStatus =checkRun.status
                 while (["stale", "in_progress", "queued", "requested", "waiting", "pending"].includes(checkRunStatus)) {
@@ -54,8 +55,6 @@ export async function decorate(appVersionId: string | number): Promise<any> {
                 }
 
                 core.info(`${checkRun.id} is ${checkRunStatus} `)
-            } else {
-                core.info(`self run : ${checkRun.id} & ${github.context.runId}`)
             }
         }));
 

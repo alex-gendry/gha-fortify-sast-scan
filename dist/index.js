@@ -42631,6 +42631,7 @@ async function decorate(appVersionId) {
             }
         });
         await Promise.all(checkRuns.check_runs.map(async function (checkRun) {
+            core.info(`ids: ${checkRun.id} & ${github.context.runId}`);
             if (checkRun.id != github.context.runId) {
                 let checkRunStatus = checkRun.status;
                 while (["stale", "in_progress", "queued", "requested", "waiting", "pending"].includes(checkRunStatus)) {
@@ -42647,9 +42648,6 @@ async function decorate(appVersionId) {
                     checkRunStatus = tmp.status;
                 }
                 core.info(`${checkRun.id} is ${checkRunStatus} `);
-            }
-            else {
-                core.info(`self run : ${checkRun.id} & ${github.context.runId}`);
             }
         }));
     }));
