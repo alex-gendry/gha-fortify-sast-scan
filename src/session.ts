@@ -188,7 +188,7 @@ export async function login(INPUT: any) {
         if (INPUT.ssc_ci_token) {
             core.debug('Login to SSC using Token')
             await loginSscWithToken(INPUT.ssc_base_url, INPUT.ssc_ci_token)
-            core.info(`${styles.bgGreen.open}SSC Login Success${styles.bgGreen.close}`)
+            core.info(`${styles.bgColor.bgGreen.open}SSC Login Success${styles.bgColor.bgGreen.close}`)
         } else if (INPUT.ssc_ci_username && INPUT.ssc_ci_password) {
             core.debug('Login to SSC using Username Password')
             await loginSscWithUsernamePassword(
