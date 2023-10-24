@@ -42989,7 +42989,7 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.login = void 0;
 const utils = __importStar(__nccwpck_require__(1314));
 const core = __importStar(__nccwpck_require__(2186));
-const styles = __nccwpck_require__(2814);
+const style = __nccwpck_require__(2814);
 async function hasActiveSscSession(base_url) {
     try {
         let jsonRes = await utils.fcli([
@@ -43148,12 +43148,12 @@ async function login(INPUT) {
         if (INPUT.ssc_ci_token) {
             core.debug('Login to SSC using Token');
             await loginSscWithToken(INPUT.ssc_base_url, INPUT.ssc_ci_token);
-            core.info(`${styles.bgColor.bgGreen.open}SSC Login Success${styles.bgColor.bgGreen.close}`);
+            core.info(style.color.ansi16m.hex('#abcdef') + 'SSC Login Success');
         }
         else if (INPUT.ssc_ci_username && INPUT.ssc_ci_password) {
             core.debug('Login to SSC using Username Password');
             await loginSscWithUsernamePassword(INPUT.ssc_base_url, INPUT.ssc_ci_username, INPUT.ssc_ci_password);
-            core.info(`${styles.bgGreen.open}SSC Login Success${styles.bgGreen.close}`);
+            core.info(style.color.ansi16m.hex('#abcdef') + 'SSC Login Success');
         }
         else if (await hasActiveSscSession(INPUT.ssc_base_url)) {
             core.info('Existing default SSC login session found.');
@@ -43165,7 +43165,7 @@ async function login(INPUT) {
     }
     catch (err) {
         core.error(`${err}`);
-        throw new Error(`${styles.red.open}Login to SSC failed!${styles.red.close}`);
+        throw new Error(`Login to SSC failed!`);
     }
     try {
         if (INPUT.ssc_ci_token) {
