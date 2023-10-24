@@ -42,6 +42,9 @@ const INPUT = {
  */
 export async function run(): Promise<void> {
     try {
+        // console.log(github)
+        // console.log(github.context.runId)
+        // process.exit(1)
         /** Login  */
         core.info(`Login to Fortify solutions`)
         await session.login(INPUT).catch(error => {

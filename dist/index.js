@@ -42396,6 +42396,9 @@ const INPUT = {
  */
 async function run() {
     try {
+        // console.log(github)
+        // console.log(github.context.runId)
+        // process.exit(1)
         /** Login  */
         core.info(`Login to Fortify solutions`);
         await session.login(INPUT).catch(error => {
@@ -42628,21 +42631,26 @@ async function decorate(appVersionId) {
             }
         });
         await Promise.all(checkRuns.check_runs.map(async function (checkRun) {
-            let checkRunStatus = checkRun.status;
-            while (["stale", "in_progress", "queued", "requested", "waiting", "pending"].includes(checkRunStatus)) {
-                core.info(`Waiting for Run : [${checkRun.id}] ${checkRun.name}:${commit.commit.message} [${commit.sha}] to be completed. Curent status: ${checkRun.status}`);
-                await new Promise((resolve) => setTimeout(resolve, Number(utils.getEnvOrValue("GHA_COMMIT_CHECKS_PULL_INTERVAL", 60)) * 1000));
-                const { data: tmp } = await octokit.request('GET /repos/{owner}/{repo}/check-runs/{check_run_id}', {
-                    owner: github.context.issue.owner,
-                    repo: github.context.issue.repo,
-                    check_run_id: checkRun.id,
-                    headers: {
-                        'X-GitHub-Api-Version': '2022-11-28'
-                    }
-                });
-                checkRunStatus = tmp.status;
+            if (checkRun.id != github.context.runId) {
+                let checkRunStatus = checkRun.status;
+                while (["stale", "in_progress", "queued", "requested", "waiting", "pending"].includes(checkRunStatus)) {
+                    core.info(`Waiting for Run : [${checkRun.id}] ${checkRun.name}:${commit.commit.message} [${commit.sha}] to be completed. Curent status: ${checkRun.status}`);
+                    await new Promise((resolve) => setTimeout(resolve, Number(utils.getEnvOrValue("GHA_COMMIT_CHECKS_PULL_INTERVAL", 60)) * 1000));
+                    const { data: tmp } = await octokit.request('GET /repos/{owner}/{repo}/check-runs/{check_run_id}', {
+                        owner: github.context.issue.owner,
+                        repo: github.context.issue.repo,
+                        check_run_id: checkRun.id,
+                        headers: {
+                            'X-GitHub-Api-Version': '2022-11-28'
+                        }
+                    });
+                    checkRunStatus = tmp.status;
+                }
+                core.info(`${checkRun.id} is ${checkRunStatus} `);
             }
-            core.info(`${checkRun.id} is ${checkRunStatus} `);
+            else {
+                core.info(`self run : ${checkRun.id} & ${github.context.runId}`);
+            }
         }));
     }));
     core.info("All PR's related commits check runs are completed");
