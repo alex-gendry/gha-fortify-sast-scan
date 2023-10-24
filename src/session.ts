@@ -1,6 +1,5 @@
 import * as utils from './utils';
 import * as core from '@actions/core';
-import {bgGreen} from "./utils";
 
 async function hasActiveSscSession(base_url: string): Promise<boolean> {
     try {
@@ -182,43 +181,36 @@ async function loginSastWithUsernamePassword(
 }
 
 export async function login(INPUT: any) {
+    core.info(`Login to Fortify solutions`)
+    /** Login to Software Security Center */
     try {
-        core.info(`Login to Fortify solutions`)
         if (INPUT.ssc_ci_token) {
-            core.debug('Login to SSC using Token')
+            core.debug('Login to Software Security Center using Token')
             await loginSscWithToken(INPUT.ssc_base_url, INPUT.ssc_ci_token)
-            core.info("..... "+bgGreen('SSC Login Success'))
         } else if (INPUT.ssc_ci_username && INPUT.ssc_ci_password) {
-            core.debug('Login to SSC using Username Password')
+            core.debug('Login to Software Security Center using Username Password')
             await loginSscWithUsernamePassword(
                 INPUT.ssc_base_url,
                 INPUT.ssc_ci_username,
                 INPUT.ssc_ci_password
             )
-            core.info("..... "+bgGreen('SSC Login Success'))
         } else if (await hasActiveSscSession(INPUT.ssc_base_url)) {
-            core.info('Existing default SSC login session found.')
+            core.info('Existing default Software Security Center login session found.')
         } else {
-            core.setFailed(
-                'SSC: Missing credentials. Specify CI Token or Username+Password'
-            )
-            throw new Error(
-                'SSC: Credentials missing and no existing default login session exists'
-            )
+            core.info("Login to Software Security Center ..... " + utils.bgRed('Failure'))
+            core.error('SSC: Missing credentials. Specify CI Token or Username+Password')
+            throw new Error('SSC: Credentials missing and no existing default login session exists')
         }
+        core.info("Login to Software Security Center ..... " + utils.bgGreen('Success'))
     } catch (err) {
+        core.info("Login to Software Security Center ..... " + utils.bgRed('Failure'))
         core.error(`${err}`)
         throw new Error(`Login to SSC failed!`)
     }
+    /** Login to ScanCentral SAST */
     try {
         if (INPUT.ssc_ci_token) {
-            await loginSastWithToken(
-                INPUT.ssc_base_url,
-                INPUT.ssc_ci_token,
-                INPUT.sast_client_auth_token
-            )
-
-            core.info("..... "+bgGreen('ScanCentral SAST Login Success'))
+            await loginSastWithToken(INPUT.ssc_base_url, INPUT.ssc_ci_token, INPUT.sast_client_auth_token)
         } else if (INPUT.ssc_ci_username && INPUT.ssc_ci_password) {
             await loginSastWithUsernamePassword(
                 INPUT.ssc_base_url,
@@ -226,18 +218,16 @@ export async function login(INPUT: any) {
                 INPUT.ssc_ci_password,
                 INPUT.sast_client_auth_token
             )
-            core.info('ScanCentral SAST Login Success')
         } else if (await hasActiveSastSession(INPUT.ssc_base_url)) {
             core.info('Existing default ScanCentral SAST login session found.')
         } else {
-            core.setFailed(
-                'ScanCentral SAST: Missing credentials. Specify CI Token or Username+Password'
-            )
-            throw new Error(
-                'ScanCentral SAST: Credentials missing and no existing default login session exists'
-            )
+            core.info("Login to ScanCentral SAST ..... " + utils.bgRed('Failure'))
+            core.error('ScanCentral SAST: Missing credentials. Specify CI Token or Username+Password')
+            throw new Error('ScanCentral SAST: Credentials missing and no existing default login session exists')
         }
+        core.info("Login to ScanCentral SAST ..... " + utils.bgGreen('Success'))
     } catch (err: any) {
+        core.info("Login to ScanCentral SAST ..... " + utils.bgRed('Failure'))
         core.error(`${err.message}`)
         throw new Error('Login to ScanCentral SAST failed!')
     }

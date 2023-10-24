@@ -253,3 +253,7 @@ export function daysOrToday(diffDays: number) {
 export function bgGreen(str: string): string {
     return styles.bgGreen.open + str + styles.bgGreen.close
 }
+
+export function bgRed(str: string): string {
+    return styles.bgRed.open + str + styles.bgRed.close
+}

@@ -42989,7 +42989,6 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.login = void 0;
 const utils = __importStar(__nccwpck_require__(1314));
 const core = __importStar(__nccwpck_require__(2186));
-const utils_1 = __nccwpck_require__(1314);
 async function hasActiveSscSession(base_url) {
     try {
         let jsonRes = await utils.fcli([
@@ -43143,48 +43142,52 @@ async function loginSastWithUsernamePassword(base_url, username, password, clien
     }
 }
 async function login(INPUT) {
+    core.info(`Login to Fortify solutions`);
+    /** Login to Software Security Center */
     try {
-        core.info(`Login to Fortify solutions`);
         if (INPUT.ssc_ci_token) {
-            core.debug('Login to SSC using Token');
+            core.debug('Login to Software Security Center using Token');
             await loginSscWithToken(INPUT.ssc_base_url, INPUT.ssc_ci_token);
-            core.info("..... " + (0, utils_1.bgGreen)('SSC Login Success'));
         }
         else if (INPUT.ssc_ci_username && INPUT.ssc_ci_password) {
-            core.debug('Login to SSC using Username Password');
+            core.debug('Login to Software Security Center using Username Password');
             await loginSscWithUsernamePassword(INPUT.ssc_base_url, INPUT.ssc_ci_username, INPUT.ssc_ci_password);
-            core.info("..... " + (0, utils_1.bgGreen)('SSC Login Success'));
         }
         else if (await hasActiveSscSession(INPUT.ssc_base_url)) {
-            core.info('Existing default SSC login session found.');
+            core.info('Existing default Software Security Center login session found.');
         }
         else {
-            core.setFailed('SSC: Missing credentials. Specify CI Token or Username+Password');
+            core.info("Login to Software Security Center ..... " + utils.bgRed('Failure'));
+            core.error('SSC: Missing credentials. Specify CI Token or Username+Password');
             throw new Error('SSC: Credentials missing and no existing default login session exists');
         }
+        core.info("Login to Software Security Center ..... " + utils.bgGreen('Success'));
     }
     catch (err) {
+        core.info("Login to Software Security Center ..... " + utils.bgRed('Failure'));
         core.error(`${err}`);
         throw new Error(`Login to SSC failed!`);
     }
+    /** Login to ScanCentral SAST */
     try {
         if (INPUT.ssc_ci_token) {
             await loginSastWithToken(INPUT.ssc_base_url, INPUT.ssc_ci_token, INPUT.sast_client_auth_token);
-            core.info("..... " + (0, utils_1.bgGreen)('ScanCentral SAST Login Success'));
         }
         else if (INPUT.ssc_ci_username && INPUT.ssc_ci_password) {
             await loginSastWithUsernamePassword(INPUT.ssc_base_url, INPUT.ssc_ci_username, INPUT.ssc_ci_password, INPUT.sast_client_auth_token);
-            core.info('ScanCentral SAST Login Success');
         }
         else if (await hasActiveSastSession(INPUT.ssc_base_url)) {
             core.info('Existing default ScanCentral SAST login session found.');
         }
         else {
-            core.setFailed('ScanCentral SAST: Missing credentials. Specify CI Token or Username+Password');
+            core.info("Login to ScanCentral SAST ..... " + utils.bgRed('Failure'));
+            core.error('ScanCentral SAST: Missing credentials. Specify CI Token or Username+Password');
             throw new Error('ScanCentral SAST: Credentials missing and no existing default login session exists');
         }
+        core.info("Login to ScanCentral SAST ..... " + utils.bgGreen('Success'));
     }
     catch (err) {
+        core.info("Login to ScanCentral SAST ..... " + utils.bgRed('Failure'));
         core.error(`${err.message}`);
         throw new Error('Login to ScanCentral SAST failed!');
     }
@@ -43412,7 +43415,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.bgGreen = exports.daysOrToday = exports.normalizeScanType = exports.getSastBaseUrl = exports.scancentralRest = exports.scancentral = exports.stringToArgsArray = exports.fcliRest = exports.fcli = exports.getScanCentralPath = exports.getEnvOrValue = exports.getFcliPath = exports.getCopyVulnsBody = exports.getCopyStateBody = exports.getCreateAppVersionBody = void 0;
+exports.bgRed = exports.bgGreen = exports.daysOrToday = exports.normalizeScanType = exports.getSastBaseUrl = exports.scancentralRest = exports.scancentral = exports.stringToArgsArray = exports.fcliRest = exports.fcli = exports.getScanCentralPath = exports.getEnvOrValue = exports.getFcliPath = exports.getCopyVulnsBody = exports.getCopyStateBody = exports.getCreateAppVersionBody = void 0;
 const core = __importStar(__nccwpck_require__(2186));
 const exec = __importStar(__nccwpck_require__(1514));
 // @ts-ignore
@@ -43653,6 +43656,10 @@ function bgGreen(str) {
     return ansi_styles_1.default.bgGreen.open + str + ansi_styles_1.default.bgGreen.close;
 }
 exports.bgGreen = bgGreen;
+function bgRed(str) {
+    return ansi_styles_1.default.bgRed.open + str + ansi_styles_1.default.bgRed.close;
+}
+exports.bgRed = bgRed;
 
 
 /***/ }),
