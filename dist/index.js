@@ -42136,7 +42136,7 @@ async function runAppVersionCreation(app, version, source_app, source_version) {
     if (core.getInput('copy_vulns') && sourceAppVersionId) {
         core.info(`Copy Vulnerabilities from ${source_app}:${source_version} to ${app}:${version}`);
         if (await copyAppVersionVulns(sourceAppVersionId, appVersion['id'])) {
-            core.info(`Copying Vulnerabilities from ${source_app}:${source_version} to ${app}:${version}` + " ..... " + utils.bgGreen('Success'));
+            core.info(`Copy Vulnerabilities from ${source_app}:${source_version} to ${app}:${version}` + " ..... " + utils.bgGreen('Success'));
         }
         else {
             core.warning(`Copy Vulnerabilities from ${source_app}:${source_version} to ${app}:${version}` + " ..... " + utils.bgRed('Failure'));

@@ -375,7 +375,7 @@ async function runAppVersionCreation(app: string, version: string, source_app?: 
         if (
             await copyAppVersionVulns(sourceAppVersionId, appVersion['id'])
         ) {
-            core.info(`Copying Vulnerabilities from ${source_app}:${source_version} to ${app}:${version}` + " ..... " + utils.bgGreen('Success'))
+            core.info(`Copy Vulnerabilities from ${source_app}:${source_version} to ${app}:${version}` + " ..... " + utils.bgGreen('Success'))
         } else {
             core.warning(`Copy Vulnerabilities from ${source_app}:${source_version} to ${app}:${version}` + " ..... " + utils.bgRed('Failure'))
             core.info(`Copy Vulnerabilities from ${source_app}:${source_version} to ${app}:${version}` + " ..... " + utils.bgRed('Skipped'))
