@@ -42069,51 +42069,51 @@ async function addCustomTag(appId, customTagGuid) {
     }
 }
 exports.addCustomTag = addCustomTag;
-async function runAppVersionCreation(INPUT) {
-    core.info(`Creating ApplicationVersion ${INPUT.ssc_app}:${INPUT.ssc_version}`);
-    const appVersion = await createAppVersion(INPUT.ssc_app, INPUT.ssc_version)
+async function runAppVersionCreation(app, version, source_app, source_version) {
+    core.info(`Creating ApplicationVersion ${app}:${version}`);
+    const appVersion = await createAppVersion(app, version)
         .catch(error => {
         core.error(`${error.message}`);
-        throw new Error(`Failed to create ${INPUT.ssc_app}:${INPUT.ssc_version}`);
+        throw new Error(`Failed to create ${app}:${version}`);
     });
     core.info(`AppVersion ${appVersion.project.name}:${appVersion.name} created (id: ${appVersion.id})`);
     /** COPY STATE: run the AppVersion Copy  */
     let sourceAppVersionId;
-    if (INPUT.ssc_source_app && INPUT.ssc_source_version) {
-        core.info(`Copying state from ${INPUT.ssc_source_app}:${INPUT.ssc_source_version} to ${INPUT.ssc_app}:${INPUT.ssc_version}`);
-        await getAppVersionId(INPUT.ssc_source_app, INPUT.ssc_source_version)
+    if (source_app && source_version) {
+        core.info(`Copying state from ${source_app}:${source_version} to ${app}:${version}`);
+        await getAppVersionId(source_app, source_version)
             .catch(error => {
-            core.warning(`Failed to get ${INPUT.ssc_source_app}:${INPUT.ssc_source_version} id`);
+            core.warning(`Failed to get ${source_app}:${source_version} id`);
             core.warning(`${error.message}`);
         })
             .then(async function (sourceAppVersionId) {
             if (sourceAppVersionId) {
                 await copyAppVersionState(sourceAppVersionId.toString(), appVersion.id)
-                    .then(() => core.info(`successfully copied state from ${INPUT.ssc_source_app}:${INPUT.ssc_source_version} to ${INPUT.ssc_app}:${INPUT.ssc_version}`))
+                    .then(() => core.info(`successfully copied state from ${source_app}:${source_version} to ${app}:${version}`))
                     .catch(error => {
-                    core.warning(`Failed to copy state from ${INPUT.ssc_source_app}:${INPUT.ssc_source_version} to ${INPUT.ssc_app}:${INPUT.ssc_version}`);
+                    core.warning(`Failed to copy state from ${source_app}:${source_version} to ${app}:${version}`);
                     core.warning(`${error.message}`);
                 });
             }
             else {
-                core.warning(`Source AppVersion ${INPUT.ssc_source_app}:${INPUT.ssc_source_version} not found. SKIPPING`);
+                core.warning(`Source AppVersion ${source_app}:${source_version} not found. SKIPPING`);
             }
         });
     }
     /** ISSUE TEMPLATE : set AppVersion Issue template */
     core.info("Setting AppVersion's Issue Template");
-    await setAppVersionIssueTemplate(appVersion.id, INPUT.ssc_version_issue_template)
+    await setAppVersionIssueTemplate(appVersion.id, core.getInput('ssc_version_issue_template'))
         .catch(error => {
         core.warning(`${error.message}`);
-        core.warning(`Failed to set Issue Temmplate ${INPUT.ssc_version_issue_template} to ${INPUT.ssc_app}:${INPUT.ssc_version}`);
+        core.warning(`Failed to set Issue Temmplate ${core.getInput('ssc_version_issue_template')} to ${app}:${version}`);
         // process.exit(core.ExitCode.Failure)
     });
     /** ATTRIBUTES : set AppVersion attributes */
     core.info("Setting AppVersion's Attributes");
-    await setAppVersionAttributes(appVersion.id, INPUT.ssc_version_attributes)
+    await setAppVersionAttributes(appVersion.id, core.getMultilineInput('ssc_version_attributes'))
         .catch(error => {
         core.warning(`${error.message}`);
-        core.warning(`Failed to set Attributes to ${INPUT.ssc_app}:${INPUT.ssc_version}`);
+        core.warning(`Failed to set Attributes to ${app}:${version}`);
         // process.exit(core.ExitCode.Failure)
     });
     /** COMMIT: Commit the AppVersion */
@@ -42133,24 +42133,24 @@ async function runAppVersionCreation(INPUT) {
     });
     return appVersion.id;
 }
-async function getOrCreateAppVersionId(INPUT) {
-    core.info(`Checking if AppVersion ${INPUT.ssc_app}:${INPUT.ssc_version} exists`);
-    let appVersionId = await appVersionExists(INPUT.ssc_app, INPUT.ssc_version)
+async function getOrCreateAppVersionId(app, version, source_app, source_version) {
+    core.info(`Checking if AppVersion ${app}:${version} exists`);
+    let appVersionId = await appVersionExists(app, version)
         .catch(error => {
         core.error(`${error.message}`);
-        core.setFailed(`Failed to check if ${INPUT.ssc_app}:${INPUT.ssc_version} exists`);
+        core.setFailed(`Failed to check if ${app}:${version} exists`);
     });
     if (appVersionId === -1) {
-        core.info(`AppVersion ${INPUT.ssc_app}:${INPUT.ssc_version} not found`);
-        appVersionId = await runAppVersionCreation(INPUT)
+        core.info(`AppVersion ${app}:${version} not found`);
+        appVersionId = await runAppVersionCreation(app, version, source_app, source_version)
             .catch(error => {
             core.error(error.message);
-            core.setFailed(`Failed to create application version ${INPUT.ssc_app}:${INPUT.ssc_version}`);
+            core.setFailed(`Failed to create application version ${app}:${version}`);
             process_1.default.exit(core.ExitCode.Failure);
         });
-        core.info(`Application Version ${INPUT.ssc_app}:${INPUT.ssc_version} created (${appVersionId})`);
+        core.info(`Application Version ${app}:${version} created (${appVersionId})`);
     }
-    core.info(`AppVersion ${INPUT.ssc_app}:${INPUT.ssc_version} exists (${appVersionId})`);
+    core.info(`AppVersion ${app}:${version} exists (${appVersionId})`);
     return Number(appVersionId);
 }
 exports.getOrCreateAppVersionId = getOrCreateAppVersionId;
@@ -42487,7 +42487,6 @@ const INPUT = {
 async function run() {
     try {
         /** Login  */
-        core.info(`Login to Fortify solutions`);
         await session.login(INPUT).catch(error => {
             core.setFailed(`${error.message}`);
             process.exit(core.ExitCode.Failure);
@@ -42499,7 +42498,7 @@ async function run() {
             }
         }
         /** Does the AppVersion exists ? */
-        const appVersionId = await (0, appversion_1.getOrCreateAppVersionId)(INPUT);
+        const appVersionId = await (0, appversion_1.getOrCreateAppVersionId)(INPUT.ssc_app, INPUT.ssc_version);
         /** SAST Scan Execution */
         if (INPUT.sast_scan && github.context.eventName === "push") {
             core.info("Pull Request Detected");
@@ -42990,6 +42989,7 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.login = void 0;
 const utils = __importStar(__nccwpck_require__(1314));
 const core = __importStar(__nccwpck_require__(2186));
+const styles = __nccwpck_require__(6844);
 async function hasActiveSscSession(base_url) {
     try {
         let jsonRes = await utils.fcli([
@@ -43144,6 +43144,7 @@ async function loginSastWithUsernamePassword(base_url, username, password, clien
 }
 async function login(INPUT) {
     try {
+        core.info(`Login to Fortify solutions`);
         if (INPUT.ssc_ci_token) {
             core.debug('Login to SSC using Token');
             await loginSscWithToken(INPUT.ssc_base_url, INPUT.ssc_ci_token);
@@ -43152,7 +43153,7 @@ async function login(INPUT) {
         else if (INPUT.ssc_ci_username && INPUT.ssc_ci_password) {
             core.debug('Login to SSC using Username Password');
             await loginSscWithUsernamePassword(INPUT.ssc_base_url, INPUT.ssc_ci_username, INPUT.ssc_ci_password);
-            core.info('SSC Login Success');
+            core.info(`${styles.bgGreen.open}SSC Login Success${styles.bgGreen.close}`);
         }
         else if (await hasActiveSscSession(INPUT.ssc_base_url)) {
             core.info('Existing default SSC login session found.');
@@ -43164,7 +43165,7 @@ async function login(INPUT) {
     }
     catch (err) {
         core.error(`${err}`);
-        throw new Error('Login to SSC failed!');
+        throw new Error(`${styles.red.open}Login to SSC failed!${styles.red.close}`);
     }
     try {
         if (INPUT.ssc_ci_token) {
@@ -44078,6 +44079,245 @@ module.exports = require("zlib");
 
 /***/ }),
 
+/***/ 6844:
+/***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __nccwpck_require__) => {
+
+"use strict";
+__nccwpck_require__.r(__webpack_exports__);
+/* harmony export */ __nccwpck_require__.d(__webpack_exports__, {
+/* harmony export */   "backgroundColorNames": () => (/* binding */ backgroundColorNames),
+/* harmony export */   "colorNames": () => (/* binding */ colorNames),
+/* harmony export */   "default": () => (__WEBPACK_DEFAULT_EXPORT__),
+/* harmony export */   "foregroundColorNames": () => (/* binding */ foregroundColorNames),
+/* harmony export */   "modifierNames": () => (/* binding */ modifierNames)
+/* harmony export */ });
+const ANSI_BACKGROUND_OFFSET = 10;
+
+const wrapAnsi16 = (offset = 0) => code => `\u001B[${code + offset}m`;
+
+const wrapAnsi256 = (offset = 0) => code => `\u001B[${38 + offset};5;${code}m`;
+
+const wrapAnsi16m = (offset = 0) => (red, green, blue) => `\u001B[${38 + offset};2;${red};${green};${blue}m`;
+
+const styles = {
+	modifier: {
+		reset: [0, 0],
+		// 21 isn't widely supported and 22 does the same thing
+		bold: [1, 22],
+		dim: [2, 22],
+		italic: [3, 23],
+		underline: [4, 24],
+		overline: [53, 55],
+		inverse: [7, 27],
+		hidden: [8, 28],
+		strikethrough: [9, 29],
+	},
+	color: {
+		black: [30, 39],
+		red: [31, 39],
+		green: [32, 39],
+		yellow: [33, 39],
+		blue: [34, 39],
+		magenta: [35, 39],
+		cyan: [36, 39],
+		white: [37, 39],
+
+		// Bright color
+		blackBright: [90, 39],
+		gray: [90, 39], // Alias of `blackBright`
+		grey: [90, 39], // Alias of `blackBright`
+		redBright: [91, 39],
+		greenBright: [92, 39],
+		yellowBright: [93, 39],
+		blueBright: [94, 39],
+		magentaBright: [95, 39],
+		cyanBright: [96, 39],
+		whiteBright: [97, 39],
+	},
+	bgColor: {
+		bgBlack: [40, 49],
+		bgRed: [41, 49],
+		bgGreen: [42, 49],
+		bgYellow: [43, 49],
+		bgBlue: [44, 49],
+		bgMagenta: [45, 49],
+		bgCyan: [46, 49],
+		bgWhite: [47, 49],
+
+		// Bright color
+		bgBlackBright: [100, 49],
+		bgGray: [100, 49], // Alias of `bgBlackBright`
+		bgGrey: [100, 49], // Alias of `bgBlackBright`
+		bgRedBright: [101, 49],
+		bgGreenBright: [102, 49],
+		bgYellowBright: [103, 49],
+		bgBlueBright: [104, 49],
+		bgMagentaBright: [105, 49],
+		bgCyanBright: [106, 49],
+		bgWhiteBright: [107, 49],
+	},
+};
+
+const modifierNames = Object.keys(styles.modifier);
+const foregroundColorNames = Object.keys(styles.color);
+const backgroundColorNames = Object.keys(styles.bgColor);
+const colorNames = [...foregroundColorNames, ...backgroundColorNames];
+
+function assembleStyles() {
+	const codes = new Map();
+
+	for (const [groupName, group] of Object.entries(styles)) {
+		for (const [styleName, style] of Object.entries(group)) {
+			styles[styleName] = {
+				open: `\u001B[${style[0]}m`,
+				close: `\u001B[${style[1]}m`,
+			};
+
+			group[styleName] = styles[styleName];
+
+			codes.set(style[0], style[1]);
+		}
+
+		Object.defineProperty(styles, groupName, {
+			value: group,
+			enumerable: false,
+		});
+	}
+
+	Object.defineProperty(styles, 'codes', {
+		value: codes,
+		enumerable: false,
+	});
+
+	styles.color.close = '\u001B[39m';
+	styles.bgColor.close = '\u001B[49m';
+
+	styles.color.ansi = wrapAnsi16();
+	styles.color.ansi256 = wrapAnsi256();
+	styles.color.ansi16m = wrapAnsi16m();
+	styles.bgColor.ansi = wrapAnsi16(ANSI_BACKGROUND_OFFSET);
+	styles.bgColor.ansi256 = wrapAnsi256(ANSI_BACKGROUND_OFFSET);
+	styles.bgColor.ansi16m = wrapAnsi16m(ANSI_BACKGROUND_OFFSET);
+
+	// From https://github.com/Qix-/color-convert/blob/3f0e0d4e92e235796ccb17f6e85c72094a651f49/conversions.js
+	Object.defineProperties(styles, {
+		rgbToAnsi256: {
+			value: (red, green, blue) => {
+				// We use the extended greyscale palette here, with the exception of
+				// black and white. normal palette only has 4 greyscale shades.
+				if (red === green && green === blue) {
+					if (red < 8) {
+						return 16;
+					}
+
+					if (red > 248) {
+						return 231;
+					}
+
+					return Math.round(((red - 8) / 247) * 24) + 232;
+				}
+
+				return 16
+					+ (36 * Math.round(red / 255 * 5))
+					+ (6 * Math.round(green / 255 * 5))
+					+ Math.round(blue / 255 * 5);
+			},
+			enumerable: false,
+		},
+		hexToRgb: {
+			value: hex => {
+				const matches = /[a-f\d]{6}|[a-f\d]{3}/i.exec(hex.toString(16));
+				if (!matches) {
+					return [0, 0, 0];
+				}
+
+				let [colorString] = matches;
+
+				if (colorString.length === 3) {
+					colorString = [...colorString].map(character => character + character).join('');
+				}
+
+				const integer = Number.parseInt(colorString, 16);
+
+				return [
+					/* eslint-disable no-bitwise */
+					(integer >> 16) & 0xFF,
+					(integer >> 8) & 0xFF,
+					integer & 0xFF,
+					/* eslint-enable no-bitwise */
+				];
+			},
+			enumerable: false,
+		},
+		hexToAnsi256: {
+			value: hex => styles.rgbToAnsi256(...styles.hexToRgb(hex)),
+			enumerable: false,
+		},
+		ansi256ToAnsi: {
+			value: code => {
+				if (code < 8) {
+					return 30 + code;
+				}
+
+				if (code < 16) {
+					return 90 + (code - 8);
+				}
+
+				let red;
+				let green;
+				let blue;
+
+				if (code >= 232) {
+					red = (((code - 232) * 10) + 8) / 255;
+					green = red;
+					blue = red;
+				} else {
+					code -= 16;
+
+					const remainder = code % 36;
+
+					red = Math.floor(code / 36) / 5;
+					green = Math.floor(remainder / 6) / 5;
+					blue = (remainder % 6) / 5;
+				}
+
+				const value = Math.max(red, green, blue) * 2;
+
+				if (value === 0) {
+					return 30;
+				}
+
+				// eslint-disable-next-line no-bitwise
+				let result = 30 + ((Math.round(blue) << 2) | (Math.round(green) << 1) | Math.round(red));
+
+				if (value === 2) {
+					result += 60;
+				}
+
+				return result;
+			},
+			enumerable: false,
+		},
+		rgbToAnsi: {
+			value: (red, green, blue) => styles.ansi256ToAnsi(styles.rgbToAnsi256(red, green, blue)),
+			enumerable: false,
+		},
+		hexToAnsi: {
+			value: hex => styles.ansi256ToAnsi(styles.hexToAnsi256(hex)),
+			enumerable: false,
+		},
+	});
+
+	return styles;
+}
+
+const ansiStyles = assembleStyles();
+
+/* harmony default export */ const __WEBPACK_DEFAULT_EXPORT__ = (ansiStyles);
+
+
+/***/ }),
+
 /***/ 6475:
 /***/ ((module) => {
 
@@ -44127,6 +44367,34 @@ module.exports = {};
 /******/ 	}
 /******/ 	
 /************************************************************************/
+/******/ 	/* webpack/runtime/define property getters */
+/******/ 	(() => {
+/******/ 		// define getter functions for harmony exports
+/******/ 		__nccwpck_require__.d = (exports, definition) => {
+/******/ 			for(var key in definition) {
+/******/ 				if(__nccwpck_require__.o(definition, key) && !__nccwpck_require__.o(exports, key)) {
+/******/ 					Object.defineProperty(exports, key, { enumerable: true, get: definition[key] });
+/******/ 				}
+/******/ 			}
+/******/ 		};
+/******/ 	})();
+/******/ 	
+/******/ 	/* webpack/runtime/hasOwnProperty shorthand */
+/******/ 	(() => {
+/******/ 		__nccwpck_require__.o = (obj, prop) => (Object.prototype.hasOwnProperty.call(obj, prop))
+/******/ 	})();
+/******/ 	
+/******/ 	/* webpack/runtime/make namespace object */
+/******/ 	(() => {
+/******/ 		// define __esModule on exports
+/******/ 		__nccwpck_require__.r = (exports) => {
+/******/ 			if(typeof Symbol !== 'undefined' && Symbol.toStringTag) {
+/******/ 				Object.defineProperty(exports, Symbol.toStringTag, { value: 'Module' });
+/******/ 			}
+/******/ 			Object.defineProperty(exports, '__esModule', { value: true });
+/******/ 		};
+/******/ 	})();
+/******/ 	
 /******/ 	/* webpack/runtime/compat */
 /******/ 	
 /******/ 	if (typeof __nccwpck_require__ !== 'undefined') __nccwpck_require__.ab = __dirname + "/";

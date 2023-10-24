@@ -1,6 +1,8 @@
 import * as utils from './utils'
 import * as core from '@actions/core'
 
+const styles = require('ansi-styles');
+
 async function hasActiveSscSession(base_url: string): Promise<boolean> {
     try {
         let jsonRes = await utils.fcli([
@@ -182,6 +184,7 @@ async function loginSastWithUsernamePassword(
 
 export async function login(INPUT: any) {
     try {
+        core.info(`Login to Fortify solutions`)
         if (INPUT.ssc_ci_token) {
             core.debug('Login to SSC using Token')
             await loginSscWithToken(INPUT.ssc_base_url, INPUT.ssc_ci_token)
@@ -193,7 +196,7 @@ export async function login(INPUT: any) {
                 INPUT.ssc_ci_username,
                 INPUT.ssc_ci_password
             )
-            core.info('SSC Login Success')
+            core.info(`${styles.bgGreen.open}SSC Login Success${styles.bgGreen.close}`)
         } else if (await hasActiveSscSession(INPUT.ssc_base_url)) {
             core.info('Existing default SSC login session found.')
         } else {
@@ -206,7 +209,7 @@ export async function login(INPUT: any) {
         }
     } catch (err) {
         core.error(`${err}`)
-        throw new Error('Login to SSC failed!')
+        throw new Error(`${styles.red.open}Login to SSC failed!${styles.red.close}`)
     }
     try {
         if (INPUT.ssc_ci_token) {

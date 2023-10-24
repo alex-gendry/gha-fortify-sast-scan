@@ -44,7 +44,6 @@ const INPUT = {
 export async function run(): Promise<void> {
     try {
         /** Login  */
-        core.info(`Login to Fortify solutions`)
         await session.login(INPUT).catch(error => {
             core.setFailed(`${error.message}`)
             process.exit(core.ExitCode.Failure)
@@ -60,7 +59,7 @@ export async function run(): Promise<void> {
 
 
         /** Does the AppVersion exists ? */
-        const appVersionId = await getOrCreateAppVersionId(INPUT)
+        const appVersionId = await getOrCreateAppVersionId(INPUT.ssc_app, INPUT.ssc_version)
 
 
         /** SAST Scan Execution */

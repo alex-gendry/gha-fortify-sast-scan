@@ -299,55 +299,55 @@ export async function addCustomTag(appId: number | string, customTagGuid: string
     }
 }
 
-async function runAppVersionCreation(INPUT: any):Promise<number> {
-    core.info(`Creating ApplicationVersion ${INPUT.ssc_app}:${INPUT.ssc_version}`)
-    const appVersion = await createAppVersion(INPUT.ssc_app, INPUT.ssc_version)
+async function runAppVersionCreation(app: string, version: string, source_app?: string, source_version?: string): Promise<number> {
+    core.info(`Creating ApplicationVersion ${app}:${version}`)
+    const appVersion = await createAppVersion(app, version)
         .catch(error => {
             core.error(`${error.message}`)
-            throw new Error(`Failed to create ${INPUT.ssc_app}:${INPUT.ssc_version}`)
+            throw new Error(`Failed to create ${app}:${version}`)
         })
     core.info(`AppVersion ${appVersion.project.name}:${appVersion.name} created (id: ${appVersion.id})`)
 
     /** COPY STATE: run the AppVersion Copy  */
     let sourceAppVersionId
-    if (INPUT.ssc_source_app && INPUT.ssc_source_version) {
-        core.info(`Copying state from ${INPUT.ssc_source_app}:${INPUT.ssc_source_version} to ${INPUT.ssc_app}:${INPUT.ssc_version}`)
-        await getAppVersionId(INPUT.ssc_source_app, INPUT.ssc_source_version)
+    if (source_app && source_version) {
+        core.info(`Copying state from ${source_app}:${source_version} to ${app}:${version}`)
+        await getAppVersionId(source_app, source_version)
             .catch(error => {
-                core.warning(`Failed to get ${INPUT.ssc_source_app}:${INPUT.ssc_source_version} id`)
+                core.warning(`Failed to get ${source_app}:${source_version} id`)
                 core.warning(`${error.message}`)
             })
             .then(async function (sourceAppVersionId: number | void) {
                 if (sourceAppVersionId) {
                     await copyAppVersionState(sourceAppVersionId.toString(), appVersion.id)
                         .then(() => core.info(
-                            `successfully copied state from ${INPUT.ssc_source_app}:${INPUT.ssc_source_version} to ${INPUT.ssc_app}:${INPUT.ssc_version}`
+                            `successfully copied state from ${source_app}:${source_version} to ${app}:${version}`
                         ))
                         .catch(error => {
-                            core.warning(`Failed to copy state from ${INPUT.ssc_source_app}:${INPUT.ssc_source_version} to ${INPUT.ssc_app}:${INPUT.ssc_version}`)
+                            core.warning(`Failed to copy state from ${source_app}:${source_version} to ${app}:${version}`)
                             core.warning(`${error.message}`)
                         })
                 } else {
-                    core.warning(`Source AppVersion ${INPUT.ssc_source_app}:${INPUT.ssc_source_version} not found. SKIPPING`)
+                    core.warning(`Source AppVersion ${source_app}:${source_version} not found. SKIPPING`)
                 }
             })
     }
 
     /** ISSUE TEMPLATE : set AppVersion Issue template */
     core.info("Setting AppVersion's Issue Template")
-    await setAppVersionIssueTemplate(appVersion.id, INPUT.ssc_version_issue_template)
+    await setAppVersionIssueTemplate(appVersion.id, core.getInput('ssc_version_issue_template'))
         .catch(error => {
             core.warning(`${error.message}`)
-            core.warning(`Failed to set Issue Temmplate ${INPUT.ssc_version_issue_template} to ${INPUT.ssc_app}:${INPUT.ssc_version}`)
+            core.warning(`Failed to set Issue Temmplate ${core.getInput('ssc_version_issue_template')} to ${app}:${version}`)
             // process.exit(core.ExitCode.Failure)
         })
 
     /** ATTRIBUTES : set AppVersion attributes */
     core.info("Setting AppVersion's Attributes")
-    await setAppVersionAttributes(appVersion.id,INPUT.ssc_version_attributes)
+    await setAppVersionAttributes(appVersion.id, core.getMultilineInput('ssc_version_attributes'))
         .catch(error => {
             core.warning(`${error.message}`)
-            core.warning(`Failed to set Attributes to ${INPUT.ssc_app}:${INPUT.ssc_version}`)
+            core.warning(`Failed to set Attributes to ${app}:${version}`)
             // process.exit(core.ExitCode.Failure)
         })
 
@@ -371,27 +371,25 @@ async function runAppVersionCreation(INPUT: any):Promise<number> {
     return appVersion.id
 }
 
-export async function getOrCreateAppVersionId(INPUT: any): Promise<number> {
-    core.info(`Checking if AppVersion ${INPUT.ssc_app}:${INPUT.ssc_version} exists`)
-    let appVersionId = await appVersionExists(INPUT.ssc_app, INPUT.ssc_version)
+export async function getOrCreateAppVersionId(app: string, version: string, source_app?: string, source_version?: string): Promise<number> {
+    core.info(`Checking if AppVersion ${app}:${version} exists`)
+    let appVersionId = await appVersionExists(app, version)
         .catch(error => {
             core.error(`${error.message}`)
-            core.setFailed(`Failed to check if ${INPUT.ssc_app}:${INPUT.ssc_version} exists`)
-
+            core.setFailed(`Failed to check if ${app}:${version} exists`)
         })
 
     if (appVersionId === -1) {
-        core.info(`AppVersion ${INPUT.ssc_app}:${INPUT.ssc_version} not found`)
-        appVersionId = await runAppVersionCreation(INPUT)
+        core.info(`AppVersion ${app}:${version} not found`)
+        appVersionId = await runAppVersionCreation(app, version, source_app, source_version)
             .catch(error => {
                 core.error(error.message)
-                core.setFailed(`Failed to create application version ${INPUT.ssc_app}:${INPUT.ssc_version}`)
-
+                core.setFailed(`Failed to create application version ${app}:${version}`)
                 process.exit(core.ExitCode.Failure)
             })
-        core.info(`Application Version ${INPUT.ssc_app}:${INPUT.ssc_version} created (${appVersionId})`)
+        core.info(`Application Version ${app}:${version} created (${appVersionId})`)
     }
-    core.info(`AppVersion ${INPUT.ssc_app}:${INPUT.ssc_version} exists (${appVersionId})`)
+    core.info(`AppVersion ${app}:${version} exists (${appVersionId})`)
 
     return Number(appVersionId)
 }
