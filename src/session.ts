@@ -1,7 +1,6 @@
-import * as utils from './utils'
-import * as core from '@actions/core'
-
-const style = require('ansi-styles');
+import * as utils from './utils';
+import * as core from '@actions/core';
+import {bgGreen} from "./utils";
 
 async function hasActiveSscSession(base_url: string): Promise<boolean> {
     try {
@@ -188,7 +187,7 @@ export async function login(INPUT: any) {
         if (INPUT.ssc_ci_token) {
             core.debug('Login to SSC using Token')
             await loginSscWithToken(INPUT.ssc_base_url, INPUT.ssc_ci_token)
-            core.info(style.color.ansi16m.hex('#abcdef') +'SSC Login Success')
+            core.info("..... "+bgGreen('SSC Login Success'))
         } else if (INPUT.ssc_ci_username && INPUT.ssc_ci_password) {
             core.debug('Login to SSC using Username Password')
             await loginSscWithUsernamePassword(
@@ -196,7 +195,7 @@ export async function login(INPUT: any) {
                 INPUT.ssc_ci_username,
                 INPUT.ssc_ci_password
             )
-            core.info(style.color.ansi16m.hex('#abcdef') +'SSC Login Success')
+            core.info("..... "+bgGreen('SSC Login Success'))
         } else if (await hasActiveSscSession(INPUT.ssc_base_url)) {
             core.info('Existing default SSC login session found.')
         } else {
@@ -218,7 +217,8 @@ export async function login(INPUT: any) {
                 INPUT.ssc_ci_token,
                 INPUT.sast_client_auth_token
             )
-            core.info('ScanCentral SAST Login Success')
+
+            core.info("..... "+bgGreen('ScanCentral SAST Login Success'))
         } else if (INPUT.ssc_ci_username && INPUT.ssc_ci_password) {
             await loginSastWithUsernamePassword(
                 INPUT.ssc_base_url,

@@ -1,5 +1,7 @@
 import * as core from '@actions/core'
 import * as exec from '@actions/exec'
+// @ts-ignore
+import styles from "ansi-styles";
 
 /**
  * Generate the HTTP body for creating an SSC Application Version
@@ -87,7 +89,7 @@ export function getFcliPath(): string {
     }
 }
 
-export function getEnvOrValue(env_name:string, value:any):string|undefined {
+export function getEnvOrValue(env_name: string, value: any): string | undefined {
     return process.env[env_name] ? process.env[env_name] : value
 }
 
@@ -139,7 +141,7 @@ export async function fcli(args: string[], returnStatus: boolean = false, silent
 }
 
 export async function fcliRest(url: string, method: string = "GET", body?: string) {
-    let args : string[] = [
+    let args: string[] = [
         'ssc',
         'rest',
         'call',
@@ -246,4 +248,8 @@ export function daysOrToday(diffDays: number) {
     } else {
         return `${diffDays} day${diffDays > 1 ? "s" : ""} ago`
     }
+}
+
+export function bgGreen(str: string): string {
+    return styles.bgGreen.open + str + styles.bgGreen.close
 }

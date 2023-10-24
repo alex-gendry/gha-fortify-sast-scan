@@ -42989,7 +42989,7 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.login = void 0;
 const utils = __importStar(__nccwpck_require__(1314));
 const core = __importStar(__nccwpck_require__(2186));
-const style = __nccwpck_require__(6844);
+const utils_1 = __nccwpck_require__(1314);
 async function hasActiveSscSession(base_url) {
     try {
         let jsonRes = await utils.fcli([
@@ -43148,12 +43148,12 @@ async function login(INPUT) {
         if (INPUT.ssc_ci_token) {
             core.debug('Login to SSC using Token');
             await loginSscWithToken(INPUT.ssc_base_url, INPUT.ssc_ci_token);
-            core.info(style.color.ansi16m.hex('#abcdef') + 'SSC Login Success');
+            core.info("..... " + (0, utils_1.bgGreen)('SSC Login Success'));
         }
         else if (INPUT.ssc_ci_username && INPUT.ssc_ci_password) {
             core.debug('Login to SSC using Username Password');
             await loginSscWithUsernamePassword(INPUT.ssc_base_url, INPUT.ssc_ci_username, INPUT.ssc_ci_password);
-            core.info(style.color.ansi16m.hex('#abcdef') + 'SSC Login Success');
+            core.info("..... " + (0, utils_1.bgGreen)('SSC Login Success'));
         }
         else if (await hasActiveSscSession(INPUT.ssc_base_url)) {
             core.info('Existing default SSC login session found.');
@@ -43170,7 +43170,7 @@ async function login(INPUT) {
     try {
         if (INPUT.ssc_ci_token) {
             await loginSastWithToken(INPUT.ssc_base_url, INPUT.ssc_ci_token, INPUT.sast_client_auth_token);
-            core.info('ScanCentral SAST Login Success');
+            core.info("..... " + (0, utils_1.bgGreen)('ScanCentral SAST Login Success'));
         }
         else if (INPUT.ssc_ci_username && INPUT.ssc_ci_password) {
             await loginSastWithUsernamePassword(INPUT.ssc_base_url, INPUT.ssc_ci_username, INPUT.ssc_ci_password, INPUT.sast_client_auth_token);
@@ -43408,10 +43408,15 @@ var __importStar = (this && this.__importStar) || function (mod) {
     __setModuleDefault(result, mod);
     return result;
 };
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.daysOrToday = exports.normalizeScanType = exports.getSastBaseUrl = exports.scancentralRest = exports.scancentral = exports.stringToArgsArray = exports.fcliRest = exports.fcli = exports.getScanCentralPath = exports.getEnvOrValue = exports.getFcliPath = exports.getCopyVulnsBody = exports.getCopyStateBody = exports.getCreateAppVersionBody = void 0;
+exports.bgGreen = exports.daysOrToday = exports.normalizeScanType = exports.getSastBaseUrl = exports.scancentralRest = exports.scancentral = exports.stringToArgsArray = exports.fcliRest = exports.fcli = exports.getScanCentralPath = exports.getEnvOrValue = exports.getFcliPath = exports.getCopyVulnsBody = exports.getCopyStateBody = exports.getCreateAppVersionBody = void 0;
 const core = __importStar(__nccwpck_require__(2186));
 const exec = __importStar(__nccwpck_require__(1514));
+// @ts-ignore
+const ansi_styles_1 = __importDefault(__nccwpck_require__(6844));
 /**
  * Generate the HTTP body for creating an SSC Application Version
  * Application can be either provided by id (if it exists), or by name (if it does not exists)
@@ -43644,6 +43649,10 @@ function daysOrToday(diffDays) {
     }
 }
 exports.daysOrToday = daysOrToday;
+function bgGreen(str) {
+    return ansi_styles_1.default.bgGreen.open + str + ansi_styles_1.default.bgGreen.close;
+}
+exports.bgGreen = bgGreen;
 
 
 /***/ }),
