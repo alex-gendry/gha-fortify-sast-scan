@@ -30,6 +30,10 @@ inputs:
   ssc_source_version:
     description: 'Fortify SSC Source Application Version Name to Copy State from'
     required: false
+  copy_vulns:
+    description: 'Fortify SSC Source Application Version Name to Copy State from'
+    default: false
+    required: false
   ssc_commit_customtag_guid:
     description: 'guid of the customtag to which push the commit sha'
     default: "bc16a10e-1b08-4516-80a1-f0b4ff4a3e9d"

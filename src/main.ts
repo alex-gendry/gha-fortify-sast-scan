@@ -22,6 +22,7 @@ const INPUT = {
     ssc_version: core.getInput('ssc_version', {required: false}),
     ssc_source_app: core.getInput('ssc_source_app', {required: false}),
     ssc_source_version: core.getInput('ssc_source_version', {required: false}),
+    copy_vulns: core.getInput('copy_vulns', {required: false}),
     ssc_commit_customtag_guid: core.getInput('ssc_commit_customtag_guid', {required: true}),
     sast_scan: core.getBooleanInput('sast_scan', {required: false}),
     sast_client_auth_token: core.getInput('sast_client_auth_token', {required: false}),
