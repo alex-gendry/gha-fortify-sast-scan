@@ -42377,7 +42377,7 @@ const INPUT = {
     ssc_ci_username: core.getInput('ssc_ci_username', { required: false }),
     ssc_ci_password: core.getInput('ssc_ci_password', { required: false }),
     ssc_app: core.getInput('ssc_app', { required: true }),
-    ssc_version: core.getInput('ssc_version', { required: true }),
+    ssc_version: core.getInput('ssc_version', { required: false }),
     ssc_commit_customtag_guid: core.getInput('ssc_commit_customtag_guid', { required: true }),
     sast_scan: core.getBooleanInput('sast_scan', { required: false }),
     sast_client_auth_token: core.getInput('sast_client_auth_token', {
@@ -42402,6 +42402,17 @@ async function run() {
             core.setFailed(`${error.message}`);
             process.exit(core.ExitCode.Failure);
         });
+        /** Set Version base on git event (push or PR) */
+        if (!INPUT.ssc_version) {
+            switch (github.context.eventName) {
+                case "push":
+                    INPUT.ssc_version = github.context.ref;
+                    break;
+                case "pull_request":
+                    if (github.context.payload.pull_request)
+                        INPUT.ssc_version = github.context.payload.pull_request.head.ref;
+            }
+        }
         /** Does the AppVersion exists ? */
         core.info(`Checking if AppVersion ${INPUT.ssc_app}:${INPUT.ssc_version} exists`);
         const appVersionId = await appversion.appVersionExists(INPUT.ssc_app, INPUT.ssc_version).catch(error => {

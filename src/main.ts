@@ -22,7 +22,7 @@ const INPUT = {
     ssc_ci_username: core.getInput('ssc_ci_username', {required: false}),
     ssc_ci_password: core.getInput('ssc_ci_password', {required: false}),
     ssc_app: core.getInput('ssc_app', {required: true}),
-    ssc_version: core.getInput('ssc_version', {required: true}),
+    ssc_version: core.getInput('ssc_version', {required: false}),
     ssc_commit_customtag_guid: core.getInput('ssc_commit_customtag_guid', {required: true}),
     sast_scan: core.getBooleanInput('sast_scan', {required: false}),
     sast_client_auth_token: core.getInput('sast_client_auth_token', {
@@ -41,13 +41,25 @@ const INPUT = {
  * @returns {Promise<void>} Resolves when the action is complete.
  */
 export async function run(): Promise<void> {
-    try{
+    try {
         /** Login  */
         core.info(`Login to Fortify solutions`)
         await session.login(INPUT).catch(error => {
             core.setFailed(`${error.message}`)
             process.exit(core.ExitCode.Failure)
         })
+
+        /** Set Version base on git event (push or PR) */
+
+        switch (github.context.eventName) {
+            case "push":
+                INPUT.ssc_version = github.context.ref
+                break
+            case "pull_request":
+                if (github.context.payload.pull_request)
+                    INPUT.ssc_version = github.context.payload.pull_request.head.ref
+        }
+
 
         /** Does the AppVersion exists ? */
         core.info(`Checking if AppVersion ${INPUT.ssc_app}:${INPUT.ssc_version} exists`)

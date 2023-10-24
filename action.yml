@@ -22,8 +22,7 @@ inputs:
     required: true
   ssc_version:
     description: 'Fortify SSC Application Version Name'
-    default: ${{ github.ref_name }}
-    required: true
+    required: false
   ssc_commit_customtag_guid:
     description: 'guid of the customtag to which push the commit sha'
     default: "bc16a10e-1b08-4516-80a1-f0b4ff4a3e9d"
