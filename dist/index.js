@@ -42070,36 +42070,36 @@ async function addCustomTag(appId, customTagGuid) {
 }
 exports.addCustomTag = addCustomTag;
 async function runAppVersionCreation(app, version, source_app, source_version) {
-    core.info(`Creating ApplicationVersion ${app}:${version}`);
+    core.info(`ApplicationVersion ${app}:${version} creation`);
     const appVersion = await createAppVersion(app, version)
         .catch(error => {
         core.error(`${error.message}`);
         throw new Error(`Failed to create ${app}:${version}`);
     });
-    core.info(`AppVersion ${appVersion.project.name}:${appVersion.name} created (id: ${appVersion.id})`);
+    core.info(`ApplicationVersion ${app}:${version} creation` + " ..... " + utils.bgGreen('Success'));
+    core.info(`AppVersion ${appVersion.project.name}:${appVersion.name} created with id: ${appVersion.id})`);
     /** COPY STATE: run the AppVersion Copy  */
     let sourceAppVersionId;
     if (source_version) {
         source_app = source_app ? source_app : app;
-        core.info(`Copying state from ${source_app}:${source_version} to ${app}:${version}`);
-        await getAppVersionId(source_app, source_version)
+        core.info(`Copy state from ${source_app}:${source_version} to ${app}:${version}`);
+        sourceAppVersionId = await getAppVersionId(source_app, source_version)
             .catch(error => {
             core.warning(`Failed to get ${source_app}:${source_version} id`);
             core.warning(`${error.message}`);
-        })
-            .then(async function (sourceAppVersionId) {
-            if (sourceAppVersionId) {
-                await copyAppVersionState(sourceAppVersionId.toString(), appVersion.id)
-                    .then(() => core.info(`successfully copied state from ${source_app}:${source_version} to ${app}:${version}`))
-                    .catch(error => {
-                    core.warning(`Failed to copy state from ${source_app}:${source_version} to ${app}:${version}`);
-                    core.warning(`${error.message}`);
-                });
-            }
-            else {
-                core.warning(`Source AppVersion ${source_app}:${source_version} not found. SKIPPING`);
-            }
         });
+        if (sourceAppVersionId) {
+            await copyAppVersionState(sourceAppVersionId.toString(), appVersion.id)
+                .then(() => core.info(`Copy state from ${source_app}:${source_version} to ${app}:${version}` + " ..... " + utils.bgGreen('Success')))
+                .catch(error => {
+                core.warning(`Copy state from ${source_app}:${source_version} to ${app}:${version}` + " ..... " + utils.bgRed('Failure'));
+                core.warning(`${error.message}`);
+            });
+        }
+        else {
+            core.info(`Source AppVersion ${source_app}:${source_version} not found`);
+            core.warning(`Copy state from ${source_app}:${source_version} to ${app}:${version}` + " ..... " + utils.bgGray('Skipped'));
+        }
     }
     /** ISSUE TEMPLATE : set AppVersion Issue template */
     core.info("Setting AppVersion's Issue Template");
@@ -42134,13 +42134,13 @@ async function runAppVersionCreation(app, version, source_app, source_version) {
     });
     /** COPY VULNS: run the AppVersion Copy vulns */
     if (core.getInput('copy_vulns') && sourceAppVersionId) {
-        core.info(`Copying Vulnerabilities from ${source_app}:${source_version} to ${app}:${version}`);
+        core.info(`Copy Vulnerabilities from ${source_app}:${source_version} to ${app}:${version}`);
         if (await copyAppVersionVulns(sourceAppVersionId, appVersion['id'])) {
             core.info(`Copying Vulnerabilities from ${source_app}:${source_version} to ${app}:${version}` + " ..... " + utils.bgGreen('Success'));
         }
         else {
-            core.warning(`Copying Vulnerabilities from ${source_app}:${source_version} to ${app}:${version}` + " ..... " + utils.bgRed('Failure'));
-            core.warning(`SKIPPING`);
+            core.warning(`Copy Vulnerabilities from ${source_app}:${source_version} to ${app}:${version}` + " ..... " + utils.bgRed('Failure'));
+            core.info(`Copy Vulnerabilities from ${source_app}:${source_version} to ${app}:${version}` + " ..... " + utils.bgRed('Skipped'));
         }
     }
     return appVersion.id;
@@ -43457,7 +43457,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.bgRed = exports.bgGreen = exports.daysOrToday = exports.normalizeScanType = exports.getSastBaseUrl = exports.scancentralRest = exports.scancentral = exports.stringToArgsArray = exports.fcliRest = exports.fcli = exports.getScanCentralPath = exports.getEnvOrValue = exports.getFcliPath = exports.getCopyVulnsBody = exports.getCopyStateBody = exports.getCreateAppVersionBody = void 0;
+exports.bgGray = exports.bgRed = exports.bgGreen = exports.daysOrToday = exports.normalizeScanType = exports.getSastBaseUrl = exports.scancentralRest = exports.scancentral = exports.stringToArgsArray = exports.fcliRest = exports.fcli = exports.getScanCentralPath = exports.getEnvOrValue = exports.getFcliPath = exports.getCopyVulnsBody = exports.getCopyStateBody = exports.getCreateAppVersionBody = void 0;
 const core = __importStar(__nccwpck_require__(2186));
 const exec = __importStar(__nccwpck_require__(1514));
 // @ts-ignore
@@ -43702,6 +43702,10 @@ function bgRed(str) {
     return ansi_styles_1.default.bgRed.open + str + ansi_styles_1.default.bgRed.close;
 }
 exports.bgRed = bgRed;
+function bgGray(str) {
+    return ansi_styles_1.default.bgGray.open + str + ansi_styles_1.default.bgRed.close;
+}
+exports.bgGray = bgGray;
 
 
 /***/ }),

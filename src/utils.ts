@@ -63,7 +63,7 @@ export function getCopyStateBody(source: string, target: string): any {
  * @param target The target application Version id
  * @returns {any} returns the HTTP body as JSON object
  */
-export function getCopyVulnsBody(source: string, target: string): any {
+export function getCopyVulnsBody(source: string | number, target: string | number): any {
     const bodyJson = JSON.parse(`
           {
               "previousProjectVersionId": "${source}",
@@ -256,4 +256,8 @@ export function bgGreen(str: string): string {
 
 export function bgRed(str: string): string {
     return styles.bgRed.open + str + styles.bgRed.close
+}
+
+export function bgGray(str: string): string {
+    return styles.bgGray.open + str + styles.bgRed.close
 }

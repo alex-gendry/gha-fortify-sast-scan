@@ -138,8 +138,8 @@ async function setAppVersionAttributes(
 }
 
 async function copyAppVersionVulns(
-    source: string,
-    target: string
+    source: string | number,
+    target: string | number
 ): Promise<boolean> {
     core.debug(`Copying AppVersion Vulnerabilities ${source} -> ${target}`)
 
@@ -300,38 +300,37 @@ export async function addCustomTag(appId: number | string, customTagGuid: string
 }
 
 async function runAppVersionCreation(app: string, version: string, source_app?: string, source_version?: string): Promise<number> {
-    core.info(`Creating ApplicationVersion ${app}:${version}`)
+    core.info(`ApplicationVersion ${app}:${version} creation`)
     const appVersion = await createAppVersion(app, version)
         .catch(error => {
             core.error(`${error.message}`)
             throw new Error(`Failed to create ${app}:${version}`)
         })
-    core.info(`AppVersion ${appVersion.project.name}:${appVersion.name} created (id: ${appVersion.id})`)
+    core.info(`ApplicationVersion ${app}:${version} creation` + " ..... " + utils.bgGreen('Success'))
+    core.info(`AppVersion ${appVersion.project.name}:${appVersion.name} created with id: ${appVersion.id})`)
 
     /** COPY STATE: run the AppVersion Copy  */
     let sourceAppVersionId
     if (source_version) {
         source_app = source_app ? source_app : app
-        core.info(`Copying state from ${source_app}:${source_version} to ${app}:${version}`)
-        await getAppVersionId(source_app, source_version)
+        core.info(`Copy state from ${source_app}:${source_version} to ${app}:${version}`)
+        sourceAppVersionId = await getAppVersionId(source_app, source_version)
             .catch(error => {
                 core.warning(`Failed to get ${source_app}:${source_version} id`)
                 core.warning(`${error.message}`)
             })
-            .then(async function (sourceAppVersionId: number | void) {
-                if (sourceAppVersionId) {
-                    await copyAppVersionState(sourceAppVersionId.toString(), appVersion.id)
-                        .then(() => core.info(
-                            `successfully copied state from ${source_app}:${source_version} to ${app}:${version}`
-                        ))
-                        .catch(error => {
-                            core.warning(`Failed to copy state from ${source_app}:${source_version} to ${app}:${version}`)
-                            core.warning(`${error.message}`)
-                        })
-                } else {
-                    core.warning(`Source AppVersion ${source_app}:${source_version} not found. SKIPPING`)
-                }
-            })
+        if (sourceAppVersionId) {
+            await copyAppVersionState(sourceAppVersionId.toString(), appVersion.id)
+                .then(() =>
+                    core.info(`Copy state from ${source_app}:${source_version} to ${app}:${version}` + " ..... " + utils.bgGreen('Success')))
+                .catch(error => {
+                    core.warning(`Copy state from ${source_app}:${source_version} to ${app}:${version}` + " ..... " + utils.bgRed('Failure'))
+                    core.warning(`${error.message}`)
+                })
+        } else {
+            core.info(`Source AppVersion ${source_app}:${source_version} not found`)
+            core.warning(`Copy state from ${source_app}:${source_version} to ${app}:${version}` + " ..... " + utils.bgGray('Skipped'))
+        }
     }
 
     /** ISSUE TEMPLATE : set AppVersion Issue template */
@@ -371,15 +370,15 @@ async function runAppVersionCreation(app: string, version: string, source_app?: 
 
     /** COPY VULNS: run the AppVersion Copy vulns */
     if (core.getInput('copy_vulns') && sourceAppVersionId) {
-        core.info(`Copying Vulnerabilities from ${source_app}:${source_version} to ${app}:${version}`
+        core.info(`Copy Vulnerabilities from ${source_app}:${source_version} to ${app}:${version}`
         )
         if (
             await copyAppVersionVulns(sourceAppVersionId, appVersion['id'])
         ) {
             core.info(`Copying Vulnerabilities from ${source_app}:${source_version} to ${app}:${version}` + " ..... " + utils.bgGreen('Success'))
         } else {
-            core.warning(`Copying Vulnerabilities from ${source_app}:${source_version} to ${app}:${version}` + " ..... " + utils.bgRed('Failure'))
-            core.warning(`SKIPPING`)
+            core.warning(`Copy Vulnerabilities from ${source_app}:${source_version} to ${app}:${version}` + " ..... " + utils.bgRed('Failure'))
+            core.info(`Copy Vulnerabilities from ${source_app}:${source_version} to ${app}:${version}` + " ..... " + utils.bgRed('Skipped'))
         }
     }
 
