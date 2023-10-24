@@ -50,7 +50,6 @@ export async function decorate(appVersionId: string | number): Promise<any> {
 
 
         await Promise.all(checkRuns.check_runs.map(async function (checkRun: any) {
-            core.info(`ids: ${checkRun.id} & ${selfJobId}`)
             if (checkRun.id != selfJobId) {
                 let checkRunStatus = checkRun.status
                 while (["stale", "in_progress", "queued", "requested", "waiting", "pending"].includes(checkRunStatus)) {
@@ -69,7 +68,7 @@ export async function decorate(appVersionId: string | number): Promise<any> {
                     checkRunStatus = tmp.status
                 }
 
-                core.info(`${checkRun.id} is ${checkRunStatus} `)
+                core.info(`[${checkRun.id}] ${checkRun.name}:${commit.commit.message} [${commit.sha}] is ${checkRunStatus} `)
             }
         }));
 

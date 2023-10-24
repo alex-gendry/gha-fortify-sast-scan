@@ -42396,8 +42396,6 @@ const INPUT = {
  */
 async function run() {
     try {
-        console.log(github.context);
-        console.log(github.context.payload);
         /** Login  */
         core.info(`Login to Fortify solutions`);
         await session.login(INPUT).catch(error => {
@@ -42643,7 +42641,6 @@ async function decorate(appVersionId) {
             }
         });
         await Promise.all(checkRuns.check_runs.map(async function (checkRun) {
-            core.info(`ids: ${checkRun.id} & ${selfJobId}`);
             if (checkRun.id != selfJobId) {
                 let checkRunStatus = checkRun.status;
                 while (["stale", "in_progress", "queued", "requested", "waiting", "pending"].includes(checkRunStatus)) {
@@ -42659,7 +42656,7 @@ async function decorate(appVersionId) {
                     });
                     checkRunStatus = tmp.status;
                 }
-                core.info(`${checkRun.id} is ${checkRunStatus} `);
+                core.info(`[${checkRun.id}] ${checkRun.name}:${commit.commit.message} [${commit.sha}] is ${checkRunStatus} `);
             }
         }));
     }));
