@@ -42603,6 +42603,7 @@ exports.decorate = void 0;
 const github = __importStar(__nccwpck_require__(5438));
 const core = __importStar(__nccwpck_require__(2186));
 const vuln = __importStar(__nccwpck_require__(4002));
+const utils = __importStar(__nccwpck_require__(1314));
 async function decorate(appVersionId) {
     const myToken = core.getInput('gha_token');
     const octokit = github.getOctokit(myToken);
@@ -42629,8 +42630,8 @@ async function decorate(appVersionId) {
         await Promise.all(checkRuns.check_runs.map(async function (checkRun) {
             let checkRunStatus = checkRun.status;
             while (["stale", "in_progress", "queued", "requested", "waiting", "pending"].includes(checkRunStatus)) {
-                core.info(`Waiting for ${checkRun.name}:${commit.commit.message}[${commit.sha}] to be completed. Curent status: ${checkRun.status}`);
-                await new Promise((resolve) => setTimeout(resolve, 10 * 1000));
+                core.info(`Waiting for Run : [${checkRun.id}] ${checkRun.name}:${commit.commit.message} [${commit.sha}] to be completed. Curent status: ${checkRun.status}`);
+                await new Promise((resolve) => setTimeout(resolve, Number(utils.getEnvOrValue("GHA_COMMIT_CHECKS_PULL_INTERVAL", 60)) * 1000));
                 const { data: tmp } = await octokit.request('GET /repos/{owner}/{repo}/check-runs/{check_run_id}', {
                     owner: github.context.issue.owner,
                     repo: github.context.issue.repo,
@@ -43309,7 +43310,7 @@ var __importStar = (this && this.__importStar) || function (mod) {
     return result;
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.daysOrToday = exports.normalizeScanType = exports.getSastBaseUrl = exports.scancentralRest = exports.scancentral = exports.stringToArgsArray = exports.fcliRest = exports.fcli = exports.getScanCentralPath = exports.getFcliPath = exports.getCopyVulnsBody = exports.getCopyStateBody = exports.getCreateAppVersionBody = void 0;
+exports.daysOrToday = exports.normalizeScanType = exports.getSastBaseUrl = exports.scancentralRest = exports.scancentral = exports.stringToArgsArray = exports.fcliRest = exports.fcli = exports.getScanCentralPath = exports.getEnvOrValue = exports.getFcliPath = exports.getCopyVulnsBody = exports.getCopyStateBody = exports.getCreateAppVersionBody = void 0;
 const core = __importStar(__nccwpck_require__(2186));
 const exec = __importStar(__nccwpck_require__(1514));
 /**
@@ -43394,6 +43395,10 @@ function getFcliPath() {
     }
 }
 exports.getFcliPath = getFcliPath;
+function getEnvOrValue(env_name, value) {
+    return process.env[env_name] ? process.env[env_name] : value;
+}
+exports.getEnvOrValue = getEnvOrValue;
 /**
  * Generate the full path to the scancentral executable, depending on the env variables :
  *  SC_EXECUTABLE_PATH

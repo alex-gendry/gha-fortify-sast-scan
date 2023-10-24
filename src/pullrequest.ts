@@ -1,6 +1,7 @@
 import * as github from "@actions/github";
 import * as core from "@actions/core";
 import * as vuln from "./vuln";
+import * as utils from "./utils";
 import {error} from "@actions/core";
 import * as process from "process";
 
@@ -36,8 +37,8 @@ export async function decorate(appVersionId: string | number): Promise<any> {
         await Promise.all(checkRuns.check_runs.map(async function (checkRun: any) {
             let checkRunStatus =checkRun.status
             while (["stale", "in_progress", "queued", "requested", "waiting", "pending"].includes(checkRunStatus)) {
-                core.info(`Waiting for ${checkRun.name}:${commit.commit.message}[${commit.sha}] to be completed. Curent status: ${checkRun.status}`)
-                await new Promise((resolve) => setTimeout(resolve, 10 * 1000))
+                core.info(`Waiting for Run : [${checkRun.id}] ${checkRun.name}:${commit.commit.message} [${commit.sha}] to be completed. Curent status: ${checkRun.status}`)
+                await new Promise((resolve) => setTimeout(resolve, Number(utils.getEnvOrValue("GHA_COMMIT_CHECKS_PULL_INTERVAL", 60)) * 1000))
 
                 const {data: tmp} = await octokit.request('GET /repos/{owner}/{repo}/check-runs/{check_run_id}', {
                     owner: github.context.issue.owner,

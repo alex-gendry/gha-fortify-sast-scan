@@ -87,6 +87,10 @@ export function getFcliPath(): string {
     }
 }
 
+export function getEnvOrValue(env_name:string, value:any):string|undefined {
+    return process.env[env_name] ? process.env[env_name] : value
+}
+
 /**
  * Generate the full path to the scancentral executable, depending on the env variables :
  *  SC_EXECUTABLE_PATH
