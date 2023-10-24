@@ -1,5 +1,6 @@
 import * as utils from './utils'
 import * as core from '@actions/core'
+import process from "process";
 
 export async function getAppVersionId(
     app: string,
@@ -296,4 +297,101 @@ export async function addCustomTag(appId: number | string, customTagGuid: string
         core.error(`Adding CustomTag ${customTagGuid} to appVersion ${appId} failed with code ${responseCode}`)
         return false
     }
+}
+
+async function runAppVersionCreation(INPUT: any):Promise<number> {
+    core.info(`Creating ApplicationVersion ${INPUT.ssc_app}:${INPUT.ssc_version}`)
+    const appVersion = await createAppVersion(INPUT.ssc_app, INPUT.ssc_version)
+        .catch(error => {
+            core.error(`${error.message}`)
+            throw new Error(`Failed to create ${INPUT.ssc_app}:${INPUT.ssc_version}`)
+        })
+    core.info(`AppVersion ${appVersion.project.name}:${appVersion.name} created (id: ${appVersion.id})`)
+
+    /** COPY STATE: run the AppVersion Copy  */
+    let sourceAppVersionId
+    if (INPUT.ssc_source_app && INPUT.ssc_source_version) {
+        core.info(`Copying state from ${INPUT.ssc_source_app}:${INPUT.ssc_source_version} to ${INPUT.ssc_app}:${INPUT.ssc_version}`)
+        await getAppVersionId(INPUT.ssc_source_app, INPUT.ssc_source_version)
+            .catch(error => {
+                core.warning(`Failed to get ${INPUT.ssc_source_app}:${INPUT.ssc_source_version} id`)
+                core.warning(`${error.message}`)
+            })
+            .then(async function (sourceAppVersionId: number | void) {
+                if (sourceAppVersionId) {
+                    await copyAppVersionState(sourceAppVersionId.toString(), appVersion.id)
+                        .then(() => core.info(
+                            `successfully copied state from ${INPUT.ssc_source_app}:${INPUT.ssc_source_version} to ${INPUT.ssc_app}:${INPUT.ssc_version}`
+                        ))
+                        .catch(error => {
+                            core.warning(`Failed to copy state from ${INPUT.ssc_source_app}:${INPUT.ssc_source_version} to ${INPUT.ssc_app}:${INPUT.ssc_version}`)
+                            core.warning(`${error.message}`)
+                        })
+                } else {
+                    core.warning(`Source AppVersion ${INPUT.ssc_source_app}:${INPUT.ssc_source_version} not found. SKIPPING`)
+                }
+            })
+    }
+
+    /** ISSUE TEMPLATE : set AppVersion Issue template */
+    core.info("Setting AppVersion's Issue Template")
+    await setAppVersionIssueTemplate(appVersion.id, INPUT.ssc_version_issue_template)
+        .catch(error => {
+            core.warning(`${error.message}`)
+            core.warning(`Failed to set Issue Temmplate ${INPUT.ssc_version_issue_template} to ${INPUT.ssc_app}:${INPUT.ssc_version}`)
+            // process.exit(core.ExitCode.Failure)
+        })
+
+    /** ATTRIBUTES : set AppVersion attributes */
+    core.info("Setting AppVersion's Attributes")
+    await setAppVersionAttributes(appVersion.id,INPUT.ssc_version_attributes)
+        .catch(error => {
+            core.warning(`${error.message}`)
+            core.warning(`Failed to set Attributes to ${INPUT.ssc_app}:${INPUT.ssc_version}`)
+            // process.exit(core.ExitCode.Failure)
+        })
+
+    /** COMMIT: Commit the AppVersion */
+    core.info(`Committing AppVersion ${appVersion.project.name}:${appVersion.name} (id: ${appVersion.id})`)
+    await commitAppVersion(appVersion.id)
+        .then(() => core.info(`SUCCESS: Committing AppVersion ${appVersion.project.name}:${appVersion.name} (id: ${appVersion.id})`))
+        .catch(async function (error) {
+            core.error(error.message)
+            core.error(`FAILURE: Committing AppVersion ${appVersion.project.name}:${appVersion.name} (id: ${appVersion.id})`)
+
+            /** delete uncommited AppVersion */
+            core.info("Trying to delete uncommitted version")
+            await deleteAppVersion(appVersion.id)
+                .catch(error => {
+                    core.error(`Failed to delete uncommited version ${appVersion.project.name}:${appVersion.name} [id: ${appVersion.id}`)
+                })
+            throw new Error(`Failed to commit AppVersion ${appVersion.project.name}:${appVersion.name} (id: ${appVersion.id})`)
+        })
+
+    return appVersion.id
+}
+
+export async function getOrCreateAppVersionId(INPUT: any): Promise<number> {
+    core.info(`Checking if AppVersion ${INPUT.ssc_app}:${INPUT.ssc_version} exists`)
+    let appVersionId = await appVersionExists(INPUT.ssc_app, INPUT.ssc_version)
+        .catch(error => {
+            core.error(`${error.message}`)
+            core.setFailed(`Failed to check if ${INPUT.ssc_app}:${INPUT.ssc_version} exists`)
+
+        })
+
+    if (appVersionId === -1) {
+        core.info(`AppVersion ${INPUT.ssc_app}:${INPUT.ssc_version} not found`)
+        appVersionId = await runAppVersionCreation(INPUT)
+            .catch(error => {
+                core.error(error.message)
+                core.setFailed(`Failed to create application version ${INPUT.ssc_app}:${INPUT.ssc_version}`)
+
+                process.exit(core.ExitCode.Failure)
+            })
+        core.info(`Application Version ${INPUT.ssc_app}:${INPUT.ssc_version} created (${appVersionId})`)
+    }
+    core.info(`AppVersion ${INPUT.ssc_app}:${INPUT.ssc_version} exists (${appVersionId})`)
+
+    return Number(appVersionId)
 }

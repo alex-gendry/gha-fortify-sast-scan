@@ -15,6 +15,7 @@ import * as schema from '@octokit/webhooks-definitions/schema'
 import {addDetails} from "./vuln";
 import {HttpClient, HttpClientResponse} from "@actions/http-client";
 import * as artifact from "./artifact";
+import {getOrCreateAppVersionId} from "./appversion";
 
 const INPUT = {
     ssc_base_url: core.getInput('ssc_base_url', {required: true}),
@@ -51,33 +52,15 @@ export async function run(): Promise<void> {
 
         /** Set Version base on git event (push or PR) */
 
-        switch (github.context.eventName) {
-            case "push":
-                INPUT.ssc_version = github.context.ref
-                break
-            case "pull_request":
-                core.info("PullRequest")
-                if (github.context.payload.pull_request) {
-                    core.info(github.context.payload.pull_request.head.ref)
-                    INPUT.ssc_version = github.context.payload.pull_request.head.ref
-                }
+        if (github.context.eventName === "pull_request") {
+            if (github.context.payload.pull_request) {
+                INPUT.ssc_version = github.context.payload.pull_request.head.ref
+            }
         }
 
 
         /** Does the AppVersion exists ? */
-        core.info(`Checking if AppVersion ${INPUT.ssc_app}:${INPUT.ssc_version} exists`)
-        const appVersionId = await appversion.appVersionExists(INPUT.ssc_app, INPUT.ssc_version).catch(error => {
-            core.error(`${error.message}`)
-            core.setFailed(`Failed to check if ${INPUT.ssc_app}:${INPUT.ssc_version} exists`)
-            process.exit(core.ExitCode.Failure)
-        })
-
-        if (appVersionId === -1) {
-            core.warning(`AppVersion ${INPUT.ssc_app}:${INPUT.ssc_version} not found.`)
-            core.setFailed('Scan not executed because AppVersion ${INPUT.ssc_app}:${INPUT.ssc_version} not found.')
-            process.exit(core.ExitCode.Failure)
-        }
-        core.info(`AppVersion ${INPUT.ssc_app}:${INPUT.ssc_version} exists (${appVersionId})`)
+        const appVersionId = await getOrCreateAppVersionId(INPUT)
 
 
         /** SAST Scan Execution */

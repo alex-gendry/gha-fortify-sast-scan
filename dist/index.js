@@ -41815,10 +41815,14 @@ var __importStar = (this && this.__importStar) || function (mod) {
     __setModuleDefault(result, mod);
     return result;
 };
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.addCustomTag = exports.appVersionExists = exports.getAppVersionId = void 0;
+exports.getOrCreateAppVersionId = exports.addCustomTag = exports.appVersionExists = exports.getAppVersionId = void 0;
 const utils = __importStar(__nccwpck_require__(1314));
 const core = __importStar(__nccwpck_require__(2186));
+const process_1 = __importDefault(__nccwpck_require__(7282));
 async function getAppVersionId(app, version) {
     let jsonRes = await utils.fcli([
         'ssc',
@@ -42065,6 +42069,91 @@ async function addCustomTag(appId, customTagGuid) {
     }
 }
 exports.addCustomTag = addCustomTag;
+async function runAppVersionCreation(INPUT) {
+    core.info(`Creating ApplicationVersion ${INPUT.ssc_app}:${INPUT.ssc_version}`);
+    const appVersion = await createAppVersion(INPUT.ssc_app, INPUT.ssc_version)
+        .catch(error => {
+        core.error(`${error.message}`);
+        throw new Error(`Failed to create ${INPUT.ssc_app}:${INPUT.ssc_version}`);
+    });
+    core.info(`AppVersion ${appVersion.project.name}:${appVersion.name} created (id: ${appVersion.id})`);
+    /** COPY STATE: run the AppVersion Copy  */
+    let sourceAppVersionId;
+    if (INPUT.ssc_source_app && INPUT.ssc_source_version) {
+        core.info(`Copying state from ${INPUT.ssc_source_app}:${INPUT.ssc_source_version} to ${INPUT.ssc_app}:${INPUT.ssc_version}`);
+        await getAppVersionId(INPUT.ssc_source_app, INPUT.ssc_source_version)
+            .catch(error => {
+            core.warning(`Failed to get ${INPUT.ssc_source_app}:${INPUT.ssc_source_version} id`);
+            core.warning(`${error.message}`);
+        })
+            .then(async function (sourceAppVersionId) {
+            if (sourceAppVersionId) {
+                await copyAppVersionState(sourceAppVersionId.toString(), appVersion.id)
+                    .then(() => core.info(`successfully copied state from ${INPUT.ssc_source_app}:${INPUT.ssc_source_version} to ${INPUT.ssc_app}:${INPUT.ssc_version}`))
+                    .catch(error => {
+                    core.warning(`Failed to copy state from ${INPUT.ssc_source_app}:${INPUT.ssc_source_version} to ${INPUT.ssc_app}:${INPUT.ssc_version}`);
+                    core.warning(`${error.message}`);
+                });
+            }
+            else {
+                core.warning(`Source AppVersion ${INPUT.ssc_source_app}:${INPUT.ssc_source_version} not found. SKIPPING`);
+            }
+        });
+    }
+    /** ISSUE TEMPLATE : set AppVersion Issue template */
+    core.info("Setting AppVersion's Issue Template");
+    await setAppVersionIssueTemplate(appVersion.id, INPUT.ssc_version_issue_template)
+        .catch(error => {
+        core.warning(`${error.message}`);
+        core.warning(`Failed to set Issue Temmplate ${INPUT.ssc_version_issue_template} to ${INPUT.ssc_app}:${INPUT.ssc_version}`);
+        // process.exit(core.ExitCode.Failure)
+    });
+    /** ATTRIBUTES : set AppVersion attributes */
+    core.info("Setting AppVersion's Attributes");
+    await setAppVersionAttributes(appVersion.id, INPUT.ssc_version_attributes)
+        .catch(error => {
+        core.warning(`${error.message}`);
+        core.warning(`Failed to set Attributes to ${INPUT.ssc_app}:${INPUT.ssc_version}`);
+        // process.exit(core.ExitCode.Failure)
+    });
+    /** COMMIT: Commit the AppVersion */
+    core.info(`Committing AppVersion ${appVersion.project.name}:${appVersion.name} (id: ${appVersion.id})`);
+    await commitAppVersion(appVersion.id)
+        .then(() => core.info(`SUCCESS: Committing AppVersion ${appVersion.project.name}:${appVersion.name} (id: ${appVersion.id})`))
+        .catch(async function (error) {
+        core.error(error.message);
+        core.error(`FAILURE: Committing AppVersion ${appVersion.project.name}:${appVersion.name} (id: ${appVersion.id})`);
+        /** delete uncommited AppVersion */
+        core.info("Trying to delete uncommitted version");
+        await deleteAppVersion(appVersion.id)
+            .catch(error => {
+            core.error(`Failed to delete uncommited version ${appVersion.project.name}:${appVersion.name} [id: ${appVersion.id}`);
+        });
+        throw new Error(`Failed to commit AppVersion ${appVersion.project.name}:${appVersion.name} (id: ${appVersion.id})`);
+    });
+    return appVersion.id;
+}
+async function getOrCreateAppVersionId(INPUT) {
+    core.info(`Checking if AppVersion ${INPUT.ssc_app}:${INPUT.ssc_version} exists`);
+    let appVersionId = await appVersionExists(INPUT.ssc_app, INPUT.ssc_version)
+        .catch(error => {
+        core.error(`${error.message}`);
+        core.setFailed(`Failed to check if ${INPUT.ssc_app}:${INPUT.ssc_version} exists`);
+    });
+    if (appVersionId === -1) {
+        core.info(`AppVersion ${INPUT.ssc_app}:${INPUT.ssc_version} not found`);
+        appVersionId = await runAppVersionCreation(INPUT)
+            .catch(error => {
+            core.error(error.message);
+            core.setFailed(`Failed to create application version ${INPUT.ssc_app}:${INPUT.ssc_version}`);
+            process_1.default.exit(core.ExitCode.Failure);
+        });
+        core.info(`Application Version ${INPUT.ssc_app}:${INPUT.ssc_version} created (${appVersionId})`);
+    }
+    core.info(`AppVersion ${INPUT.ssc_app}:${INPUT.ssc_version} exists (${appVersionId})`);
+    return Number(appVersionId);
+}
+exports.getOrCreateAppVersionId = getOrCreateAppVersionId;
 
 
 /***/ }),
@@ -42371,6 +42460,7 @@ const pullrequest = __importStar(__nccwpck_require__(5885));
 const process = __importStar(__nccwpck_require__(7282));
 const github = __importStar(__nccwpck_require__(5438));
 const artifact = __importStar(__nccwpck_require__(4571));
+const appversion_1 = __nccwpck_require__(3538);
 const INPUT = {
     ssc_base_url: core.getInput('ssc_base_url', { required: true }),
     ssc_ci_token: core.getInput('ssc_ci_token', { required: false }),
@@ -42403,30 +42493,13 @@ async function run() {
             process.exit(core.ExitCode.Failure);
         });
         /** Set Version base on git event (push or PR) */
-        switch (github.context.eventName) {
-            case "push":
-                INPUT.ssc_version = github.context.ref;
-                break;
-            case "pull_request":
-                core.info("PullRequest");
-                if (github.context.payload.pull_request) {
-                    core.info(github.context.payload.pull_request.head.ref);
-                    INPUT.ssc_version = github.context.payload.pull_request.head.ref;
-                }
+        if (github.context.eventName === "pull_request") {
+            if (github.context.payload.pull_request) {
+                INPUT.ssc_version = github.context.payload.pull_request.head.ref;
+            }
         }
         /** Does the AppVersion exists ? */
-        core.info(`Checking if AppVersion ${INPUT.ssc_app}:${INPUT.ssc_version} exists`);
-        const appVersionId = await appversion.appVersionExists(INPUT.ssc_app, INPUT.ssc_version).catch(error => {
-            core.error(`${error.message}`);
-            core.setFailed(`Failed to check if ${INPUT.ssc_app}:${INPUT.ssc_version} exists`);
-            process.exit(core.ExitCode.Failure);
-        });
-        if (appVersionId === -1) {
-            core.warning(`AppVersion ${INPUT.ssc_app}:${INPUT.ssc_version} not found.`);
-            core.setFailed('Scan not executed because AppVersion ${INPUT.ssc_app}:${INPUT.ssc_version} not found.');
-            process.exit(core.ExitCode.Failure);
-        }
-        core.info(`AppVersion ${INPUT.ssc_app}:${INPUT.ssc_version} exists (${appVersionId})`);
+        const appVersionId = await (0, appversion_1.getOrCreateAppVersionId)(INPUT);
         /** SAST Scan Execution */
         if (INPUT.sast_scan && github.context.eventName === "push") {
             core.info("Pull Request Detected");
