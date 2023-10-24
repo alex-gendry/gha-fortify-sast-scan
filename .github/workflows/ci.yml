@@ -1,17 +1,17 @@
-name: Continuous Integration
+name: Workflow-name
 on:
   workflow_dispatch:
   pull_request:
   push:
 
 jobs:
-  test-action:
+  Fortify-SAST:
     name: GitHub Actions Test
     env:
       FCLI_EXECUTABLE_LOCATION: "."
 
-    container:
-      image: fortifydocker/fortify-ci-tools
+#    container:
+#      image: fortifydocker/fortify-ci-tools
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -34,29 +34,28 @@ jobs:
           wget -qO- https://github.com/fortify/fcli/releases/download/v1.3.2/fcli-linux.tgz | tar zxf -
 
       # GitHub Action for Application Version creation
-      - name: Create Application Version
-        uses: agendry-pub/gha-ssc-create-application-version@v1
-        with:
-          ssc_base_url: ${{ vars.FTFY_SSC_BASE_URL}}
-          ssc_ci_token: ${{ secrets.FTFY_CI_TOKEN_ENC }}
-          ssc_app: PetClinic
-          ssc_version: 1.1-gl-ast
-          #          ssc_ci_username: ${{ secrets.FTFY_CI_USERNAME }}
-          #          ssc_ci_password:  ${{ secrets.FTFY_CI_PASSWORD }}
-          ssc_version_attributes: |
-            Accessibility=Internal Network Access Required
-            DevStrategy=Internally Developed
-            DevPhase=New
+#      - name: Create Application Version
+#        uses: agendry-pub/gha-ssc-create-application-version@v1
+#        with:
+#          ssc_base_url: ${{ vars.FTFY_SSC_BASE_URL}}
+#          ssc_ci_token: ${{ secrets.FTFY_CI_TOKEN_ENC }}
+#          ssc_app: gha-fortify-sast-scan #PetClinic
+#          ssc_version: ${{ github.ref_name }} #1.1-gl-ast
+#          #          ssc_ci_username: ${{ secrets.FTFY_CI_USERNAME }}
+#          #          ssc_ci_password:  ${{ secrets.FTFY_CI_PASSWORD }}
+#          ssc_version_attributes: |
+#            Accessibility=Internal Network Access Required
+#            DevStrategy=Internally Developed
+#            DevPhase=New
 
-      - name: Test Local Action
-        id: test-action
+      - name: step-name
         uses: ./
         env:
           FCLI_DEFAULT_TOKEN_EXPIRE: "1h"
         with:
           ssc_base_url: ${{ vars.FTFY_SSC_BASE_URL}}
-          ssc_app: PetClinic
-          ssc_version: 1.1-gl-ast
+          ssc_app: PetClinic #PetClinic
+          ssc_version: github/custom-actions-7 #${{ github.ref_name }} #1.1-gl-ast
           ssc_ci_token: ${{ secrets.FTFY_CI_TOKEN_ENC }}
           sast_scan: true
           sast_client_auth_token: ${{ secrets.FTFY_SAST_CLIENT_TOKEN }}
@@ -64,4 +63,4 @@ jobs:
           security_gate_action: warn
           security_gate_filterset: Critical & High
           summary_filterset: Security Auditor View
-          my_token: ${{ secrets.GITHUB_TOKEN }}
+          gha_token: ${{ secrets.GITHUB_TOKEN }}
