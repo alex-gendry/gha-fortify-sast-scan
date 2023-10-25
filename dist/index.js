@@ -42668,12 +42668,14 @@ async function run() {
             await pullrequest.decorate(appVersionId);
         }
         /** RUN Security Gate */
-        core.info("Running Security Gate");
-        const passedSecurityGate = await securitygate.run(INPUT).catch(error => {
+        core.info("Security Gate execution");
+        const passedSecurityGate = await securitygate.run(appVersionId, INPUT.security_gate_filterset, INPUT.security_gate_action)
+            .catch(error => {
             core.error(error.message);
-            core.setFailed(`Security Gate run failed`);
+            core.setFailed(utils.failure(`Security Gate execution`));
             process.exit(core.ExitCode.Failure);
         });
+        core.info(utils.success("Security Gate execution"));
         /** Job Summary */
         await summary.setJobSummary(INPUT, passedSecurityGate).catch(error => {
             core.error(error.message);
@@ -43045,14 +43047,12 @@ var __importStar = (this && this.__importStar) || function (mod) {
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.run = void 0;
 const vuln = __importStar(__nccwpck_require__(4002));
-const appversion = __importStar(__nccwpck_require__(3538));
 const core = __importStar(__nccwpck_require__(2186));
-async function run(INPUT) {
-    const appId = await appversion.getAppVersionId(INPUT.ssc_app, INPUT.ssc_version);
-    const count = await vuln.getAppVersionVulnsCountTotal(appId, INPUT.security_gate_filterset);
+async function run(appVersionId, filterSet, action) {
+    const count = await vuln.getAppVersionVulnsCountTotal(appVersionId, filterSet);
     const passed = count ? false : true;
     if (!passed) {
-        switch (INPUT.security_gate_action.toLowerCase()) {
+        switch (action.toLowerCase()) {
             case 'warn':
                 core.info("Security Gate has been set to Warning only");
                 core.warning('Security Gate Failure');
@@ -43662,7 +43662,7 @@ async function fcli(args, returnStatus = false, silent = true) {
         return returnStatus ? status : JSON.parse(responseData);
     }
     catch (err) {
-        core.error('fcli execution failed');
+        core.error('fcli execution failed: ');
         core.error(`fcli ${args.join(' ')}`);
         core.error(`${errorData}`);
         throw err;

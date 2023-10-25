@@ -181,12 +181,14 @@ export async function run(): Promise<void> {
         }
 
         /** RUN Security Gate */
-        core.info("Running Security Gate")
-        const passedSecurityGate = await securitygate.run(INPUT).catch(error => {
-            core.error(error.message)
-            core.setFailed(`Security Gate run failed`)
-            process.exit(core.ExitCode.Failure)
-        })
+        core.info("Security Gate execution")
+        const passedSecurityGate = await securitygate.run(appVersionId, INPUT.security_gate_filterset, INPUT.security_gate_action)
+            .catch(error => {
+                core.error(error.message)
+                core.setFailed(utils.failure(`Security Gate execution`))
+                process.exit(core.ExitCode.Failure)
+            })
+        core.info(utils.success("Security Gate execution"))
 
         /** Job Summary */
         await summary.setJobSummary(INPUT, passedSecurityGate).catch(error => {

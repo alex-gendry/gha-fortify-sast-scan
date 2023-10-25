@@ -2,14 +2,13 @@ import * as vuln from "./vuln";
 import * as appversion from "./appversion";
 import * as core from "@actions/core";
 
-export async function run(INPUT: any): Promise<boolean> {
-    const appId = await appversion.getAppVersionId(INPUT.ssc_app, INPUT.ssc_version)
-    const count = await vuln.getAppVersionVulnsCountTotal(appId, INPUT.security_gate_filterset)
+export async function run(appVersionId: string | number, filterSet: string, action: string): Promise<boolean> {
+    const count = await vuln.getAppVersionVulnsCountTotal(appVersionId, filterSet)
 
     const passed: boolean = count ? false : true
 
     if (!passed) {
-        switch (INPUT.security_gate_action.toLowerCase()) {
+        switch (action.toLowerCase()) {
             case 'warn':
                 core.info("Security Gate has been set to Warning only")
                 core.warning('Security Gate Failure')
