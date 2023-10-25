@@ -42090,7 +42090,7 @@ async function addCustomTag(appId, customTagGuid) {
     const body = {
         guid: customTagGuid
     };
-    return (await utils.fcliRest(url, "", "POST", JSON.stringify(body))).length > 0;
+    return (await utils.fcliRest(url, "POST", JSON.stringify(body))).length > 0;
 }
 exports.addCustomTag = addCustomTag;
 async function runAppVersionCreation(app, version, source_app, source_version) {
@@ -43668,7 +43668,7 @@ async function fcli(args, returnStatus = false, silent = true) {
     }
 }
 exports.fcli = fcli;
-async function fcliRest(url, query, method = "GET", body) {
+async function fcliRest(url, method = "GET", body, query) {
     let args = [
         'ssc',
         'rest',

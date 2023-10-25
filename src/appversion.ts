@@ -310,7 +310,7 @@ export async function addCustomTag(appId: number | string, customTagGuid: string
         guid: customTagGuid
     }
 
-    return (await utils.fcliRest(url, "","POST", JSON.stringify(body))).length > 0
+    return (await utils.fcliRest(url,"POST", JSON.stringify(body))).length > 0
 }
 
 async function runAppVersionCreation(app: string, version: string, source_app?: string, source_version?: string): Promise<number> {

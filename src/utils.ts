@@ -140,7 +140,7 @@ export async function fcli(args: string[], returnStatus: boolean = false, silent
     }
 }
 
-export async function fcliRest(url: string, query?: string, method: string = "GET", body?: string) {
+export async function fcliRest(url: string, method: string = "GET", body?: string, query?: string) {
     let args: string[] = [
         'ssc',
         'rest',
