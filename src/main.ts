@@ -62,7 +62,7 @@ export async function run(): Promise<void> {
             }
             core.info(`Copy AppVersion from ${INPUT.ssc_app}:${github.context.payload.head.ref}`)
             INPUT.ssc_source_app = INPUT.ssc_app
-            console.log(github.context.payload)
+            core.info(`${github.context}`)
             INPUT.ssc_source_version = github.context.payload.head.ref
         }
 
