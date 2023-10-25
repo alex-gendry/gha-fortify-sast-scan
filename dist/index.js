@@ -42206,7 +42206,7 @@ async function appVersionHasCustomTag(AppVersionId, customTagGuid) {
         `--q-param=id:${AppVersionId}`,
         `--embed=customTags`,
         `--output=json`,
-        `-q`, `customTags.![guid].contains('${customTagGuid}')`], true, false)).length > 0;
+        `-q`, `customTags.![guid].contains('${customTagGuid}')`])).length > 0;
 }
 exports.appVersionHasCustomTag = appVersionHasCustomTag;
 
@@ -42632,7 +42632,7 @@ async function run() {
                         core.error(utils.failure(`Checking if ${INPUT.ssc_app}:${INPUT.ssc_version} [${appVersionId}] has Commit CustomTag (guid: ${customTagGuid})`));
                         throw error;
                     })) {
-                        core.info(`AppVersion ${INPUT.ssc_app}:${INPUT.ssc_version} [${appVersionId} ${utils.bgYellow('does not have Commit CustomTag')} (guid: ${customTagGuid})`);
+                        core.info(`AppVersion ${INPUT.ssc_app}:${INPUT.ssc_version} [${appVersionId}] ${utils.bgYellow('does not have Commit CustomTag')} (guid: ${customTagGuid})`);
                         core.info(`Checking if CustomTag exists in Templates (guid: ${customTagGuid})`);
                         if (await customtag.commitCustomTagExists(customTagGuid)
                             .catch(error => {
@@ -43663,6 +43663,7 @@ async function fcli(args, returnStatus = false, silent = true) {
     }
     catch (err) {
         core.error('fcli execution failed');
+        core.error(`fcli ${args.join(' ')}`);
         core.error(`${errorData}`);
         throw err;
     }

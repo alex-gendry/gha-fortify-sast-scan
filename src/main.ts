@@ -144,7 +144,7 @@ export async function run(): Promise<void> {
                             core.error(utils.failure(`Checking if ${INPUT.ssc_app}:${INPUT.ssc_version} [${appVersionId}] has Commit CustomTag (guid: ${customTagGuid})`))
                             throw error
                         })) {
-                        core.info(`AppVersion ${INPUT.ssc_app}:${INPUT.ssc_version} [${appVersionId} ${utils.bgYellow('does not have Commit CustomTag')} (guid: ${customTagGuid})`)
+                        core.info(`AppVersion ${INPUT.ssc_app}:${INPUT.ssc_version} [${appVersionId}] ${utils.bgYellow('does not have Commit CustomTag')} (guid: ${customTagGuid})`)
                         core.info(`Checking if CustomTag exists in Templates (guid: ${customTagGuid})`)
                         if (await customtag.commitCustomTagExists(customTagGuid)
                             .catch(error => {

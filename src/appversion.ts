@@ -437,6 +437,5 @@ export async function appVersionHasCustomTag(AppVersionId: string | number, cust
             `--q-param=id:${AppVersionId}`,
             `--embed=customTags`,
             `--output=json`,
-            `-q`, `customTags.![guid].contains('${customTagGuid}')`],
-        true, false)).length > 0
+            `-q`, `customTags.![guid].contains('${customTagGuid}')`])).length > 0
 }
