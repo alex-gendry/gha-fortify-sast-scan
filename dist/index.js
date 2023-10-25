@@ -42558,7 +42558,6 @@ async function run() {
         INPUT.ssc_source_version = "1.0-gh-secrets";
         /** Does the AppVersion exists ? */
         const appVersionId = await appversion.getOrCreateAppVersionId(INPUT.ssc_app, INPUT.ssc_version, INPUT.ssc_source_app, INPUT.ssc_source_version);
-        process.exit(core.ExitCode.Failure);
         /** SAST Scan Execution */
         if (INPUT.sast_scan) {
             /** Source code packaging */
