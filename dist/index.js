@@ -42553,6 +42553,7 @@ async function run() {
             }
             core.info(`Copy AppVersion from ${INPUT.ssc_app}:${github.context.payload.head.ref}`);
             INPUT.ssc_source_app = INPUT.ssc_app;
+            console.log(github.context.payload);
             INPUT.ssc_source_version = github.context.payload.head.ref;
         }
         INPUT.ssc_source_version = "1.0-gh-secrets";
