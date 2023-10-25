@@ -43864,16 +43864,16 @@ async function getAppVersionVulnsCountTotal(appId, filterSet, analysisType, newI
     return total;
 }
 exports.getAppVersionVulnsCountTotal = getAppVersionVulnsCountTotal;
-async function getVulnsByScanId(appVersionId, scanId, newIssues) {
+async function getVulnsByScanId(appVersionId, scanId, fields, newIssues) {
     let restQuery = "";
     if (newIssues) {
         restQuery = "[issue age]:NEW";
     }
-    return await getAppVersionVulns(appVersionId, restQuery, `lastScanId==${scanId}`, "id,revision");
+    return await getAppVersionVulns(appVersionId, restQuery, `lastScanId==${scanId}`, fields);
 }
 exports.getVulnsByScanId = getVulnsByScanId;
 async function getNewVulnsByScanId(appVersionId, scanId) {
-    return await getVulnsByScanId(appVersionId, scanId, true);
+    return await getVulnsByScanId(appVersionId, scanId, "id,revision,lastScanId", true);
 }
 exports.getNewVulnsByScanId = getNewVulnsByScanId;
 async function getAppVersionVulns(appId, restQuery, fcliQuery, fields, embed) {
