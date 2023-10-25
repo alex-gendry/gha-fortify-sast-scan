@@ -310,19 +310,7 @@ export async function addCustomTag(appId: number | string, customTagGuid: string
         guid: customTagGuid
     }
 
-    let {
-        data: data,
-        count: count,
-        responseCode: responseCode,
-        links: links
-    } = await utils.fcliRest(url, "POST", JSON.stringify(body))
-
-    if (200 <= Number(responseCode) && Number(responseCode) < 300) {
-        return true
-    } else {
-        core.error(`Adding CustomTag ${customTagGuid} to appVersion ${appId} failed with code ${responseCode}`)
-        return false
-    }
+    return (await utils.fcliRest(url, "POST", JSON.stringify(body))).length > 0
 }
 
 async function runAppVersionCreation(app: string, version: string, source_app?: string, source_version?: string): Promise<number> {
@@ -440,4 +428,15 @@ export async function getOrCreateAppVersionId(app: string, version: string, sour
     core.info(`AppVersion ${app}:${version} exists (${appVersionId})`)
 
     return Number(appVersionId)
+}
+
+export async function appVersionHasCustomTag(AppVersionId: string | number, customTagGuid: string): Promise<boolean> {
+    // Can be used to get it using App and version names : project.name:"Bench"+AND+name:"1.0"
+    return (await utils.fcli(
+        ['ssc', 'appversion', 'list',
+            `--q-param=id:${AppVersionId}`,
+            `--embed=customTags`,
+            `--output=json`,
+            `--query="customTags.![guid].contains('${customTagGuid}')"`],
+        true, false)).length > 0
 }

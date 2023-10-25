@@ -11,6 +11,7 @@ import * as pullrequest from './pullrequest'
 import * as process from "process";
 import * as github from "@actions/github";
 import * as artifact from "./artifact";
+import {getVulnsByScanId} from "./vuln";
 
 const INPUT = {
     ssc_base_url: core.getInput('ssc_base_url', {required: true}),
@@ -61,7 +62,7 @@ export async function run(): Promise<void> {
             } else {
                 core.warning("All PR's related commits check runs did not complete")
             }
-            if(github.context.payload.pull_request){
+            if (github.context.payload.pull_request) {
                 INPUT.ssc_source_app = INPUT.ssc_app
                 INPUT.ssc_source_version = github.context.payload.pull_request.head.ref
             }
@@ -132,20 +133,46 @@ export async function run(): Promise<void> {
             core.info(utils.success(`Artifact Processing [${artifactId}]`))
             core.info(utils.success(`Scan ${scan.id} execution, upload, processing`))
 
-            core.info('Scan Vulns tagging')
-            const scanVulns = await vuln.getNewVulnByScanId(appVersionId, scan.id)
-            if (scanVulns.length) {
-                const customTagGuid = core.getInput("ssc_commit_customtag_guid")
-                if (await customtag.commitCustomTagExists(customTagGuid)) {
-                    if (await appversion.addCustomTag(appVersionId, customTagGuid)) {
-                        const scanVulns = await vuln.getNewVulnByScanId(appVersionId, scan.id)
-                        await vuln.tagVulns(appVersionId, scanVulns, customTagGuid, github.context.sha)
+            try {
+                core.info(`Tagging Vulns with commit SHA (${github.context.sha})`)
+                const scanVulns = await vuln.getVulnsByScanId(appVersionId, scan.id)
+                if (scanVulns.length) {
+                    const customTagGuid = core.getInput("ssc_commit_customtag_guid")
+                    core.info(`Checking if ${INPUT.ssc_app}:${INPUT.ssc_version} [${appVersionId}] has Commit CustomTag (guid: ${customTagGuid})`)
+                    if (!await appversion.appVersionHasCustomTag(appVersionId, customTagGuid)
+                        .catch(error => {
+                            core.error(utils.failure(`Checking if ${INPUT.ssc_app}:${INPUT.ssc_version} [${appVersionId}] has Commit CustomTag (guid: ${customTagGuid})`))
+                            throw error
+                        })) {
+                        core.info(`AppVersion ${INPUT.ssc_app}:${INPUT.ssc_version} [${appVersionId} ${utils.bgYellow('does not have Commit CustomTag')} (guid: ${customTagGuid})`)
+                        core.info(`Checking if CustomTag exists in Templates (guid: ${customTagGuid})`)
+                        if (await customtag.commitCustomTagExists(customTagGuid)
+                            .catch(error => {
+                                core.error(utils.failure(`Checking if CustomTag exists in Templates (guid: ${customTagGuid})`))
+                                throw error
+                            })) {
+                            core.info(utils.exists(`Checking if CustomTag exists in Templates (guid: ${customTagGuid})`))
+                            core.info(`Adding CustomTag ${customTagGuid} to ${INPUT.ssc_app}:${INPUT.ssc_version} [${appVersionId}]`)
+                            await appversion.addCustomTag(appVersionId, customTagGuid)
+                                .catch(error => {
+                                    core.error(utils.failure(`Adding CustomTag ${customTagGuid} to ${INPUT.ssc_app}:${INPUT.ssc_version} [${appVersionId}]`))
+                                    throw error
+                                })
+                            core.info(utils.success(`Adding CustomTag ${customTagGuid} to ${INPUT.ssc_app}:${INPUT.ssc_version} [${appVersionId}]`))
+                        }
                     }
+                    await vuln.tagVulns(appVersionId, scanVulns, customTagGuid, github.context.sha)
+                        .catch(error => {
+                            throw error
+                        })
+                } else {
+                    core.notice(`Current Fortify scan found no ${utils.bgBlue('NEW')} vulnerability`)
+                    core.info(utils.skipped(`Tagging Vulns with commit SHA (${github.context.sha})`))
                 }
-            } else {
-                core.notice('Current Fortify scan found no NEW vulnerability')
-                core.info(utils.skipped('Scan Vulns tagging'))
+            } catch (error: any) {
+                core.error(utils.failure(`Tagging Vulns with commit SHA (${github.context.sha})`))
             }
+
         }
         if (github.context.eventName === 'pull_request') {
             core.info("Pull Request Detected")

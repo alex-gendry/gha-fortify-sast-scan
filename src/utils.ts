@@ -140,7 +140,7 @@ export async function fcli(args: string[], returnStatus: boolean = false, silent
     }
 }
 
-export async function fcliRest(url: string, method: string = "GET", body?: string) {
+export async function fcliRest(url: string, query?: string, method: string = "GET", body?: string) {
     let args: string[] = [
         'ssc',
         'rest',
@@ -150,8 +150,9 @@ export async function fcliRest(url: string, method: string = "GET", body?: strin
         '--output=json'
     ]
     body ? args.push(`--data=${body}`) : null
+    query ? args.push(`--query=${query}`) : null
 
-    return (await fcli(args))[0]
+    return (await fcli(args))
 }
 
 export function stringToArgsArray(text: string): string[] {
@@ -262,8 +263,20 @@ export function bgGray(str: string): string {
     return styles.bgGray.open + str + styles.bgRed.close
 }
 
+export function bgYellow(str: string): string {
+    return styles.bgYellow.open + str + styles.bgYellow.close
+}
+
+export function bgBlue(str: string): string {
+    return styles.bgBlue.open + str + styles.bgBlue.close
+}
+
 export function success(str: string):string {
     return `${str} ..... ${bgGreen('Success')}`
+}
+
+export function exists(str: string):string {
+    return `${str} ..... ${bgBlue('Exists')}`
 }
 
 export function failure(str: string):string {

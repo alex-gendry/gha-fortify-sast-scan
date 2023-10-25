@@ -41819,7 +41819,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.getOrCreateAppVersionId = exports.addCustomTag = exports.appVersionExists = exports.getAppVersionId = void 0;
+exports.appVersionHasCustomTag = exports.getOrCreateAppVersionId = exports.addCustomTag = exports.appVersionExists = exports.getAppVersionId = void 0;
 const utils = __importStar(__nccwpck_require__(1314));
 const vuln = __importStar(__nccwpck_require__(4002));
 const core = __importStar(__nccwpck_require__(2186));
@@ -42090,14 +42090,7 @@ async function addCustomTag(appId, customTagGuid) {
     const body = {
         guid: customTagGuid
     };
-    let { data: data, count: count, responseCode: responseCode, links: links } = await utils.fcliRest(url, "POST", JSON.stringify(body));
-    if (200 <= Number(responseCode) && Number(responseCode) < 300) {
-        return true;
-    }
-    else {
-        core.error(`Adding CustomTag ${customTagGuid} to appVersion ${appId} failed with code ${responseCode}`);
-        return false;
-    }
+    return (await utils.fcliRest(url, "POST", JSON.stringify(body))).length > 0;
 }
 exports.addCustomTag = addCustomTag;
 async function runAppVersionCreation(app, version, source_app, source_version) {
@@ -42207,6 +42200,15 @@ async function getOrCreateAppVersionId(app, version, source_app, source_version)
     return Number(appVersionId);
 }
 exports.getOrCreateAppVersionId = getOrCreateAppVersionId;
+async function appVersionHasCustomTag(AppVersionId, customTagGuid) {
+    // Can be used to get it using App and version names : project.name:"Bench"+AND+name:"1.0"
+    return (await utils.fcli(['ssc', 'appversion', 'list',
+        `--q-param=id:${AppVersionId}`,
+        `--embed=customTags`,
+        `--output=json`,
+        `--query="customTags.![guid].contains('${customTagGuid}')"`], true, false)).length > 0;
+}
+exports.appVersionHasCustomTag = appVersionHasCustomTag;
 
 
 /***/ }),
@@ -42397,21 +42399,11 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.commitCustomTagExists = void 0;
 const core = __importStar(__nccwpck_require__(2186));
 const utils = __importStar(__nccwpck_require__(1314));
+async function getCustomTag(guid) {
+}
 async function commitCustomTagExists(guid) {
     core.debug(`Checking if CustomTag ${guid} exists`);
-    let { data: data, count: count, responseCode: responseCode, links: links } = await utils.fcliRest(`/api/v1/customTags?q=guid:${guid}`);
-    core.debug(responseCode);
-    if (200 <= Number(responseCode) && Number(responseCode) < 300) {
-        if (count != 0) {
-            core.debug(`Custom tag ${guid} found : ${data[0].name}`);
-            return true;
-        }
-        return false;
-    }
-    else {
-        core.error(`commitCustomTagExists failed with code ${responseCode}`);
-        return false;
-    }
+    return (await utils.fcliRest(`/api/v1/customTags?q=guid:${guid}`)).length > 0;
 }
 exports.commitCustomTagExists = commitCustomTagExists;
 
@@ -42629,20 +42621,46 @@ async function run() {
             });
             core.info(utils.success(`Artifact Processing [${artifactId}]`));
             core.info(utils.success(`Scan ${scan.id} execution, upload, processing`));
-            core.info('Scan Vulns tagging');
-            const scanVulns = await vuln.getNewVulnByScanId(appVersionId, scan.id);
-            if (scanVulns.length) {
-                const customTagGuid = core.getInput("ssc_commit_customtag_guid");
-                if (await customtag.commitCustomTagExists(customTagGuid)) {
-                    if (await appversion.addCustomTag(appVersionId, customTagGuid)) {
-                        const scanVulns = await vuln.getNewVulnByScanId(appVersionId, scan.id);
-                        await vuln.tagVulns(appVersionId, scanVulns, customTagGuid, github.context.sha);
+            try {
+                core.info(`Tagging Vulns with commit SHA (${github.context.sha})`);
+                const scanVulns = await vuln.getVulnsByScanId(appVersionId, scan.id);
+                if (scanVulns.length) {
+                    const customTagGuid = core.getInput("ssc_commit_customtag_guid");
+                    core.info(`Checking if ${INPUT.ssc_app}:${INPUT.ssc_version} [${appVersionId}] has Commit CustomTag (guid: ${customTagGuid})`);
+                    if (!await appversion.appVersionHasCustomTag(appVersionId, customTagGuid)
+                        .catch(error => {
+                        core.error(utils.failure(`Checking if ${INPUT.ssc_app}:${INPUT.ssc_version} [${appVersionId}] has Commit CustomTag (guid: ${customTagGuid})`));
+                        throw error;
+                    })) {
+                        core.info(`AppVersion ${INPUT.ssc_app}:${INPUT.ssc_version} [${appVersionId} ${utils.bgYellow('does not have Commit CustomTag')} (guid: ${customTagGuid})`);
+                        core.info(`Checking if CustomTag exists in Templates (guid: ${customTagGuid})`);
+                        if (await customtag.commitCustomTagExists(customTagGuid)
+                            .catch(error => {
+                            core.error(utils.failure(`Checking if CustomTag exists in Templates (guid: ${customTagGuid})`));
+                            throw error;
+                        })) {
+                            core.info(utils.exists(`Checking if CustomTag exists in Templates (guid: ${customTagGuid})`));
+                            core.info(`Adding CustomTag ${customTagGuid} to ${INPUT.ssc_app}:${INPUT.ssc_version} [${appVersionId}]`);
+                            await appversion.addCustomTag(appVersionId, customTagGuid)
+                                .catch(error => {
+                                core.error(utils.failure(`Adding CustomTag ${customTagGuid} to ${INPUT.ssc_app}:${INPUT.ssc_version} [${appVersionId}]`));
+                                throw error;
+                            });
+                            core.info(utils.success(`Adding CustomTag ${customTagGuid} to ${INPUT.ssc_app}:${INPUT.ssc_version} [${appVersionId}]`));
+                        }
                     }
+                    await vuln.tagVulns(appVersionId, scanVulns, customTagGuid, github.context.sha)
+                        .catch(error => {
+                        throw error;
+                    });
+                }
+                else {
+                    core.notice(`Current Fortify scan found no ${utils.bgBlue('NEW')} vulnerability`);
+                    core.info(utils.skipped(`Tagging Vulns with commit SHA (${github.context.sha})`));
                 }
             }
-            else {
-                core.notice('Current Fortify scan found no NEW vulnerability');
-                core.info(utils.skipped('Scan Vulns tagging'));
+            catch (error) {
+                core.error(utils.failure(`Tagging Vulns with commit SHA (${github.context.sha})`));
             }
         }
         if (github.context.eventName === 'pull_request') {
@@ -43514,7 +43532,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.skipped = exports.failure = exports.success = exports.bgGray = exports.bgRed = exports.bgGreen = exports.daysOrToday = exports.normalizeScanType = exports.getSastBaseUrl = exports.scancentralRest = exports.scancentral = exports.stringToArgsArray = exports.fcliRest = exports.fcli = exports.getScanCentralPath = exports.getEnvOrValue = exports.getFcliPath = exports.getCopyVulnsBody = exports.getCopyStateBody = exports.getCreateAppVersionBody = void 0;
+exports.skipped = exports.failure = exports.exists = exports.success = exports.bgBlue = exports.bgYellow = exports.bgGray = exports.bgRed = exports.bgGreen = exports.daysOrToday = exports.normalizeScanType = exports.getSastBaseUrl = exports.scancentralRest = exports.scancentral = exports.stringToArgsArray = exports.fcliRest = exports.fcli = exports.getScanCentralPath = exports.getEnvOrValue = exports.getFcliPath = exports.getCopyVulnsBody = exports.getCopyStateBody = exports.getCreateAppVersionBody = void 0;
 const core = __importStar(__nccwpck_require__(2186));
 const exec = __importStar(__nccwpck_require__(1514));
 // @ts-ignore
@@ -43650,7 +43668,7 @@ async function fcli(args, returnStatus = false, silent = true) {
     }
 }
 exports.fcli = fcli;
-async function fcliRest(url, method = "GET", body) {
+async function fcliRest(url, query, method = "GET", body) {
     let args = [
         'ssc',
         'rest',
@@ -43660,7 +43678,8 @@ async function fcliRest(url, method = "GET", body) {
         '--output=json'
     ];
     body ? args.push(`--data=${body}`) : null;
-    return (await fcli(args))[0];
+    query ? args.push(`--query=${query}`) : null;
+    return (await fcli(args));
 }
 exports.fcliRest = fcliRest;
 function stringToArgsArray(text) {
@@ -43763,10 +43782,22 @@ function bgGray(str) {
     return ansi_styles_1.default.bgGray.open + str + ansi_styles_1.default.bgRed.close;
 }
 exports.bgGray = bgGray;
+function bgYellow(str) {
+    return ansi_styles_1.default.bgYellow.open + str + ansi_styles_1.default.bgYellow.close;
+}
+exports.bgYellow = bgYellow;
+function bgBlue(str) {
+    return ansi_styles_1.default.bgBlue.open + str + ansi_styles_1.default.bgBlue.close;
+}
+exports.bgBlue = bgBlue;
 function success(str) {
     return `${str} ..... ${bgGreen('Success')}`;
 }
 exports.success = success;
+function exists(str) {
+    return `${str} ..... ${bgBlue('Exists')}`;
+}
+exports.exists = exists;
 function failure(str) {
     return `${str} ..... ${bgRed('Failure')}`;
 }
@@ -43808,7 +43839,7 @@ var __importStar = (this && this.__importStar) || function (mod) {
     return result;
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.auditVulns = exports.getAuditVulnsRequest = exports.convertToAppVersion = exports.tagVulns = exports.addDetails = exports.getAppVersionVulns = exports.getNewVulnByScanId = exports.getAppVersionVulnsCountTotal = exports.getAppVersionNewVulnsCount = exports.getAppVersionVulnsCount = void 0;
+exports.auditVulns = exports.getAuditVulnsRequest = exports.convertToAppVersion = exports.tagVulns = exports.addDetails = exports.getAppVersionVulns = exports.getVulnsByScanId = exports.getAppVersionVulnsCountTotal = exports.getAppVersionNewVulnsCount = exports.getAppVersionVulnsCount = void 0;
 const utils = __importStar(__nccwpck_require__(1314));
 const filterset = __importStar(__nccwpck_require__(6671));
 const core = __importStar(__nccwpck_require__(2186));
@@ -43863,48 +43894,18 @@ async function getAppVersionVulnsCountTotal(appId, filterSet, analysisType, newI
     return total;
 }
 exports.getAppVersionVulnsCountTotal = getAppVersionVulnsCountTotal;
-async function getNewVulnByScanId(appId, scanId) {
-    let vulns = [];
-    const query = `[issue age]:NEW AND [analysis type]:"sca"`;
-    let next = true;
-    let url = `/api/v1/projectVersions/${appId}/issues?q=${encodeURI(query)}&qm=issues&fields=id,revision,lastScanId`;
-    while (next) {
-        core.debug(`url: ${url}`);
-        let { data: data, count: count, responseCode: responseCode, links: links } = await utils.fcliRest(url);
-        core.debug(`responseCode ${responseCode}`);
-        if (200 <= Number(responseCode) && Number(responseCode) < 300) {
-            var jp = __nccwpck_require__(4378);
-            vulns = vulns.concat(jp.query(data, `$..[?(@.lastScanId=="${scanId}")]`));
-            if (links.next) {
-                next = true;
-                url = links.next.href.replace(core.getInput("ssc_base_url"), "");
-            }
-            else {
-                next = false;
-            }
-        }
-        else {
-            throw new Error(`getNewVulnByScanId failed with code ${responseCode}`);
-        }
-    }
-    return vulns;
+async function getVulnsByScanId(appVersionId, scanId) {
+    return await getAppVersionVulns(appVersionId, "", `lastScanId==${scanId}`, "id,revision");
 }
-exports.getNewVulnByScanId = getNewVulnByScanId;
-async function getAppVersionVulns(appId, query, fields, embed) {
+exports.getVulnsByScanId = getVulnsByScanId;
+async function getAppVersionVulns(appId, restQuery, fcliQuery, fields, embed) {
     let vulns = [];
     let url = `/api/v1/projectVersions/${appId}/issues?`;
-    url += query ? `q=${encodeURI(query)}&qm=issues&` : "";
+    url += restQuery ? `q=${encodeURI(restQuery)}&qm=issues&` : "";
     url += fields ? `fields=${fields}&` : "";
     url += embed ? `embed=${embed}&` : "";
     core.debug(`url: ${url}`);
-    let { data: data, count: count, responseCode: responseCode, links: links } = await utils.fcliRest(url);
-    core.debug(`responseCode ${responseCode}`);
-    if (200 <= Number(responseCode) && Number(responseCode) < 300) {
-        return data;
-    }
-    else {
-        throw new Error(`getFileNewVulnsInDiffHunk failed with code ${responseCode}`);
-    }
+    return await utils.fcliRest(url);
 }
 exports.getAppVersionVulns = getAppVersionVulns;
 async function addDetails(vulns, fields) {
@@ -43939,16 +43940,7 @@ async function tagVulns(appId, vulns, guid, value) {
         "issues": vulns
     };
     core.debug(body);
-    let { data: data, count: count, responseCode: responseCode, links: links } = await utils.fcliRest(`/api/v1/projectVersions/${appId}/issues/action/updateTag`, "POST", JSON.stringify(body));
-    core.debug(responseCode);
-    if (200 <= Number(responseCode) && Number(responseCode) < 300) {
-        return true;
-    }
-    else {
-        core.error(`AppVersion Commit failed with code ${responseCode}`);
-        return false;
-    }
-    return true;
+    return (await utils.fcliRest(`/api/v1/projectVersions/${appId}/issues/action/updateTag`, "POST", JSON.stringify(body))).length > 0;
 }
 exports.tagVulns = tagVulns;
 async function convertToAppVersion(vulns, appVersionId) {

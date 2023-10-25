@@ -57,52 +57,21 @@ export async function getAppVersionVulnsCountTotal(appId: number | string, filte
     return total
 }
 
-export async function getNewVulnByScanId(appId: number | string, scanId: number | string): Promise<any> {
-    let vulns: any[] = []
-    const query: string = `[issue age]:NEW AND [analysis type]:"sca"`
-    let next: boolean = true
-    let url: string = `/api/v1/projectVersions/${appId}/issues?q=${encodeURI(query)}&qm=issues&fields=id,revision,lastScanId`
-
-    while (next) {
-        core.debug(`url: ${url}`)
-        let {data: data, count: count, responseCode: responseCode, links: links} = await utils.fcliRest(url)
-        core.debug(`responseCode ${responseCode}`)
-
-        if (200 <= Number(responseCode) && Number(responseCode) < 300) {
-            var jp = require('jsonpath')
-            vulns = vulns.concat(jp.query(data, `$..[?(@.lastScanId=="${scanId}")]`))
-
-            if (links.next) {
-                next = true
-                url = links.next.href.replace(core.getInput("ssc_base_url"), "")
-            } else {
-                next = false
-            }
-        } else {
-            throw new Error(`getNewVulnByScanId failed with code ${responseCode}`)
-        }
-    }
-
-    return vulns
+export async function getVulnsByScanId(appVersionId: number | string, scanId: number | string): Promise<any> {
+   return await getAppVersionVulns(appVersionId, "", `lastScanId==${scanId}`, "id,revision" )
 }
 
-export async function getAppVersionVulns(appId: number | string, query?: string, fields?: string, embed?: string): Promise<any[]> {
+export async function getAppVersionVulns(appId: number | string, restQuery?: string, fcliQuery?: string, fields?: string, embed?: string): Promise<any[]> {
     let vulns: any[] = []
 
     let url: string = `/api/v1/projectVersions/${appId}/issues?`
-    url += query ? `q=${encodeURI(query)}&qm=issues&` : ""
+    url += restQuery ? `q=${encodeURI(restQuery)}&qm=issues&` : ""
     url += fields ? `fields=${fields}&` : ""
     url += embed ? `embed=${embed}&` : ""
 
     core.debug(`url: ${url}`)
-    let {data: data, count: count, responseCode: responseCode, links: links} = await utils.fcliRest(url)
-    core.debug(`responseCode ${responseCode}`)
 
-    if (200 <= Number(responseCode) && Number(responseCode) < 300) {
-        return data
-    } else {
-        throw new Error(`getFileNewVulnsInDiffHunk failed with code ${responseCode}`)
-    }
+    return await utils.fcliRest(url)
 }
 
 export async function addDetails(vulns: any[], fields?: string): Promise<void> {
@@ -140,22 +109,8 @@ export async function tagVulns(appId: string | number, vulns: any[], guid: strin
     }
 
     core.debug(body)
-    let {
-        data: data,
-        count: count,
-        responseCode: responseCode,
-        links: links
-    } = await utils.fcliRest(`/api/v1/projectVersions/${appId}/issues/action/updateTag`, "POST", JSON.stringify(body))
-    core.debug(responseCode)
 
-    if (200 <= Number(responseCode) && Number(responseCode) < 300) {
-        return true
-    } else {
-        core.error(`AppVersion Commit failed with code ${responseCode}`)
-        return false
-    }
-
-    return true
+    return (await utils.fcliRest(`/api/v1/projectVersions/${appId}/issues/action/updateTag`, "POST", JSON.stringify(body))).length > 0
 }
 
 export async function convertToAppVersion(vulns: any, appVersionId: string | number) {
