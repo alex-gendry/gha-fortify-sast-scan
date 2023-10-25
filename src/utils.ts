@@ -128,7 +128,7 @@ export async function fcli(args: string[], returnStatus: boolean = false, silent
             silent: silent
         }
 
-        core.debug(args.toString())
+        core.debug(`fcli ${args.join(' ')}`)
         const status = await exec.exec(getFcliPath(), args, options)
         core.debug(responseData)
 

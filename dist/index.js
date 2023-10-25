@@ -43639,7 +43639,7 @@ async function fcli(args, returnStatus = false, silent = true) {
             },
             silent: silent
         };
-        core.debug(args.toString());
+        core.debug(`fcli ${args.join(' ')}`);
         const status = await exec.exec(getFcliPath(), args, options);
         core.debug(responseData);
         return returnStatus ? status : JSON.parse(responseData);
