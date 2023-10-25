@@ -3,55 +3,40 @@ import * as core from '@actions/core'
 import * as http from "@actions/http-client";
 import fs from "fs";
 
-async function getAppVersionArtifacts(
-    appId: string | number,
-    scanType?: string, status: string | boolean = "PROCESS_COMPLETE"): Promise<any> {
+async function getAppVersionArtifacts(appId: string | number, scanType?: string, status: string = "PROCESS_COMPLETE"): Promise<any> {
     let args = [
         'ssc',
-        'appversion-artifact',
+        'artifact',
         'list',
         `--appversion=${appId}`,
         '--output=json'
     ]
 
-    args = status
-        ? args.concat([`-q=status=${status}`])
-        : args
-    args = scanType
-        ? args.concat([`-q=scanTypes=${scanType}`])
-        : args
+    const query = `status=='${status}'${scanType ? ` && scanTypes == '${scanType}'` : ''}`
+    args = args.concat([`-q`, query])
 
     return await utils.fcli(args)
 }
 
-export async function getLatestArtifact(
-    appId: string | number,
-    scanType: string
-): Promise<any> {
+export async function getLatestArtifact(appId: string | number, scanType: string): Promise<any> {
     let jsonRes = await getAppVersionArtifacts(appId, scanType)
 
     return jsonRes[0]
 }
 
-export async function getLatestSastArtifact(
-    appId: string | number
-): Promise<any> {
+export async function getLatestSastArtifact(appId: string | number): Promise<any> {
     let jsonRes = await getAppVersionArtifacts(appId, "SCA")
 
     return jsonRes[0]
 }
 
-export async function getLatestDastArtifact(
-    appId: string | number
-): Promise<any> {
+export async function getLatestDastArtifact(appId: string | number): Promise<any> {
     let jsonRes = await getAppVersionArtifacts(appId, "WEBINSPECT")
 
     return jsonRes[0]
 }
 
-export async function getLatestScaArtifact(
-    appId: string | number
-): Promise<any> {
+export async function getLatestScaArtifact(appId: string | number): Promise<any> {
     let jsonRes = await getAppVersionArtifacts(appId, "SONATYPE")
 
     return jsonRes[0]
@@ -83,7 +68,7 @@ export async function uploadArtifact(appId: string | number, filePath: string): 
 
         const response = await utils.fcli(args)
 
-        if (["REQUIRE_AUTH", "SCHED_PROCESSING", "PROCESSING", "PROCESSED"].includes(response.status) ) {
+        if (["REQUIRE_AUTH", "SCHED_PROCESSING", "PROCESSING", "PROCESSED"].includes(response.status)) {
             return response.id
         } else {
             throw new Error(`Artifact Upload finished with status ${response.status}`)
@@ -129,7 +114,7 @@ export async function waitForArtifactUpload(artifactId: string | number): Promis
             ['ssc', 'artifact', 'wait-for', artifactId.toString(),
                 // `--while=REQUIRE_AUTH|SCHED_PROCESSING|PROCESSING`,'--no-progress',
                 `--on-failure-state=terminate`, `--on-unknown-state=terminate`,
-                `--interval=10s`, '--progress=none' , '--output=json',]
+                `--interval=10s`, '--progress=none', '--output=json',]
         ))[0]
 
         if (response.status === "PROCESS_COMPLETE") {

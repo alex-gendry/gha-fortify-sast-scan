@@ -27,7 +27,6 @@ export async function getAppVersionVulnsCount(appId: number | string, filterSet:
     core.debug(url)
 
     return await utils.fcliRest(url)
-
 }
 
 

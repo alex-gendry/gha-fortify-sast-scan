@@ -9,21 +9,8 @@ export async function getPerformanceIndicatorByName(
 
     const url = `/api/v1/projectVersions/${appId}/performanceIndicatorHistories?q=name:${encodeURI(performanceIndicatorName)}`
     core.debug(url)
-    let jsonRes = await utils.fcli([
-        'ssc',
-        'rest',
-        'call',
-        url,
-        '--output=json'
-    ])
-    const responseCode = jsonRes[0].responseCode
-    core.debug(responseCode)
 
-    if (200 <= Number(responseCode) && Number(responseCode) < 300) {
-        return jsonRes[0].data[0]
-    } else {
-        throw new Error(`GET performanceIndicatorHistories failed with code ${responseCode}`)
-    }
+    return await utils.fcliRest(url)
 }
 
 export async function getPerformanceIndicatorValueByName(

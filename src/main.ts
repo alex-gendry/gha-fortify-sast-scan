@@ -191,11 +191,13 @@ export async function run(): Promise<void> {
         core.info(utils.success("Security Gate execution"))
 
         /** Job Summary */
-        await summary.setJobSummary(INPUT, passedSecurityGate).catch(error => {
-            core.error(error.message)
-            core.setFailed(`Job Summary construction failed`)
-            process.exit(core.ExitCode.Failure)
-        })
+        core.info(`Job Summary generation`)
+        await summary.setJobSummary(appVersionId, passedSecurityGate, INPUT.summary_filterset, INPUT.security_gate_filterset)
+            .catch(error => {
+                core.error(error.message)
+                core.warning(utils.failure(`Job Summary generation`))
+            })
+        core.info(utils.success(`Job Summary generation`))
 
         core.setOutput('time', new Date().toTimeString())
     } catch (error) {

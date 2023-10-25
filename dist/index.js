@@ -42253,17 +42253,13 @@ const fs_1 = __importDefault(__nccwpck_require__(7147));
 async function getAppVersionArtifacts(appId, scanType, status = "PROCESS_COMPLETE") {
     let args = [
         'ssc',
-        'appversion-artifact',
+        'artifact',
         'list',
         `--appversion=${appId}`,
         '--output=json'
     ];
-    args = status
-        ? args.concat([`-q=status=${status}`])
-        : args;
-    args = scanType
-        ? args.concat([`-q=scanTypes=${scanType}`])
-        : args;
+    const query = `status=='${status}'${scanType ? ` && scanTypes == '${scanType}'` : ''}`;
+    args = args.concat([`-q`, query]);
     return await utils.fcli(args);
 }
 async function getLatestArtifact(appId, scanType) {
@@ -42677,11 +42673,13 @@ async function run() {
         });
         core.info(utils.success("Security Gate execution"));
         /** Job Summary */
-        await summary.setJobSummary(INPUT, passedSecurityGate).catch(error => {
+        core.info(`Job Summary generation`);
+        await summary.setJobSummary(appVersionId, passedSecurityGate, INPUT.summary_filterset, INPUT.security_gate_filterset)
+            .catch(error => {
             core.error(error.message);
-            core.setFailed(`Job Summary construction failed`);
-            process.exit(core.ExitCode.Failure);
+            core.warning(utils.failure(`Job Summary generation`));
         });
+        core.info(utils.success(`Job Summary generation`));
         core.setOutput('time', new Date().toTimeString());
     }
     catch (error) {
@@ -42730,21 +42728,7 @@ const core = __importStar(__nccwpck_require__(2186));
 async function getPerformanceIndicatorByName(appId, performanceIndicatorName) {
     const url = `/api/v1/projectVersions/${appId}/performanceIndicatorHistories?q=name:${encodeURI(performanceIndicatorName)}`;
     core.debug(url);
-    let jsonRes = await utils.fcli([
-        'ssc',
-        'rest',
-        'call',
-        url,
-        '--output=json'
-    ]);
-    const responseCode = jsonRes[0].responseCode;
-    core.debug(responseCode);
-    if (200 <= Number(responseCode) && Number(responseCode) < 300) {
-        return jsonRes[0].data[0];
-    }
-    else {
-        throw new Error(`GET performanceIndicatorHistories failed with code ${responseCode}`);
-    }
+    return await utils.fcliRest(url);
 }
 exports.getPerformanceIndicatorByName = getPerformanceIndicatorByName;
 async function getPerformanceIndicatorValueByName(appId, performanceIndicatorName) {
@@ -43346,7 +43330,6 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.setJobSummary = void 0;
 const core = __importStar(__nccwpck_require__(2186));
 const vuln = __importStar(__nccwpck_require__(4002));
-const appversion = __importStar(__nccwpck_require__(3538));
 const filterset = __importStar(__nccwpck_require__(6671));
 const artifact = __importStar(__nccwpck_require__(4571));
 const utils = __importStar(__nccwpck_require__(1314));
@@ -43466,33 +43449,33 @@ async function getScansSummaryTable(appId) {
 function getAsLink(text, link) {
     return `<a target="_blank" href="${link}">${text}</a>`;
 }
-async function setJobSummary(INPUT, passedSecurityage) {
-    const appId = await appversion.getAppVersionId(INPUT.ssc_app, INPUT.ssc_version);
-    const securityRating = await performanceindicator.getPerformanceIndicatorValueByName(appId, 'Fortify Security Rating').catch(error => {
+async function setJobSummary(appVersionId, passedSecurityage, summaryFilterSet, securityGateFilterSet) {
+    const securityRating = await performanceindicator.getPerformanceIndicatorValueByName(appVersionId, 'Fortify Security Rating')
+        .catch(error => {
         core.warning("Failed to get Security Rating");
         return 0;
     });
     let n = 0;
     const securityStars = ":white_circle::white_circle::white_circle::white_circle::white_circle:".replace(/white_circle/g, match => n++ < securityRating ? "star" : match);
-    const appVersionUrl = `${INPUT.ssc_base_url}/html/ssc/version/${appId}/audit`;
-    const securityRatingsUrl = `${INPUT.ssc_base_url}/html/ssc/version/${appId}/trend?versionTrendDateRange=YEAR&versionTrendParam=performanceIndicators%3A%3AFortifySecurityRating`;
-    const securityGateUrl = `${INPUT.ssc_base_url}/html/ssc/version/${appId}/audit?filterset=${await filterset.getFilterSetGuid(appId, INPUT.security_gate_filterset)}`;
+    const appVersionUrl = `${core.getInput('ssc_base_url')}/html/ssc/version/${appVersionId}/audit`;
+    const securityRatingsUrl = `${core.getInput('ssc_base_url')}/html/ssc/version/${appVersionId}/trend?versionTrendDateRange=YEAR&versionTrendParam=performanceIndicators%3A%3AFortifySecurityRating`;
+    const securityGateUrl = `${core.getInput('ssc_base_url')}/html/ssc/version/${appVersionId}/audit?filterset=${await filterset.getFilterSetGuid(appVersionId, securityGateFilterSet)}`;
     await core.summary
         .addImage('https://cdn.asp.events/CLIENT_CloserSt_D86EA381_5056_B739_5482D50A1A831DDD/sites/CSWA-2023/media/libraries/exhibitors/Ezone-cover.png/fit-in/1500x9999/filters:no_upscale()', 'Fortify by OpenText CyberSecurity', { width: "600" })
         .addHeading('Fortify AST Results')
         .addRaw(`:date: Summary Date: ${new Date().toLocaleString('fr-FR')}`)
         .addHeading(':clipboard: Executive Summary', 2)
         .addTable([
-        [`<b>Application</b>`, INPUT.ssc_app, `<b>Application Version</b>`, `${getAsLink(INPUT.ssc_version, appVersionUrl)}`]
+        [`<b>Application</b>`, core.getInput('ssc_app'), `<b>Application Version</b>`, `${getAsLink(core.getInput('ssc_version'), appVersionUrl)}`]
     ])
         .addTable([
         [`<p><b>${getAsLink("Fortify Security Rating", securityRatingsUrl)}</b>: ${securityStars}</p>`],
         [`<p><b>${getAsLink("Security Gate Status", securityGateUrl)}</b> :   ${passedSecurityage ? 'Passed :white_check_mark:' : 'Failed :x:'}</p>`]
     ])
-        .addTable(await getScansSummaryTable(appId))
+        .addTable(await getScansSummaryTable(appVersionId))
         .addHeading(':signal_strength: Security Findings', 2)
-        .addRaw(`<p>:telescope: <b>Filter Set</b>: ${INPUT.summary_filterset}</p>`, true)
-        .addTable(await getVulnsByScanProductTable(appId, INPUT.summary_filterset))
+        .addRaw(`<p>:telescope: <b>Filter Set</b>: ${summaryFilterSet}</p>`, true)
+        .addTable(await getVulnsByScanProductTable(appVersionId, summaryFilterSet))
         .write();
 }
 exports.setJobSummary = setJobSummary;
