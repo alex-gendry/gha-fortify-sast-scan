@@ -44,8 +44,16 @@ export async function getAppVersionVulnsCountTotal(appId: number | string, filte
     return total
 }
 
-export async function getVulnsByScanId(appVersionId: number | string, scanId: number | string): Promise<any> {
-    return await getAppVersionVulns(appVersionId, "", `lastScanId==${scanId}`, "id,revision")
+export async function getVulnsByScanId(appVersionId: number | string, scanId: number | string, newIssues?: boolean): Promise<any> {
+    let restQuery: string = ""
+    if (newIssues) {
+        restQuery = "[issue age]:NEW"
+    }
+    return await getAppVersionVulns(appVersionId, restQuery, `lastScanId==${scanId}`, "id,revision")
+}
+
+export async function getNewVulnsByScanId(appVersionId: number | string, scanId: number | string): Promise<any> {
+    return await getVulnsByScanId(appVersionId, scanId, true)
 }
 
 export async function getAppVersionVulns(appId: number | string, restQuery?: string, fcliQuery?: string, fields?: string, embed?: string): Promise<any[]> {
@@ -58,7 +66,7 @@ export async function getAppVersionVulns(appId: number | string, restQuery?: str
 
     core.debug(`url: ${url}`)
 
-    return await utils.fcliRest(url)
+    return await utils.fcliRest(url, 'GET', '', fcliQuery)
 }
 
 export async function addDetails(vulns: any[], fields?: string): Promise<void> {

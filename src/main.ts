@@ -11,7 +11,7 @@ import * as pullrequest from './pullrequest'
 import * as process from "process";
 import * as github from "@actions/github";
 import * as artifact from "./artifact";
-import {getVulnsByScanId} from "./vuln";
+import {getNewVulnsByScanId, getVulnsByScanId} from "./vuln";
 
 const INPUT = {
     ssc_base_url: core.getInput('ssc_base_url', {required: true}),
@@ -135,7 +135,7 @@ export async function run(): Promise<void> {
 
             try {
                 core.info(`Tagging Vulns with commit SHA (${github.context.sha})`)
-                const scanVulns = await vuln.getVulnsByScanId(appVersionId, scan.id)
+                const scanVulns = await vuln.getNewVulnsByScanId(appVersionId, scan.id)
                 if (scanVulns.length) {
                     const customTagGuid = core.getInput("ssc_commit_customtag_guid")
                     core.info(`Checking if ${INPUT.ssc_app}:${INPUT.ssc_version} [${appVersionId}] has Commit CustomTag (guid: ${customTagGuid})`)

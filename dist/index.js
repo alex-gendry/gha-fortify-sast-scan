@@ -42619,7 +42619,7 @@ async function run() {
             core.info(utils.success(`Scan ${scan.id} execution, upload, processing`));
             try {
                 core.info(`Tagging Vulns with commit SHA (${github.context.sha})`);
-                const scanVulns = await vuln.getVulnsByScanId(appVersionId, scan.id);
+                const scanVulns = await vuln.getNewVulnsByScanId(appVersionId, scan.id);
                 if (scanVulns.length) {
                     const customTagGuid = core.getInput("ssc_commit_customtag_guid");
                     core.info(`Checking if ${INPUT.ssc_app}:${INPUT.ssc_version} [${appVersionId}] has Commit CustomTag (guid: ${customTagGuid})`);
@@ -43823,7 +43823,7 @@ var __importStar = (this && this.__importStar) || function (mod) {
     return result;
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.auditVulns = exports.getAuditVulnsRequest = exports.convertToAppVersion = exports.tagVulns = exports.addDetails = exports.getAppVersionVulns = exports.getVulnsByScanId = exports.getAppVersionVulnsCountTotal = exports.getAppVersionNewVulnsCount = exports.getAppVersionVulnsCount = void 0;
+exports.auditVulns = exports.getAuditVulnsRequest = exports.convertToAppVersion = exports.tagVulns = exports.addDetails = exports.getAppVersionVulns = exports.getNewVulnsByScanId = exports.getVulnsByScanId = exports.getAppVersionVulnsCountTotal = exports.getAppVersionNewVulnsCount = exports.getAppVersionVulnsCount = void 0;
 const utils = __importStar(__nccwpck_require__(1314));
 const filterset = __importStar(__nccwpck_require__(6671));
 const core = __importStar(__nccwpck_require__(2186));
@@ -43864,10 +43864,18 @@ async function getAppVersionVulnsCountTotal(appId, filterSet, analysisType, newI
     return total;
 }
 exports.getAppVersionVulnsCountTotal = getAppVersionVulnsCountTotal;
-async function getVulnsByScanId(appVersionId, scanId) {
-    return await getAppVersionVulns(appVersionId, "", `lastScanId==${scanId}`, "id,revision");
+async function getVulnsByScanId(appVersionId, scanId, newIssues) {
+    let restQuery = "";
+    if (newIssues) {
+        restQuery = "[issue age]:NEW";
+    }
+    return await getAppVersionVulns(appVersionId, restQuery, `lastScanId==${scanId}`, "id,revision");
 }
 exports.getVulnsByScanId = getVulnsByScanId;
+async function getNewVulnsByScanId(appVersionId, scanId) {
+    return await getVulnsByScanId(appVersionId, scanId, true);
+}
+exports.getNewVulnsByScanId = getNewVulnsByScanId;
 async function getAppVersionVulns(appId, restQuery, fcliQuery, fields, embed) {
     let vulns = [];
     let url = `/api/v1/projectVersions/${appId}/issues?`;
@@ -43875,7 +43883,7 @@ async function getAppVersionVulns(appId, restQuery, fcliQuery, fields, embed) {
     url += fields ? `fields=${fields}&` : "";
     url += embed ? `embed=${embed}&` : "";
     core.debug(`url: ${url}`);
-    return await utils.fcliRest(url);
+    return await utils.fcliRest(url, 'GET', '', fcliQuery);
 }
 exports.getAppVersionVulns = getAppVersionVulns;
 async function addDetails(vulns, fields) {
