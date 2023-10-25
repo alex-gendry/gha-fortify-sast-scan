@@ -42444,8 +42444,8 @@ const utils = __importStar(__nccwpck_require__(1314));
 async function getFilterSet(appId, filterSetName) {
     return await utils.fcli([
         'ssc',
-        'appversion-filterset',
-        'get',
+        'issue',
+        'get-filterset',
         filterSetName,
         `--appversion=${appId}`,
         '--output=json'
