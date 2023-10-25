@@ -42344,7 +42344,7 @@ async function waitForArtifactUpload(artifactId) {
         await utils.fcli(['ssc', 'artifact', 'wait-for', artifactId.toString(),
             // `--while=REQUIRE_AUTH|SCHED_PROCESSING|PROCESSING`,
             `--on-failure-state=terminate`, `--on-unknown-state=terminate`, `--interval=10s`], true, false);
-        let response = (await utils.fcli(['ssc', 'appversion-artifact', 'wait-for', artifactId.toString(),
+        let response = (await utils.fcli(['ssc', 'artifact', 'wait-for', artifactId.toString(),
             // `--while=REQUIRE_AUTH|SCHED_PROCESSING|PROCESSING`,'--no-progress',
             `--on-failure-state=terminate`, `--on-unknown-state=terminate`,
             `--interval=10s`, '--progress=none', '--output=json',]))[0];
@@ -42590,10 +42590,10 @@ async function run() {
             core.info(`SAST scan submission`);
             const jobToken = await sast.startSastScan(packagePath).catch(error => {
                 core.error(error.message);
-                core.setFailed(utils.failure(`Submitting SAST scan`));
+                core.setFailed(utils.failure(`SAST scan submission`));
                 process.exit(core.ExitCode.Failure);
             });
-            core.info(utils.success(`Submitting SAST scan`));
+            core.info(utils.success(`SAST scan submission`));
             core.info(`SAST scan execution (jobToken: ${jobToken})`);
             await sast.waitForSastScan(jobToken).then(result => {
                 if (!result) {

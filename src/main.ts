@@ -90,10 +90,10 @@ export async function run(): Promise<void> {
             core.info(`SAST scan submission`)
             const jobToken: string = await sast.startSastScan(packagePath).catch(error => {
                 core.error(error.message)
-                core.setFailed(utils.failure(`Submitting SAST scan`))
+                core.setFailed(utils.failure(`SAST scan submission`))
                 process.exit(core.ExitCode.Failure)
             })
-            core.info(utils.success(`Submitting SAST scan`))
+            core.info(utils.success(`SAST scan submission`))
             core.info(`SAST scan execution (jobToken: ${jobToken})`)
             await sast.waitForSastScan(jobToken).then(result => {
                 if (!result) {
