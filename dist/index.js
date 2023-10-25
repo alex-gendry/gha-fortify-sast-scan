@@ -43865,21 +43865,7 @@ async function getAppVersionVulnsCount(appId, filterSet, analysisType, newIssues
     core.debug(query);
     const url = `/api/v1/projectVersions/${appId}/issueGroups?filterset=${await filterset.getFilterSetGuid(appId, filterSet)}&groupingtype=FOLDER${query.length ? `&qm=issues&q=${encodeURI(query)}` : ""}`;
     core.debug(url);
-    let jsonRes = await utils.fcli([
-        'ssc',
-        'rest',
-        'call',
-        url,
-        '--output=json'
-    ]);
-    const responseCode = jsonRes[0].responseCode;
-    core.debug(responseCode);
-    if (200 <= Number(responseCode) && Number(responseCode) < 300) {
-        return jsonRes[0].data;
-    }
-    else {
-        throw new Error(`issueSummaries failed with code ${responseCode}`);
-    }
+    return await utils.fcliRest(url);
 }
 exports.getAppVersionVulnsCount = getAppVersionVulnsCount;
 async function getAppVersionNewVulnsCount(appId, filterSet, analysisType) {
