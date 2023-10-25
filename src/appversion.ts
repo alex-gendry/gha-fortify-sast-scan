@@ -176,21 +176,26 @@ async function copyAppVersionAudit(source: string | number, target: string | num
     const vulns = await vuln.getAppVersionVulns(source, "", "id,issueInstanceId,revision", "auditValues")
     await vuln.convertToAppVersion(vulns, target)
 
+    let requests: any[] = []
     await Promise.all(
         vulns.map(async function (vulnTmp: any) {
             // const customTagUniqueValues: string[] = Array.from(new Set(jp.query(vulns, `$..[?(@.customTagGuid=="${customTag.guid}")].textValue`)))
-            if(vulnTmp._embed.auditValues.length){
-                await vuln.auditVulns(
+            if (vulnTmp._embed.auditValues.length) {
+                requests.push(vuln.getAuditVulnsRequest(
                     target,
                     [{
                         "id": vulnTmp.id,
                         "revision": vulnTmp.revision
                     }],
-                    vulnTmp._embed.auditValues)
+                    vulnTmp._embed.auditValues))
             }
 
         })
     )
+
+    console.log(requests)
+
+    await utils.fcliRest("/api/v1/bulk", "POST", JSON.stringify({"requests": requests}))
 
     return true
 }

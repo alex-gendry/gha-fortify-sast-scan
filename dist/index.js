@@ -41975,15 +41975,18 @@ async function copyAppVersionAudit(source, target) {
     const customTags = await getAppVersionCustomTags(source, "id,guid,name,valueType,valueList");
     const vulns = await vuln.getAppVersionVulns(source, "", "id,issueInstanceId,revision", "auditValues");
     await vuln.convertToAppVersion(vulns, target);
+    let requests = [];
     await Promise.all(vulns.map(async function (vulnTmp) {
         // const customTagUniqueValues: string[] = Array.from(new Set(jp.query(vulns, `$..[?(@.customTagGuid=="${customTag.guid}")].textValue`)))
         if (vulnTmp._embed.auditValues.length) {
-            await vuln.auditVulns(target, [{
+            requests.push(vuln.getAuditVulnsRequest(target, [{
                     "id": vulnTmp.id,
                     "revision": vulnTmp.revision
-                }], vulnTmp._embed.auditValues);
+                }], vulnTmp._embed.auditValues));
         }
     }));
+    console.log(requests);
+    await utils.fcliRest("/api/v1/bulk", "POST", JSON.stringify({ "requests": requests }));
     return true;
 }
 async function copyAppVersionState(source, target) {
@@ -42559,6 +42562,7 @@ async function run() {
         }
         /** Does the AppVersion exists ? */
         const appVersionId = await appversion.getOrCreateAppVersionId(INPUT.ssc_app, INPUT.ssc_version, INPUT.ssc_source_app, INPUT.ssc_source_version);
+        process.exit(core.ExitCode.Failure);
         /** SAST Scan Execution */
         if (INPUT.sast_scan) {
             /** Source code packaging */
@@ -43771,7 +43775,7 @@ var __importStar = (this && this.__importStar) || function (mod) {
     return result;
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.auditVulns = exports.convertToAppVersion = exports.tagVulns = exports.addDetails = exports.getAppVersionVulns = exports.getNewVulnByScanId = exports.getAppVersionVulnsCountTotal = exports.getAppVersionNewVulnsCount = exports.getAppVersionVulnsCount = void 0;
+exports.auditVulns = exports.getAuditVulnsRequest = exports.convertToAppVersion = exports.tagVulns = exports.addDetails = exports.getAppVersionVulns = exports.getNewVulnByScanId = exports.getAppVersionVulnsCountTotal = exports.getAppVersionNewVulnsCount = exports.getAppVersionVulnsCount = void 0;
 const utils = __importStar(__nccwpck_require__(1314));
 const filterset = __importStar(__nccwpck_require__(6671));
 const core = __importStar(__nccwpck_require__(2186));
@@ -43929,6 +43933,19 @@ async function convertToAppVersion(vulns, appVersionId) {
     });
 }
 exports.convertToAppVersion = convertToAppVersion;
+function getAuditVulnsRequest(appVersionId, vulns, customTagAudits) {
+    const body = {
+        "issues": vulns,
+        "customTagAudit": customTagAudits
+    };
+    const uri = `/api/v1/projectVersions/${appVersionId}/issues/action/audit`;
+    return {
+        "httpVerb": "POST",
+        "postData": body,
+        "uri": core.getInput('ssc_base_url') + uri
+    };
+}
+exports.getAuditVulnsRequest = getAuditVulnsRequest;
 async function auditVulns(appVersionId, vulns, customTagAudits) {
     let body = {
         "issues": vulns,
