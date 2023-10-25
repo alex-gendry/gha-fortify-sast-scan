@@ -42090,7 +42090,7 @@ async function addCustomTag(appId, customTagGuid) {
     const body = {
         guid: customTagGuid
     };
-    return (await utils.fcliRest(url, "POST", JSON.stringify(body))).length > 0;
+    return (await utils.fcliRest(url, "", "POST", JSON.stringify(body))).length > 0;
 }
 exports.addCustomTag = addCustomTag;
 async function runAppVersionCreation(app, version, source_app, source_version) {
