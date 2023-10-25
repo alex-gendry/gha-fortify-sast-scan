@@ -173,6 +173,21 @@ export async function convertToAppVersion(vulns: any, appVersionId: string | num
     })
 }
 
+export function getAuditVulnsRequest(appVersionId: string | number, vulns: any[], customTagAudits: any[]) {
+    const body: any = {
+        "issues": vulns,
+        "customTagAudit": customTagAudits
+    }
+
+    const uri = `/api/v1/projectVersions/${appVersionId}/issues/action/audit`
+
+    return {
+        "httpVerb": "POST",
+        "postData": body,
+        "uri": core.getInput('ssc_base_url') + uri
+    }
+}
+
 export async function auditVulns(appVersionId: string | number, vulns: any[], customTagAudits: any[]) {
     let body: any = {
         "issues": vulns,
