@@ -1,11 +1,9 @@
 import * as utils from './utils'
+import * as vuln from './vuln'
 import * as core from '@actions/core'
 import process from "process";
 
-export async function getAppVersionId(
-    app: string,
-    version: string
-): Promise<number> {
+export async function getAppVersionId(app: string, version: string): Promise<number> {
     let jsonRes = await utils.fcli([
         'ssc',
         'appversion',
@@ -24,10 +22,24 @@ export async function getAppVersionId(
     }
 }
 
-export async function appVersionExists(
-    app: string,
-    version: string
-): Promise<number | string> {
+async function getAppVersionCustomTags(appVersionId: string | number, fields?: string): Promise<any> {
+    const url = `/api/v1/projectVersions/${appVersionId}/customTags?${fields ? `fields=${fields}&` : ""}`
+    let {
+        data: data,
+        count: count,
+        responseCode: responseCode,
+        links: links
+    } = await utils.fcliRest(url)
+
+    if (200 <= Number(responseCode) && Number(responseCode) < 300) {
+        return data
+    } else {
+        core.error(`Getting CustomTags from appVersion ${appVersionId} failed with code ${responseCode}`)
+        return false
+    }
+}
+
+export async function appVersionExists(app: string, version: string): Promise<number | string> {
     let jsonRes = await utils.fcli([
         'ssc',
         'appversion',
@@ -72,10 +84,7 @@ async function commitAppVersion(id: string): Promise<boolean> {
     }
 }
 
-async function setAppVersionIssueTemplate(
-    appId: string,
-    template: string
-): Promise<boolean> {
+async function setAppVersionIssueTemplate(appId: string, template: string): Promise<boolean> {
     let jsonRes = await utils.fcli([
         'ssc',
         'appversion',
@@ -95,10 +104,7 @@ async function setAppVersionIssueTemplate(
     }
 }
 
-async function setAppVersionAttribute(
-    appId: string,
-    attribute: string
-): Promise<boolean> {
+async function setAppVersionAttribute(appId: string, attribute: string): Promise<boolean> {
     try {
         let jsonRes = await utils.fcli([
             'ssc',
@@ -118,10 +124,7 @@ async function setAppVersionAttribute(
     }
 }
 
-async function setAppVersionAttributes(
-    appId: string,
-    attributes: string[]
-): Promise<boolean> {
+async function setAppVersionAttributes(appId: string, attributes: string[]): Promise<boolean> {
     await Promise.all(
         attributes.map(async attribute => {
             core.debug(`Assigning ${attribute} to ${appId}`)
@@ -137,10 +140,7 @@ async function setAppVersionAttributes(
     return true
 }
 
-async function copyAppVersionVulns(
-    source: string | number,
-    target: string | number
-): Promise<boolean> {
+async function copyAppVersionVulns(source: string | number, target: string | number): Promise<boolean> {
     core.debug(`Copying AppVersion Vulnerabilities ${source} -> ${target}`)
 
     const copyVulnsBodyJson = utils.getCopyVulnsBody(source, target)
@@ -168,10 +168,34 @@ async function copyAppVersionVulns(
     }
 }
 
-async function copyAppVersionState(
-    source: string,
-    target: string
-): Promise<any> {
+async function copyAppVersionAudit(source: string | number, target: string | number): Promise<boolean> {
+    var jp = require('jsonpath')
+    core.debug(`Copying AppVersion Audit values ${source} -> ${target}`)
+    core.debug(`Get CustomTag list from AppVersion ${source}`)
+    const customTags = await getAppVersionCustomTags(source, "id,guid,name,valueType,valueList")
+    const vulns = await vuln.getAppVersionVulns(source, "", "id,issueInstanceId,revision", "auditValues")
+    await vuln.convertToAppVersion(vulns, target)
+
+    await Promise.all(
+        vulns.map(async function (vulnTmp: any) {
+            // const customTagUniqueValues: string[] = Array.from(new Set(jp.query(vulns, `$..[?(@.customTagGuid=="${customTag.guid}")].textValue`)))
+            if(vulnTmp._embed.auditValues.length){
+                await vuln.auditVulns(
+                    target,
+                    [{
+                        "id": vulnTmp.id,
+                        "revision": vulnTmp.revision
+                    }],
+                    vulnTmp._embed.auditValues)
+            }
+
+        })
+    )
+
+    return true
+}
+
+async function copyAppVersionState(source: string, target: string): Promise<any> {
     core.debug(`Copying AppVersion State ${source} -> ${target}`)
 
     const copyStateBodyJson = utils.getCopyStateBody(source, target)
@@ -372,9 +396,8 @@ async function runAppVersionCreation(app: string, version: string, source_app?: 
     if (core.getInput('copy_vulns') && sourceAppVersionId) {
         core.info(`Copy Vulnerabilities from ${source_app}:${source_version} to ${app}:${version}`
         )
-        if (
-            await copyAppVersionVulns(sourceAppVersionId, appVersion['id'])
-        ) {
+        if (await copyAppVersionVulns(sourceAppVersionId, appVersion.id)) {
+            await copyAppVersionAudit(sourceAppVersionId, appVersion.id)
             core.info(`Copy Vulnerabilities from ${source_app}:${source_version} to ${app}:${version}` + " ..... " + utils.bgGreen('Success'))
         } else {
             core.warning(`Copy Vulnerabilities from ${source_app}:${source_version} to ${app}:${version}` + " ..... " + utils.bgRed('Failure'))

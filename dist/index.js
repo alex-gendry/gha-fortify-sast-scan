@@ -41821,6 +41821,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.getOrCreateAppVersionId = exports.addCustomTag = exports.appVersionExists = exports.getAppVersionId = void 0;
 const utils = __importStar(__nccwpck_require__(1314));
+const vuln = __importStar(__nccwpck_require__(4002));
 const core = __importStar(__nccwpck_require__(2186));
 const process_1 = __importDefault(__nccwpck_require__(7282));
 async function getAppVersionId(app, version) {
@@ -41842,6 +41843,17 @@ async function getAppVersionId(app, version) {
     }
 }
 exports.getAppVersionId = getAppVersionId;
+async function getAppVersionCustomTags(appVersionId, fields) {
+    const url = `/api/v1/projectVersions/${appVersionId}/customTags?${fields ? `fields=${fields}&` : ""}`;
+    let { data: data, count: count, responseCode: responseCode, links: links } = await utils.fcliRest(url);
+    if (200 <= Number(responseCode) && Number(responseCode) < 300) {
+        return data;
+    }
+    else {
+        core.error(`Getting CustomTags from appVersion ${appVersionId} failed with code ${responseCode}`);
+        return false;
+    }
+}
 async function appVersionExists(app, version) {
     let jsonRes = await utils.fcli([
         'ssc',
@@ -41955,6 +41967,24 @@ async function copyAppVersionVulns(source, target) {
         core.error(`AppVersion Copy Vulns failed with code ${responseCode}`);
         return false;
     }
+}
+async function copyAppVersionAudit(source, target) {
+    var jp = __nccwpck_require__(4378);
+    core.debug(`Copying AppVersion Audit values ${source} -> ${target}`);
+    core.debug(`Get CustomTag list from AppVersion ${source}`);
+    const customTags = await getAppVersionCustomTags(source, "id,guid,name,valueType,valueList");
+    const vulns = await vuln.getAppVersionVulns(source, "", "id,issueInstanceId,revision", "auditValues");
+    await vuln.convertToAppVersion(vulns, target);
+    await Promise.all(vulns.map(async function (vulnTmp) {
+        // const customTagUniqueValues: string[] = Array.from(new Set(jp.query(vulns, `$..[?(@.customTagGuid=="${customTag.guid}")].textValue`)))
+        if (vulnTmp._embed.auditValues.length) {
+            await vuln.auditVulns(target, [{
+                    "id": vulnTmp.id,
+                    "revision": vulnTmp.revision
+                }], vulnTmp._embed.auditValues);
+        }
+    }));
+    return true;
 }
 async function copyAppVersionState(source, target) {
     core.debug(`Copying AppVersion State ${source} -> ${target}`);
@@ -42135,7 +42165,8 @@ async function runAppVersionCreation(app, version, source_app, source_version) {
     /** COPY VULNS: run the AppVersion Copy vulns */
     if (core.getInput('copy_vulns') && sourceAppVersionId) {
         core.info(`Copy Vulnerabilities from ${source_app}:${source_version} to ${app}:${version}`);
-        if (await copyAppVersionVulns(sourceAppVersionId, appVersion['id'])) {
+        if (await copyAppVersionVulns(sourceAppVersionId, appVersion.id)) {
+            await copyAppVersionAudit(sourceAppVersionId, appVersion.id);
             core.info(`Copy Vulnerabilities from ${source_app}:${source_version} to ${app}:${version}` + " ..... " + utils.bgGreen('Success'));
         }
         else {
@@ -42472,7 +42503,6 @@ const pullrequest = __importStar(__nccwpck_require__(5885));
 const process = __importStar(__nccwpck_require__(7282));
 const github = __importStar(__nccwpck_require__(5438));
 const artifact = __importStar(__nccwpck_require__(4571));
-const pullrequest_1 = __nccwpck_require__(5885);
 const INPUT = {
     ssc_base_url: core.getInput('ssc_base_url', { required: true }),
     ssc_ci_token: core.getInput('ssc_ci_token', { required: false }),
@@ -42512,7 +42542,7 @@ async function run() {
         if (github.context.eventName === "pull_request") {
             core.info("Pull Request detected");
             core.info("Waiting for PR's related commits check runs to complete");
-            const completed = await (0, pullrequest_1.waitForPullRunsCompleted)().catch(error => {
+            const completed = await pullrequest.waitForPullRunsCompleted().catch(error => {
                 core.warning(`Something went wrong while waiting for PR's related commits check runs to complete: ${error.message}`);
             });
             if (completed) {
@@ -42525,8 +42555,10 @@ async function run() {
             INPUT.ssc_source_app = INPUT.ssc_app;
             INPUT.ssc_source_version = github.context.payload.head.ref;
         }
+        INPUT.ssc_source_version = "1.0-gh-secrets";
         /** Does the AppVersion exists ? */
         const appVersionId = await appversion.getOrCreateAppVersionId(INPUT.ssc_app, INPUT.ssc_version, INPUT.ssc_source_app, INPUT.ssc_source_version);
+        process.exit(core.ExitCode.Failure);
         /** SAST Scan Execution */
         if (INPUT.sast_scan) {
             /** Source code packaging */
@@ -43739,7 +43771,7 @@ var __importStar = (this && this.__importStar) || function (mod) {
     return result;
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.tagVulns = exports.addDetails = exports.getAppVersionVulns = exports.getNewVulnByScanId = exports.getAppVersionVulnsCountTotal = exports.getAppVersionNewVulnsCount = exports.getAppVersionVulnsCount = void 0;
+exports.auditVulns = exports.convertToAppVersion = exports.tagVulns = exports.addDetails = exports.getAppVersionVulns = exports.getNewVulnByScanId = exports.getAppVersionVulnsCountTotal = exports.getAppVersionNewVulnsCount = exports.getAppVersionVulnsCount = void 0;
 const utils = __importStar(__nccwpck_require__(1314));
 const filterset = __importStar(__nccwpck_require__(6671));
 const core = __importStar(__nccwpck_require__(2186));
@@ -43821,16 +43853,12 @@ async function getNewVulnByScanId(appId, scanId) {
     return vulns;
 }
 exports.getNewVulnByScanId = getNewVulnByScanId;
-async function getAppVersionVulns(appId, query, fields) {
+async function getAppVersionVulns(appId, query, fields, embed) {
     let vulns = [];
-    let url = `/api/v1/projectVersions/${appId}/issues`;
-    // ?q=${encodeURI(query)}&qm=issues${fields ? `&fields=${fields}` : ""}
-    if (query && fields) {
-        url += `?q=${encodeURI(query)}&qm=issues&fields=${fields}`;
-    }
-    else if (query || fields) {
-        url += `?${query ? `q=${encodeURI(query)}&qm=issues` : `fields=${fields}`}`;
-    }
+    let url = `/api/v1/projectVersions/${appId}/issues?`;
+    url += query ? `q=${encodeURI(query)}&qm=issues&` : "";
+    url += fields ? `fields=${fields}&` : "";
+    url += embed ? `embed=${embed}&` : "";
     core.debug(`url: ${url}`);
     let { data: data, count: count, responseCode: responseCode, links: links } = await utils.fcliRest(url);
     core.debug(`responseCode ${responseCode}`);
@@ -43886,6 +43914,39 @@ async function tagVulns(appId, vulns, guid, value) {
     return true;
 }
 exports.tagVulns = tagVulns;
+async function convertToAppVersion(vulns, appVersionId) {
+    const targetVulns = await getAppVersionVulns(appVersionId, "", "id,issueInstanceId,revision");
+    var jp = __nccwpck_require__(4378);
+    vulns.forEach(function (vuln, index, vulns) {
+        const targetVuln = jp.query(targetVulns, `$..[?(@.issueInstanceId=="${vuln.issueInstanceId}")]`)[0];
+        if (targetVuln.id) {
+            vuln.id = targetVuln.id;
+            vuln.revision = targetVuln.revision;
+        }
+        else {
+            vulns.splice(index, 1);
+        }
+    });
+}
+exports.convertToAppVersion = convertToAppVersion;
+async function auditVulns(appVersionId, vulns, customTagAudits) {
+    let body = {
+        "issues": vulns,
+        "customTagAudit": customTagAudits
+    };
+    core.debug(body);
+    let { data: data, count: count, responseCode: responseCode, links: links } = await utils.fcliRest(`/api/v1/projectVersions/${appVersionId}/issues/action/audit`, "POST", JSON.stringify(body).replace("customTagIndex", "newCustomTagIndex"));
+    core.debug(responseCode);
+    if (200 <= Number(responseCode) && Number(responseCode) < 300) {
+        return true;
+    }
+    else {
+        core.error(`AppVersion Commit failed with code ${responseCode}`);
+        return false;
+    }
+    return true;
+}
+exports.auditVulns = auditVulns;
 
 
 /***/ }),

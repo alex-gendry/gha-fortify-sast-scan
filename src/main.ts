@@ -10,8 +10,6 @@ import * as pullrequest from './pullrequest'
 import * as process from "process";
 import * as github from "@actions/github";
 import * as artifact from "./artifact";
-import {appVersionExists} from "./appversion";
-import {waitForPullRunsCompleted} from "./pullrequest";
 
 const INPUT = {
     ssc_base_url: core.getInput('ssc_base_url', {required: true}),
@@ -54,7 +52,7 @@ export async function run(): Promise<void> {
         if (github.context.eventName === "pull_request") {
             core.info("Pull Request detected")
             core.info("Waiting for PR's related commits check runs to complete")
-            const completed: boolean | void = await waitForPullRunsCompleted().catch(error => {
+            const completed: boolean | void = await pullrequest.waitForPullRunsCompleted().catch(error => {
                 core.warning(`Something went wrong while waiting for PR's related commits check runs to complete: ${error.message}`)
             })
             if (completed) {
@@ -67,9 +65,11 @@ export async function run(): Promise<void> {
             INPUT.ssc_source_version = github.context.payload.head.ref
         }
 
+        INPUT.ssc_source_version = "1.0-gh-secrets"
         /** Does the AppVersion exists ? */
         const appVersionId = await appversion.getOrCreateAppVersionId(INPUT.ssc_app, INPUT.ssc_version, INPUT.ssc_source_app, INPUT.ssc_source_version)
 
+        process.exit(core.ExitCode.Failure)
         /** SAST Scan Execution */
         if (INPUT.sast_scan) {
             /** Source code packaging */

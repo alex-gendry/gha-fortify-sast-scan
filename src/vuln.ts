@@ -86,16 +86,14 @@ export async function getNewVulnByScanId(appId: number | string, scanId: number 
     return vulns
 }
 
-export async function getAppVersionVulns(appId: number | string, query?: string, fields?: string): Promise<any[]> {
+export async function getAppVersionVulns(appId: number | string, query?: string, fields?: string, embed?: string): Promise<any[]> {
     let vulns: any[] = []
 
-    let url: string = `/api/v1/projectVersions/${appId}/issues`
-    // ?q=${encodeURI(query)}&qm=issues${fields ? `&fields=${fields}` : ""}
-    if (query && fields) {
-        url += `?q=${encodeURI(query)}&qm=issues&fields=${fields}`
-    } else if (query || fields) {
-        url += `?${query ? `q=${encodeURI(query)}&qm=issues` : `fields=${fields}`}`
-    }
+    let url: string = `/api/v1/projectVersions/${appId}/issues?`
+    url += query ? `q=${encodeURI(query)}&qm=issues&` : ""
+    url += fields ? `fields=${fields}&` : ""
+    url += embed ? `embed=${embed}&` : ""
+
     core.debug(`url: ${url}`)
     let {data: data, count: count, responseCode: responseCode, links: links} = await utils.fcliRest(url)
     core.debug(`responseCode ${responseCode}`)
@@ -148,6 +146,46 @@ export async function tagVulns(appId: string | number, vulns: any[], guid: strin
         responseCode: responseCode,
         links: links
     } = await utils.fcliRest(`/api/v1/projectVersions/${appId}/issues/action/updateTag`, "POST", JSON.stringify(body))
+    core.debug(responseCode)
+
+    if (200 <= Number(responseCode) && Number(responseCode) < 300) {
+        return true
+    } else {
+        core.error(`AppVersion Commit failed with code ${responseCode}`)
+        return false
+    }
+
+    return true
+}
+
+export async function convertToAppVersion(vulns: any, appVersionId: string | number) {
+    const targetVulns = await getAppVersionVulns(appVersionId, "", "id,issueInstanceId,revision")
+    var jp = require('jsonpath')
+
+    vulns.forEach(function (vuln: any, index: number, vulns: any[]) {
+        const targetVuln = jp.query(targetVulns, `$..[?(@.issueInstanceId=="${vuln.issueInstanceId}")]`)[0]
+        if (targetVuln.id) {
+            vuln.id = targetVuln.id
+            vuln.revision = targetVuln.revision
+        } else {
+            vulns.splice(index, 1)
+        }
+    })
+}
+
+export async function auditVulns(appVersionId: string | number, vulns: any[], customTagAudits: any[]) {
+    let body: any = {
+        "issues": vulns,
+        "customTagAudit": customTagAudits
+    }
+
+    core.debug(body)
+    let {
+        data: data,
+        count: count,
+        responseCode: responseCode,
+        links: links
+    } = await utils.fcliRest(`/api/v1/projectVersions/${appVersionId}/issues/action/audit`, "POST", JSON.stringify(body).replace("customTagIndex", "newCustomTagIndex"))
     core.debug(responseCode)
 
     if (200 <= Number(responseCode) && Number(responseCode) < 300) {
