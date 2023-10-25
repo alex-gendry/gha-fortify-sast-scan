@@ -42341,11 +42341,13 @@ async function downloadArtifact(jobToken) {
 exports.downloadArtifact = downloadArtifact;
 async function waitForArtifactUpload(artifactId) {
     try {
-        await utils.fcli(['ssc', 'appversion-artifact', 'wait-for', artifactId.toString(), `--while=REQUIRE_AUTH|SCHED_PROCESSING|PROCESSING`,
+        await utils.fcli(['ssc', 'artifact', 'wait-for', artifactId.toString(),
+            // `--while=REQUIRE_AUTH|SCHED_PROCESSING|PROCESSING`,
             `--on-failure-state=terminate`, `--on-unknown-state=terminate`, `--interval=10s`], true, false);
-        let response = (await utils.fcli(['ssc', 'appversion-artifact', 'wait-for', artifactId.toString(), `--while=REQUIRE_AUTH|SCHED_PROCESSING|PROCESSING`,
+        let response = (await utils.fcli(['ssc', 'appversion-artifact', 'wait-for', artifactId.toString(),
+            // `--while=REQUIRE_AUTH|SCHED_PROCESSING|PROCESSING`,'--no-progress',
             `--on-failure-state=terminate`, `--on-unknown-state=terminate`,
-            `--interval=10s`, '--no-progress', '--output=json',]))[0];
+            `--interval=10s`, '--progress=none', '--output=json',]))[0];
         if (response.status === "PROCESS_COMPLETE") {
             return { id: response._embed.scans[0].id, date: response.lastScanDate };
         }
