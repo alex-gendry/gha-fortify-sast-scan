@@ -44,8 +44,7 @@ export async function appVersionExists(app: string, version: string): Promise<nu
         'ssc',
         'appversion',
         'list',
-        `-q=application.name=${app}`,
-        `-q=name=${version}`,
+        `--query=application.name=='${app}' && name=='${version}'`,
         '--output=json'
     ])
 
@@ -192,8 +191,6 @@ async function copyAppVersionAudit(source: string | number, target: string | num
 
         })
     )
-
-    console.log(requests)
 
     await utils.fcliRest("/api/v1/bulk", "POST", JSON.stringify({"requests": requests}))
 
@@ -365,28 +362,30 @@ async function runAppVersionCreation(app: string, version: string, source_app?: 
     /** ISSUE TEMPLATE : set AppVersion Issue template */
     core.info("Setting AppVersion's Issue Template")
     await setAppVersionIssueTemplate(appVersion.id, core.getInput('ssc_version_issue_template'))
+        .then(() => core.info(`Setting AppVersion's Issue Template to ${app}:${version}` + " ..... " + utils.bgGreen('Success')))
         .catch(error => {
             core.warning(`${error.message}`)
-            core.warning(`Failed to set Issue Temmplate ${core.getInput('ssc_version_issue_template')} to ${app}:${version}`)
+            core.warning(`Setting AppVersion's Issue Template to ${app}:${version}` + " ..... " + utils.bgRed('Failure'))
             // process.exit(core.ExitCode.Failure)
         })
 
     /** ATTRIBUTES : set AppVersion attributes */
     core.info("Setting AppVersion's Attributes")
     await setAppVersionAttributes(appVersion.id, core.getMultilineInput('ssc_version_attributes'))
+        .then(() => core.info(`Setting AppVersion's Attributes to ${app}:${version}` + " ..... " + utils.bgGreen('Success')))
         .catch(error => {
             core.warning(`${error.message}`)
-            core.warning(`Failed to set Attributes to ${app}:${version}`)
+            core.warning(`Setting AppVersion's Issue Template to ${app}:${version}` + " ..... " + utils.bgRed('Failure'))
             // process.exit(core.ExitCode.Failure)
         })
 
     /** COMMIT: Commit the AppVersion */
     core.info(`Committing AppVersion ${appVersion.project.name}:${appVersion.name} (id: ${appVersion.id})`)
     await commitAppVersion(appVersion.id)
-        .then(() => core.info(`SUCCESS: Committing AppVersion ${appVersion.project.name}:${appVersion.name} (id: ${appVersion.id})`))
+        .then(() => core.info(`Committing AppVersion ${appVersion.project.name}:${appVersion.name} (id: ${appVersion.id})` + " ..... " + utils.bgGreen('Success')))
         .catch(async function (error) {
             core.error(error.message)
-            core.error(`FAILURE: Committing AppVersion ${appVersion.project.name}:${appVersion.name} (id: ${appVersion.id})`)
+            core.error(`Committing AppVersion ${appVersion.project.name}:${appVersion.name} (id: ${appVersion.id})` + " ..... " + utils.bgRed('Failure'))
 
             /** delete uncommited AppVersion */
             core.info("Trying to delete uncommitted version")
@@ -399,11 +398,18 @@ async function runAppVersionCreation(app: string, version: string, source_app?: 
 
     /** COPY VULNS: run the AppVersion Copy vulns */
     if (core.getInput('copy_vulns') && sourceAppVersionId) {
-        core.info(`Copy Vulnerabilities from ${source_app}:${source_version} to ${app}:${version}`
-        )
+        core.info(`Copy Vulnerabilities from ${source_app}:${source_version} to ${app}:${version}`)
         if (await copyAppVersionVulns(sourceAppVersionId, appVersion.id)) {
-            await copyAppVersionAudit(sourceAppVersionId, appVersion.id)
             core.info(`Copy Vulnerabilities from ${source_app}:${source_version} to ${app}:${version}` + " ..... " + utils.bgGreen('Success'))
+
+            core.info(`Copy Audit from ${source_app}:${source_version} to ${app}:${version}`)
+            await copyAppVersionAudit(sourceAppVersionId, appVersion.id)
+                .then(() => core.info(`Copy Audit from ${source_app}:${source_version} to ${app}:${version}` + " ..... " + utils.bgGreen('Success')))
+                .catch(error => {
+                    core.warning(`${error.message}`)
+                    core.warning(`Copy Audit from ${source_app}:${source_version} to ${app}:${version}` + " ..... " + utils.bgRed('Failure'))
+                    // process.exit(core.ExitCode.Failure)
+                })
         } else {
             core.warning(`Copy Vulnerabilities from ${source_app}:${source_version} to ${app}:${version}` + " ..... " + utils.bgRed('Failure'))
             core.info(`Copy Vulnerabilities from ${source_app}:${source_version} to ${app}:${version}` + " ..... " + utils.bgRed('Skipped'))
@@ -414,7 +420,7 @@ async function runAppVersionCreation(app: string, version: string, source_app?: 
 }
 
 export async function getOrCreateAppVersionId(app: string, version: string, source_app?: string, source_version?: string): Promise<number> {
-    core.info(`Checking if AppVersion ${app}:${version} exists`)
+    core.info(`Retrieving AppVersion ${app}:${version}`)
     let appVersionId = await appVersionExists(app, version)
         .catch(error => {
             core.error(`${error.message}`)

@@ -5,7 +5,8 @@ export async function packageSourceCode(buildOpts: string, packagePath: string):
     return await utils.scancentral(
         ['package'].concat(
             utils.stringToArgsArray(buildOpts).concat(['-o', packagePath])
-        )
+        ),
+        !core.isDebug()
     )
 }
 
@@ -14,7 +15,7 @@ export async function startSastScan(packagePath: string): Promise<string> {
         'sc-sast',
         'scan',
         'start',
-        '--no-upload',
+        // '--no-upload',
         // '--upload',
         // `--appversion=${app}:${version}`,
         `--sensor-version=23.1.0`,
@@ -34,13 +35,15 @@ export async function startSastScan(packagePath: string): Promise<string> {
 
 export async function waitForSastScan(jobToken: string): Promise<boolean> {
     await utils.fcli(
-        ['sc-sast', 'scan', 'wait-for', jobToken, `--status-type=scan`, `--while=PENDING|QUEUED|RUNNING`,
+        ['sc-sast', 'scan', 'wait-for', jobToken,
+            // `--status-type=scan`, `--while=PENDING|QUEUED|RUNNING`,
             `--interval=1m`, `--on-failure-state=terminate`, `--on-unknown-state=terminate`],
         true, false
     )
     let jsonRes = await utils.fcli(
-        ['sc-sast', 'scan', 'wait-for', jobToken, `--status-type=scan`, `--while=PENDING|QUEUED|RUNNING`,
-            `--interval=1m`, '--no-progress', '--output=json',
+        ['sc-sast', 'scan', 'wait-for', jobToken,
+            // `--status-type=scan`, `--while=PENDING|QUEUED|RUNNING`, '--no-progress'
+            `--interval=1m`, '--progress=none' , '--output=json',
             `--on-failure-state=terminate`, `--on-unknown-state=terminate`]
     )
 

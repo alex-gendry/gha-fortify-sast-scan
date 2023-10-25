@@ -73,9 +73,9 @@ export async function uploadArtifact(appId: string | number, filePath: string): 
     try {
         let args = [
             'ssc',
-            'appversion-artifact',
+            'artifact',
             'upload',
-            filePath,
+            `--file=${filePath}`,
             `--appversion=${appId}`,
             // `--engine-type=${engineType}`,
             '--output=json'

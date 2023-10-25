@@ -261,3 +261,15 @@ export function bgRed(str: string): string {
 export function bgGray(str: string): string {
     return styles.bgGray.open + str + styles.bgRed.close
 }
+
+export function success(str: string):string {
+    return `${str} ..... ${bgGreen('Success')}`
+}
+
+export function failure(str: string):string {
+    return `${str} ..... ${bgRed('Failure')}`
+}
+
+export function skipped(str: string):string {
+    return `${str} ..... ${bgGray('Skipped')}`
+}

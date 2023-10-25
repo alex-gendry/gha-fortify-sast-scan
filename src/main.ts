@@ -6,6 +6,7 @@ import * as summary from './summary'
 import * as securitygate from './securitygate'
 import * as customtag from './customtag'
 import * as vuln from './vuln'
+import * as utils from './utils'
 import * as pullrequest from './pullrequest'
 import * as process from "process";
 import * as github from "@actions/github";
@@ -61,7 +62,6 @@ export async function run(): Promise<void> {
                 core.warning("All PR's related commits check runs did not complete")
             }
             if(github.context.payload.pull_request){
-                core.info(`Copy AppVersion from ${INPUT.ssc_app}:${github.context.payload.pull_request.head.ref}`)
                 INPUT.ssc_source_app = INPUT.ssc_app
                 INPUT.ssc_source_version = github.context.payload.pull_request.head.ref
             }
@@ -77,63 +77,74 @@ export async function run(): Promise<void> {
             const packagePath = "package.zip"
             await sast.packageSourceCode(INPUT.sast_build_options, packagePath).then(packaged => {
                 if (packaged != 0) {
-                    throw new Error('Source code packaging failed')
+                    throw new Error(utils.failure(`Packaging source code with "${INPUT.sast_build_options}"`))
                 }
             }).catch(error => {
                 core.error(error.message)
-                core.setFailed(`Failed to package source code with "${INPUT.sast_build_options}"`)
+                core.setFailed(utils.failure(`Packaging source code with "${INPUT.sast_build_options}"`))
                 process.exit(core.ExitCode.Failure)
             })
+            core.info(utils.success(`Packaging source code with "${INPUT.sast_build_options}"`))
 
             /** SAST scan submisison */
-            core.info(`Submitting SAST scan`)
+            core.info(`SAST scan submission`)
             const jobToken: string = await sast.startSastScan(packagePath).catch(error => {
                 core.error(error.message)
-                core.setFailed(`SAST start scan failed`)
+                core.setFailed(utils.failure(`Submitting SAST scan`))
                 process.exit(core.ExitCode.Failure)
             })
+            core.info(utils.success(`Submitting SAST scan`))
+            core.info(`SAST scan execution (jobToken: ${jobToken})`)
             await sast.waitForSastScan(jobToken).then(result => {
                 if (!result) {
-                    throw new Error('SAST Scan Failed')
+                    throw new Error(utils.failure(`SAST scan execution (jobToken: ${jobToken})`))
                 } else {
-                    core.info(`SAST Scan is successfuly executed`)
+                    core.info(utils.success(`SAST scan execution (jobToken: ${jobToken})`))
                 }
             }).catch(error => {
                 core.error(error.message)
-                core.setFailed(`Wait fo SAST start scan failed`)
+                core.setFailed(utils.failure(`SAST scan execution (jobToken: ${jobToken})`))
                 process.exit(core.ExitCode.Failure)
             })
 
-            // const jobToken = "f63a7e04-a1df-410a-ade7-ad0885df333f"
-
+            core.info(`Artifact Download (jobToken: ${jobToken})`)
             const fprPath = await artifact.downloadArtifact(jobToken).catch(error => {
                 core.error(error.message)
-                core.setFailed(`Failed to download scan artifact for job ${jobToken}`)
+                core.setFailed(utils.failure(`Artifact Download (jobToken: ${jobToken})`))
                 process.exit(core.ExitCode.Failure)
             })
+            core.info(utils.success(`Artifact Download (jobToken: ${jobToken})`))
+
+            core.info(`Artifact Upload to ${INPUT.ssc_app}:${INPUT.ssc_version} [${appVersionId}]`)
             const artifactId = await artifact.uploadArtifact(appVersionId, fprPath).catch(error => {
                 core.error(error.message)
-                core.setFailed(`Failed to upload scan artifact for appVersion ${appVersionId}`)
+                core.setFailed(utils.failure(`Artifact Upload to ${INPUT.ssc_app}:${INPUT.ssc_version} [${appVersionId}]`))
                 process.exit(core.ExitCode.Failure)
             })
+            core.info(utils.success(`Artifact Upload to ${INPUT.ssc_app}:${INPUT.ssc_version} [${appVersionId}]`))
+
+            core.info(`Artifact Processing [${artifactId}]`)
             const scan = await artifact.waitForArtifactUpload(artifactId).catch(error => {
                 core.error(error.message)
-                core.setFailed(`Failed to wait for scan artifact processing [artifactId: ${artifactId} / appVersion: ${appVersionId}]`)
+                core.setFailed(utils.failure(`Artifact Processing [${artifactId}]`))
                 process.exit(core.ExitCode.Failure)
             })
-            core.info(`Scan ${scan.id} succesfully uploaded`)
+            core.info(utils.success(`Artifact Processing [${artifactId}]`))
+            core.info(utils.success(`Scan ${scan.id} execution, upload, processing`))
 
+            core.info('Scan Vulns tagging')
             const scanVulns = await vuln.getNewVulnByScanId(appVersionId, scan.id)
             if (scanVulns.length) {
                 const customTagGuid = core.getInput("ssc_commit_customtag_guid")
                 if (await customtag.commitCustomTagExists(customTagGuid)) {
-                    core.info("Tagging new vulns with commit SHA")
-                    core.info(`Adding CustomTag to ${INPUT.ssc_app}:${INPUT.ssc_version} (${appVersionId})`)
                     if (await appversion.addCustomTag(appVersionId, customTagGuid)) {
                         const scanVulns = await vuln.getNewVulnByScanId(appVersionId, scan.id)
                         await vuln.tagVulns(appVersionId, scanVulns, customTagGuid, github.context.sha)
                     }
                 }
+            } else {
+                core.notice('Current Fortify scan found no NEW vulnerability')
+                core.info(utils.skipped('Scan Vulns tagging'))
             }
         }
         if (github.context.eventName === 'pull_request') {
