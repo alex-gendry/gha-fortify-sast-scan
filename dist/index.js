@@ -42206,7 +42206,7 @@ async function appVersionHasCustomTag(AppVersionId, customTagGuid) {
         `--q-param=id:${AppVersionId}`,
         `--embed=customTags`,
         `--output=json`,
-        `--query="customTags.![guid].contains('${customTagGuid}')"`], true, false)).length > 0;
+        `-q`, `customTags.![guid].contains('${customTagGuid}')`], true, false)).length > 0;
 }
 exports.appVersionHasCustomTag = appVersionHasCustomTag;
 
