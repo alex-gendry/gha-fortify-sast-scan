@@ -67,7 +67,6 @@ export async function run(): Promise<void> {
             }
         }
 
-        INPUT.ssc_source_version = "1.0-gh-secrets"
         /** Does the AppVersion exists ? */
         const appVersionId = await appversion.getOrCreateAppVersionId(INPUT.ssc_app, INPUT.ssc_version, INPUT.ssc_source_app, INPUT.ssc_source_version)
 
