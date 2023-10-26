@@ -7,7 +7,7 @@ async function hasActiveSscSession(base_url: string): Promise<boolean> {
             'ssc',
             'session',
             'list',
-            '--query=name=default',
+            '-q','name==default',
             '--output=json'
         ])
 
@@ -30,7 +30,7 @@ async function hasActiveSastSession(base_url: string): Promise<boolean> {
             'sc-sast',
             'session',
             'list',
-            '--query=name=default',
+            '-q','name==default',
             '--output=json'
         ])
 

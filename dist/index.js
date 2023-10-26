@@ -42979,7 +42979,7 @@ async function hasActiveSscSession(base_url) {
             'ssc',
             'session',
             'list',
-            '--query=name=default',
+            '-q', 'name==default',
             '--output=json'
         ]);
         if (Object.keys(jsonRes).length > 0) {
@@ -43000,7 +43000,7 @@ async function hasActiveSastSession(base_url) {
             'sc-sast',
             'session',
             'list',
-            '--query=name=default',
+            '-q', 'name==default',
             '--output=json'
         ]);
         if (Object.keys(jsonRes).length > 0) {
@@ -43549,7 +43549,7 @@ async function fcliRest(url, method = "GET", body, query) {
         '--output=json'
     ];
     body ? args.push(`--data=${body}`) : null;
-    query ? args.push(`--query=${query}`) : null;
+    query ? args.concat([`-q`, `${query}`]) : null;
     return (await fcli(args));
 }
 exports.fcliRest = fcliRest;

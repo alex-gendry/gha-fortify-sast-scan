@@ -151,7 +151,7 @@ export async function fcliRest(url: string, method: string = "GET", body?: strin
         '--output=json'
     ]
     body ? args.push(`--data=${body}`) : null
-    query ? args.push(`--query=${query}`) : null
+    query ? args.concat([`-q`,`${query}`]) : null
 
     return (await fcli(args))
 }
