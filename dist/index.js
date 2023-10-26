@@ -42776,10 +42776,7 @@ async function decorate(appVersionId) {
                 }
             }));
             if (comments.length) {
-                core.debug(`comments:`);
-                if (core.isDebug()) {
-                    console.log(comments);
-                }
+                utils.debugGroup(`comments:`, comments);
                 await octokit.request('POST /repos/{owner}/{repo}/pulls/{pull_number}/reviews', {
                     owner: github.context.issue.owner,
                     repo: github.context.repo.repo,
@@ -43810,7 +43807,7 @@ exports.getAppVersionVulns = getAppVersionVulns;
 async function addDetails(vulns, fields) {
     await Promise.all(vulns.map(async (vuln) => {
         const url = `/api/v1/issueDetails/${vuln.id}`;
-        let data = await utils.fcliRest(url);
+        let data = (await utils.fcliRest(url))[0];
         utils.debugGroup(`Vuln ${vuln.id} details:`, data);
         if (data.length) {
             if (fields) {

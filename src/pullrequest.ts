@@ -133,10 +133,7 @@ export async function decorate(appVersionId: string | number): Promise<any> {
             }))
 
             if (comments.length) {
-                core.debug(`comments:`)
-                if(core.isDebug()){
-                    console.log(comments)
-                }
+                utils.debugGroup(`comments:`, comments)
                 await octokit.request('POST /repos/{owner}/{repo}/pulls/{pull_number}/reviews', {
                     owner: github.context.issue.owner,
                     repo: github.context.repo.repo,

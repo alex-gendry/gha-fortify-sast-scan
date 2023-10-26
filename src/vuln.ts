@@ -70,7 +70,7 @@ export async function addDetails(vulns: any[], fields?: string): Promise<void> {
     await Promise.all(
         vulns.map(async vuln => {
             const url = `/api/v1/issueDetails/${vuln.id}`
-            let data = await utils.fcliRest(url)
+            let data = (await utils.fcliRest(url))[0]
             utils.debugGroup(`Vuln ${vuln.id} details:`, data)
             if(data.length){
                 if (fields) {
