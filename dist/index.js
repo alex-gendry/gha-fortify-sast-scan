@@ -42867,10 +42867,10 @@ async function startSastScan(packagePath) {
 }
 exports.startSastScan = startSastScan;
 async function waitForSastScan(jobToken) {
-    await utils.fcli(['sc-sast', 'scan', 'wait-for', jobToken,
+    await core.group(`SAST scan execution (jobToken: ${jobToken})`, await utils.fcli(['sc-sast', 'scan', 'wait-for', jobToken,
         // `--status-type=scan`, `--while=PENDING|QUEUED|RUNNING`,
         `--interval=1m`, `--on-failure-state=terminate`, `--on-unknown-state=terminate`,
-        `--output=expr=SAST scan execution (jobToken: {jobToken}) ... {scanState}`], true, false);
+        `--output=expr=SAST scan execution (jobToken: {jobToken}) ... {scanState}`], true, false));
     let data = await utils.fcli(['sc-sast', 'scan', 'wait-for', jobToken,
         // `--status-type=scan`, `--while=PENDING|QUEUED|RUNNING`, '--no-progress'
         `--interval=1m`, '--progress=none', '--output=json',
