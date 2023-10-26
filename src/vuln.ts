@@ -74,10 +74,8 @@ export async function addDetails(vulns: any[], fields?: string): Promise<void> {
         vulns.map(async vuln => {
             const url = `/api/v1/issueDetails/${vuln.id}`
             core.debug(`url: ${url}`)
-            let {data: data, count: count, responseCode: responseCode, links: links} = await utils.fcliRest(url)
-            core.debug(`responseCode ${responseCode}`)
-
-            if (200 <= Number(responseCode) && Number(responseCode) < 300) {
+            let data = await utils.fcliRest(url)
+            if(data.length){
                 if (fields) {
                     vuln.details = {}
                     fields.split(",").forEach(field => {
@@ -86,10 +84,7 @@ export async function addDetails(vulns: any[], fields?: string): Promise<void> {
                 } else {
                     vuln.details = data
                 }
-            } else {
-                core.warning(`addDetails failed with code ${responseCode} for vuln ${vuln.id}`)
             }
-
         })
     )
 }
@@ -144,21 +139,6 @@ export async function auditVulns(appVersionId: string | number, vulns: any[], cu
         "customTagAudit": customTagAudits
     }
 
-    core.debug(body)
-    let {
-        data: data,
-        count: count,
-        responseCode: responseCode,
-        links: links
-    } = await utils.fcliRest(`/api/v1/projectVersions/${appVersionId}/issues/action/audit`, "POST", JSON.stringify(body).replace("customTagIndex", "newCustomTagIndex"))
-    core.debug(responseCode)
+    return await utils.fcliRest(`/api/v1/projectVersions/${appVersionId}/issues/action/audit`, "POST", JSON.stringify(body).replace("customTagIndex", "newCustomTagIndex"))
 
-    if (200 <= Number(responseCode) && Number(responseCode) < 300) {
-        return true
-    } else {
-        core.error(`AppVersion Commit failed with code ${responseCode}`)
-        return false
-    }
-
-    return true
 }

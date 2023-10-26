@@ -21,19 +21,8 @@ export async function getAppVersionId(app: string, version: string): Promise<num
 
 async function getAppVersionCustomTags(appVersionId: string | number, fields?: string): Promise<any> {
     const url = `/api/v1/projectVersions/${appVersionId}/customTags?${fields ? `fields=${fields}&` : ""}`
-    let {
-        data: data,
-        count: count,
-        responseCode: responseCode,
-        links: links
-    } = await utils.fcliRest(url)
+    return await utils.fcliRest(url)
 
-    if (200 <= Number(responseCode) && Number(responseCode) < 300) {
-        return data
-    } else {
-        core.error(`Getting CustomTags from appVersion ${appVersionId} failed with code ${responseCode}`)
-        return false
-    }
 }
 
 export async function appVersionExists(app: string, version: string): Promise<boolean> {
@@ -46,26 +35,7 @@ async function commitAppVersion(id: string): Promise<boolean> {
     const commitBodyJson = JSON.parse(`{"committed": "true"}`)
     core.debug(JSON.stringify(commitBodyJson))
 
-    let jsonRes = await utils.fcli([
-        'ssc',
-        'rest',
-        'call',
-        `/api/v1/projectVersions/${id}`,
-        '-d',
-        JSON.stringify(commitBodyJson),
-        `-X`,
-        'PUT',
-        '--output=json'
-    ])
-    const responseCode = jsonRes[0].responseCode
-    core.debug(responseCode)
-
-    if (200 <= Number(responseCode) && Number(responseCode) < 300) {
-        return true
-    } else {
-        core.error(`AppVersion Commit failed with code ${responseCode}`)
-        return false
-    }
+    return await utils.fcliRest(`/api/v1/projectVersions/${id}`, 'PUT', JSON.stringify(commitBodyJson))
 }
 
 async function setAppVersionIssueTemplate(appId: string, template: string): Promise<boolean> {
@@ -130,26 +100,7 @@ async function copyAppVersionVulns(source: string | number, target: string | num
     const copyVulnsBodyJson = utils.getCopyVulnsBody(source, target)
     core.debug(JSON.stringify(copyVulnsBodyJson))
 
-    let jsonRes = await utils.fcli([
-        'ssc',
-        'rest',
-        'call',
-        '/api/v1/projectVersions/action/copyCurrentState',
-        '-d',
-        JSON.stringify(copyVulnsBodyJson),
-        `-X`,
-        'POST',
-        '--output=json'
-    ])
-    const responseCode = jsonRes[0].responseCode
-    core.debug(responseCode)
-
-    if (200 <= Number(responseCode) && Number(responseCode) < 300) {
-        return true
-    } else {
-        core.error(`AppVersion Copy Vulns failed with code ${responseCode}`)
-        return false
-    }
+    return await utils.fcliRest('/api/v1/projectVersions/action/copyCurrentState','POST', JSON.stringify(copyVulnsBodyJson))
 }
 
 async function copyAppVersionAudit(source: string | number, target: string | number): Promise<boolean> {
@@ -188,49 +139,14 @@ async function copyAppVersionState(source: string, target: string): Promise<any>
     const copyStateBodyJson = utils.getCopyStateBody(source, target)
     core.debug(JSON.stringify(copyStateBodyJson))
 
-    let jsonRes = await utils.fcli([
-        'ssc',
-        'rest',
-        'call',
-        '/api/v1/projectVersions/action/copyFromPartial',
-        '-d',
-        JSON.stringify(copyStateBodyJson),
-        `-X`,
-        'POST',
-        '--output=json'
-    ])
-    const responseCode = jsonRes[0].responseCode
-    core.debug(responseCode)
-
-    if (200 <= Number(responseCode) && Number(responseCode) < 300) {
-        return true
-    } else {
-        core.error(`AppVersion Copy State failed with code ${responseCode}`)
-        return false
-    }
+    return await utils.fcliRest('/api/v1/projectVersions/action/copyFromPartial', 'POST', JSON.stringify(copyStateBodyJson))
 }
 
 async function deleteAppVersion(id: any): Promise<boolean> {
     core.debug(`Deleting AppVersion ${id}`)
 
-    let jsonRes = await utils.fcli([
-        'ssc',
-        'rest',
-        'call',
-        `/api/v1/projectVersions/${id}`,
-        `-X`,
-        'DELETE',
-        '--output=json'
-    ])
-    const responseCode = jsonRes[0].responseCode
-    core.debug(responseCode)
+    return await utils.fcliRest(`/api/v1/projectVersions/${id}`, 'DELETE')
 
-    if (200 <= Number(responseCode) && Number(responseCode) < 300) {
-        return true
-    } else {
-        core.error(`AppVersion Deletion failed with code ${responseCode}`)
-        return false
-    }
 }
 
 async function getAppId(app: string): Promise<number> {

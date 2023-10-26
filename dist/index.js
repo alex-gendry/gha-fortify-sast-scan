@@ -41842,14 +41842,7 @@ async function getAppVersionId(app, version) {
 exports.getAppVersionId = getAppVersionId;
 async function getAppVersionCustomTags(appVersionId, fields) {
     const url = `/api/v1/projectVersions/${appVersionId}/customTags?${fields ? `fields=${fields}&` : ""}`;
-    let { data: data, count: count, responseCode: responseCode, links: links } = await utils.fcliRest(url);
-    if (200 <= Number(responseCode) && Number(responseCode) < 300) {
-        return data;
-    }
-    else {
-        core.error(`Getting CustomTags from appVersion ${appVersionId} failed with code ${responseCode}`);
-        return false;
-    }
+    return await utils.fcliRest(url);
 }
 async function appVersionExists(app, version) {
     return (await getAppVersionId(app, version)) > 0;
@@ -41859,26 +41852,7 @@ async function commitAppVersion(id) {
     core.debug(`Committing AppVersion ${id}`);
     const commitBodyJson = JSON.parse(`{"committed": "true"}`);
     core.debug(JSON.stringify(commitBodyJson));
-    let jsonRes = await utils.fcli([
-        'ssc',
-        'rest',
-        'call',
-        `/api/v1/projectVersions/${id}`,
-        '-d',
-        JSON.stringify(commitBodyJson),
-        `-X`,
-        'PUT',
-        '--output=json'
-    ]);
-    const responseCode = jsonRes[0].responseCode;
-    core.debug(responseCode);
-    if (200 <= Number(responseCode) && Number(responseCode) < 300) {
-        return true;
-    }
-    else {
-        core.error(`AppVersion Commit failed with code ${responseCode}`);
-        return false;
-    }
+    return await utils.fcliRest(`/api/v1/projectVersions/${id}`, 'PUT', JSON.stringify(commitBodyJson));
 }
 async function setAppVersionIssueTemplate(appId, template) {
     let jsonRes = await utils.fcli([
@@ -41931,26 +41905,7 @@ async function copyAppVersionVulns(source, target) {
     core.debug(`Copying AppVersion Vulnerabilities ${source} -> ${target}`);
     const copyVulnsBodyJson = utils.getCopyVulnsBody(source, target);
     core.debug(JSON.stringify(copyVulnsBodyJson));
-    let jsonRes = await utils.fcli([
-        'ssc',
-        'rest',
-        'call',
-        '/api/v1/projectVersions/action/copyCurrentState',
-        '-d',
-        JSON.stringify(copyVulnsBodyJson),
-        `-X`,
-        'POST',
-        '--output=json'
-    ]);
-    const responseCode = jsonRes[0].responseCode;
-    core.debug(responseCode);
-    if (200 <= Number(responseCode) && Number(responseCode) < 300) {
-        return true;
-    }
-    else {
-        core.error(`AppVersion Copy Vulns failed with code ${responseCode}`);
-        return false;
-    }
+    return await utils.fcliRest('/api/v1/projectVersions/action/copyCurrentState', 'POST', JSON.stringify(copyVulnsBodyJson));
 }
 async function copyAppVersionAudit(source, target) {
     var jp = __nccwpck_require__(4378);
@@ -41976,47 +41931,11 @@ async function copyAppVersionState(source, target) {
     core.debug(`Copying AppVersion State ${source} -> ${target}`);
     const copyStateBodyJson = utils.getCopyStateBody(source, target);
     core.debug(JSON.stringify(copyStateBodyJson));
-    let jsonRes = await utils.fcli([
-        'ssc',
-        'rest',
-        'call',
-        '/api/v1/projectVersions/action/copyFromPartial',
-        '-d',
-        JSON.stringify(copyStateBodyJson),
-        `-X`,
-        'POST',
-        '--output=json'
-    ]);
-    const responseCode = jsonRes[0].responseCode;
-    core.debug(responseCode);
-    if (200 <= Number(responseCode) && Number(responseCode) < 300) {
-        return true;
-    }
-    else {
-        core.error(`AppVersion Copy State failed with code ${responseCode}`);
-        return false;
-    }
+    return await utils.fcliRest('/api/v1/projectVersions/action/copyFromPartial', 'POST', JSON.stringify(copyStateBodyJson));
 }
 async function deleteAppVersion(id) {
     core.debug(`Deleting AppVersion ${id}`);
-    let jsonRes = await utils.fcli([
-        'ssc',
-        'rest',
-        'call',
-        `/api/v1/projectVersions/${id}`,
-        `-X`,
-        'DELETE',
-        '--output=json'
-    ]);
-    const responseCode = jsonRes[0].responseCode;
-    core.debug(responseCode);
-    if (200 <= Number(responseCode) && Number(responseCode) < 300) {
-        return true;
-    }
-    else {
-        core.error(`AppVersion Deletion failed with code ${responseCode}`);
-        return false;
-    }
+    return await utils.fcliRest(`/api/v1/projectVersions/${id}`, 'DELETE');
 }
 async function getAppId(app) {
     let jsonRes = await utils.fcli([
@@ -43862,9 +43781,8 @@ async function addDetails(vulns, fields) {
     await Promise.all(vulns.map(async (vuln) => {
         const url = `/api/v1/issueDetails/${vuln.id}`;
         core.debug(`url: ${url}`);
-        let { data: data, count: count, responseCode: responseCode, links: links } = await utils.fcliRest(url);
-        core.debug(`responseCode ${responseCode}`);
-        if (200 <= Number(responseCode) && Number(responseCode) < 300) {
+        let data = await utils.fcliRest(url);
+        if (data.length) {
             if (fields) {
                 vuln.details = {};
                 fields.split(",").forEach(field => {
@@ -43874,9 +43792,6 @@ async function addDetails(vulns, fields) {
             else {
                 vuln.details = data;
             }
-        }
-        else {
-            core.warning(`addDetails failed with code ${responseCode} for vuln ${vuln.id}`);
         }
     }));
 }
@@ -43926,17 +43841,7 @@ async function auditVulns(appVersionId, vulns, customTagAudits) {
         "issues": vulns,
         "customTagAudit": customTagAudits
     };
-    core.debug(body);
-    let { data: data, count: count, responseCode: responseCode, links: links } = await utils.fcliRest(`/api/v1/projectVersions/${appVersionId}/issues/action/audit`, "POST", JSON.stringify(body).replace("customTagIndex", "newCustomTagIndex"));
-    core.debug(responseCode);
-    if (200 <= Number(responseCode) && Number(responseCode) < 300) {
-        return true;
-    }
-    else {
-        core.error(`AppVersion Commit failed with code ${responseCode}`);
-        return false;
-    }
-    return true;
+    return await utils.fcliRest(`/api/v1/projectVersions/${appVersionId}/issues/action/audit`, "POST", JSON.stringify(body).replace("customTagIndex", "newCustomTagIndex"));
 }
 exports.auditVulns = auditVulns;
 
