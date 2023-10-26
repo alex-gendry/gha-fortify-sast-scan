@@ -2,6 +2,7 @@ import * as utils from './utils'
 import * as filterset from './filterset'
 import * as core from '@actions/core'
 import * as querystring from "querystring";
+import {bgYellow} from "./utils";
 
 
 export async function getAppVersionVulnsCount(appId: number | string, filterSet: string, analysisType?: String, newIssues?: boolean): Promise<any> {
@@ -103,16 +104,22 @@ export async function tagVulns(appId: string | number, vulns: any[], guid: strin
     return (await utils.fcliRest(`/api/v1/projectVersions/${appId}/issues/action/updateTag`, "POST", JSON.stringify(body))).length > 0
 }
 
-export async function convertToAppVersion(vulns: any, appVersionId: string | number) {
+export async function transposeToAppVersion(vulns: any, appVersionId: string | number) {
+    core.debug(`Transposing vulns to ${appVersionId}`)
+    core.debug(`source vulns qty: ${vulns.length}`)
+    core.debug(`Getting target vulns`)
     const targetVulns = await getAppVersionVulns(appVersionId, "", "id,issueInstanceId,revision")
+    core.debug(`target vulns qty: ${targetVulns.length}`)
     var jp = require('jsonpath')
 
     vulns.forEach(function (vuln: any, index: number, vulns: any[]) {
         const targetVuln = jp.query(targetVulns, `$..[?(@.issueInstanceId=="${vuln.issueInstanceId}")]`)[0]
-        if (targetVuln.id) {
+        if (targetVuln?.id) {
+            core.debug(`target vuln found for issueInstanceId ${vuln.issueInstanceId} : ${targetVuln.id} `)
             vuln.id = targetVuln.id
             vuln.revision = targetVuln.revision
         } else {
+            core.debug(`target vuln ${bgYellow('not found')} for issueInstanceId ${vuln.issueInstanceId}. Removing it from array `)
             vulns.splice(index, 1)
         }
     })

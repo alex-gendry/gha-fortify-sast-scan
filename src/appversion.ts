@@ -96,11 +96,29 @@ async function setAppVersionAttributes(appId: string, attributes: string[]): Pro
 
 async function copyAppVersionVulns(source: string | number, target: string | number): Promise<boolean> {
     core.debug(`Copying AppVersion Vulnerabilities ${source} -> ${target}`)
-
     const copyVulnsBodyJson = utils.getCopyVulnsBody(source, target)
-    core.debug(JSON.stringify(copyVulnsBodyJson))
 
-    return await utils.fcliRest('/api/v1/projectVersions/action/copyCurrentState','POST', JSON.stringify(copyVulnsBodyJson))
+
+    const data = (await utils.fcliRest('/api/v1/projectVersions/action/copyCurrentState','POST', JSON.stringify(copyVulnsBodyJson)))[0]
+    if(200 <= data?.responseCode && data?.responseCode <300 ){
+        return true
+    } else {
+        throw new Error(`copyAppVersionVulns failed with response: ${data}`)
+    }
+}
+
+
+async function copyAppVersionState(source: string, target: string): Promise<any> {
+    core.debug(`Copying AppVersion State ${source} -> ${target}`)
+    const copyStateBodyJson = utils.getCopyStateBody(source, target)
+
+    const data = (await utils.fcliRest('/api/v1/projectVersions/action/copyFromPartial', 'POST', JSON.stringify(copyStateBodyJson)))[0]
+    if(200 <= data?.responseCode && data?.responseCode <300 ){
+        return true
+    } else {
+        throw new Error(`copyAppVersionState failed with response: ${data}`)
+    }
+
 }
 
 async function copyAppVersionAudit(source: string | number, target: string | number): Promise<boolean> {
@@ -108,8 +126,10 @@ async function copyAppVersionAudit(source: string | number, target: string | num
     core.debug(`Copying AppVersion Audit values ${source} -> ${target}`)
     core.debug(`Get CustomTag list from AppVersion ${source}`)
     const customTags = await getAppVersionCustomTags(source, "id,guid,name,valueType,valueList")
+    core.debug(`Get vulns list from AppVersion ${source}`)
     const vulns = await vuln.getAppVersionVulns(source, "", "id,issueInstanceId,revision", "auditValues")
-    await vuln.convertToAppVersion(vulns, target)
+    core.debug(`transpose to appversion ${target}`)
+    await vuln.transposeToAppVersion(vulns, target)
 
     let requests: any[] = []
     await Promise.all(
@@ -133,14 +153,6 @@ async function copyAppVersionAudit(source: string | number, target: string | num
     return true
 }
 
-async function copyAppVersionState(source: string, target: string): Promise<any> {
-    core.debug(`Copying AppVersion State ${source} -> ${target}`)
-
-    const copyStateBodyJson = utils.getCopyStateBody(source, target)
-    core.debug(JSON.stringify(copyStateBodyJson))
-
-    return await utils.fcliRest('/api/v1/projectVersions/action/copyFromPartial', 'POST', JSON.stringify(copyStateBodyJson))
-}
 
 async function deleteAppVersion(id: any): Promise<boolean> {
     core.debug(`Deleting AppVersion ${id}`)
@@ -217,8 +229,8 @@ async function runAppVersionCreation(app: string, version: string, source_app?: 
                 .then(() =>
                     core.info(`Copy state from ${source_app}:${source_version} to ${app}:${version}` + " ..... " + utils.bgGreen('Success')))
                 .catch(error => {
-                    core.warning(`Copy state from ${source_app}:${source_version} to ${app}:${version}` + " ..... " + utils.bgRed('Failure'))
                     core.warning(`${error.message}`)
+                    core.warning(`Copy state from ${source_app}:${source_version} to ${app}:${version}` + " ..... " + utils.bgRed('Failure'))
                 })
         } else {
             core.info(`Source AppVersion ${source_app}:${source_version} not found`)

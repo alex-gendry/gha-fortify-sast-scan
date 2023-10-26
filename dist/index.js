@@ -41904,16 +41904,34 @@ async function setAppVersionAttributes(appId, attributes) {
 async function copyAppVersionVulns(source, target) {
     core.debug(`Copying AppVersion Vulnerabilities ${source} -> ${target}`);
     const copyVulnsBodyJson = utils.getCopyVulnsBody(source, target);
-    core.debug(JSON.stringify(copyVulnsBodyJson));
-    return await utils.fcliRest('/api/v1/projectVersions/action/copyCurrentState', 'POST', JSON.stringify(copyVulnsBodyJson));
+    const data = (await utils.fcliRest('/api/v1/projectVersions/action/copyCurrentState', 'POST', JSON.stringify(copyVulnsBodyJson)))[0];
+    if (200 <= data?.responseCode && data?.responseCode < 300) {
+        return true;
+    }
+    else {
+        throw new Error(`copyAppVersionVulns failed with response: ${data}`);
+    }
+}
+async function copyAppVersionState(source, target) {
+    core.debug(`Copying AppVersion State ${source} -> ${target}`);
+    const copyStateBodyJson = utils.getCopyStateBody(source, target);
+    const data = (await utils.fcliRest('/api/v1/projectVersions/action/copyFromPartial', 'POST', JSON.stringify(copyStateBodyJson)))[0];
+    if (200 <= data?.responseCode && data?.responseCode < 300) {
+        return true;
+    }
+    else {
+        throw new Error(`copyAppVersionState failed with response: ${data}`);
+    }
 }
 async function copyAppVersionAudit(source, target) {
     var jp = __nccwpck_require__(4378);
     core.debug(`Copying AppVersion Audit values ${source} -> ${target}`);
     core.debug(`Get CustomTag list from AppVersion ${source}`);
     const customTags = await getAppVersionCustomTags(source, "id,guid,name,valueType,valueList");
+    core.debug(`Get vulns list from AppVersion ${source}`);
     const vulns = await vuln.getAppVersionVulns(source, "", "id,issueInstanceId,revision", "auditValues");
-    await vuln.convertToAppVersion(vulns, target);
+    core.debug(`transpose to appversion ${target}`);
+    await vuln.transposeToAppVersion(vulns, target);
     let requests = [];
     await Promise.all(vulns.map(async function (vulnTmp) {
         // const customTagUniqueValues: string[] = Array.from(new Set(jp.query(vulns, `$..[?(@.customTagGuid=="${customTag.guid}")].textValue`)))
@@ -41926,12 +41944,6 @@ async function copyAppVersionAudit(source, target) {
     }));
     await utils.fcliRest("/api/v1/bulk", "POST", JSON.stringify({ "requests": requests }));
     return true;
-}
-async function copyAppVersionState(source, target) {
-    core.debug(`Copying AppVersion State ${source} -> ${target}`);
-    const copyStateBodyJson = utils.getCopyStateBody(source, target);
-    core.debug(JSON.stringify(copyStateBodyJson));
-    return await utils.fcliRest('/api/v1/projectVersions/action/copyFromPartial', 'POST', JSON.stringify(copyStateBodyJson));
 }
 async function deleteAppVersion(id) {
     core.debug(`Deleting AppVersion ${id}`);
@@ -41999,8 +42011,8 @@ async function runAppVersionCreation(app, version, source_app, source_version) {
             await copyAppVersionState(sourceAppVersionId.toString(), appVersion.id)
                 .then(() => core.info(`Copy state from ${source_app}:${source_version} to ${app}:${version}` + " ..... " + utils.bgGreen('Success')))
                 .catch(error => {
-                core.warning(`Copy state from ${source_app}:${source_version} to ${app}:${version}` + " ..... " + utils.bgRed('Failure'));
                 core.warning(`${error.message}`);
+                core.warning(`Copy state from ${source_app}:${source_version} to ${app}:${version}` + " ..... " + utils.bgRed('Failure'));
             });
         }
         else {
@@ -43714,10 +43726,11 @@ var __importStar = (this && this.__importStar) || function (mod) {
     return result;
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.auditVulns = exports.getAuditVulnsRequest = exports.convertToAppVersion = exports.tagVulns = exports.addDetails = exports.getAppVersionVulns = exports.getNewVulnsByScanId = exports.getVulnsByScanId = exports.getAppVersionVulnsCountTotal = exports.getAppVersionNewVulnsCount = exports.getAppVersionVulnsCount = void 0;
+exports.auditVulns = exports.getAuditVulnsRequest = exports.transposeToAppVersion = exports.tagVulns = exports.addDetails = exports.getAppVersionVulns = exports.getNewVulnsByScanId = exports.getVulnsByScanId = exports.getAppVersionVulnsCountTotal = exports.getAppVersionNewVulnsCount = exports.getAppVersionVulnsCount = void 0;
 const utils = __importStar(__nccwpck_require__(1314));
 const filterset = __importStar(__nccwpck_require__(6671));
 const core = __importStar(__nccwpck_require__(2186));
+const utils_1 = __nccwpck_require__(1314);
 async function getAppVersionVulnsCount(appId, filterSet, analysisType, newIssues) {
     let query = "";
     if (newIssues) {
@@ -43808,21 +43821,27 @@ async function tagVulns(appId, vulns, guid, value) {
     return (await utils.fcliRest(`/api/v1/projectVersions/${appId}/issues/action/updateTag`, "POST", JSON.stringify(body))).length > 0;
 }
 exports.tagVulns = tagVulns;
-async function convertToAppVersion(vulns, appVersionId) {
+async function transposeToAppVersion(vulns, appVersionId) {
+    core.debug(`Transposing vulns to ${appVersionId}`);
+    core.debug(`source vulns qty: ${vulns.length}`);
+    core.debug(`Getting target vulns`);
     const targetVulns = await getAppVersionVulns(appVersionId, "", "id,issueInstanceId,revision");
+    core.debug(`target vulns qty: ${targetVulns.length}`);
     var jp = __nccwpck_require__(4378);
     vulns.forEach(function (vuln, index, vulns) {
         const targetVuln = jp.query(targetVulns, `$..[?(@.issueInstanceId=="${vuln.issueInstanceId}")]`)[0];
-        if (targetVuln.id) {
+        if (targetVuln?.id) {
+            core.debug(`target vuln found for issueInstanceId ${vuln.issueInstanceId} : ${targetVuln.id} `);
             vuln.id = targetVuln.id;
             vuln.revision = targetVuln.revision;
         }
         else {
+            core.debug(`target vuln ${(0, utils_1.bgYellow)('not found')} for issueInstanceId ${vuln.issueInstanceId}. Removing it from array `);
             vulns.splice(index, 1);
         }
     });
 }
-exports.convertToAppVersion = convertToAppVersion;
+exports.transposeToAppVersion = transposeToAppVersion;
 function getAuditVulnsRequest(appVersionId, vulns, customTagAudits) {
     const body = {
         "issues": vulns,
