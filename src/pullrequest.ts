@@ -122,11 +122,14 @@ export async function decorate(appVersionId: string | number): Promise<any> {
 
                     vulns.forEach(vuln => {
                         utils.debugGroup(`Adding comment for vuln:`, vuln)
+                        const appVersionUrl: string = `${core.getInput('ssc_base_url')}/html/ssc/version/370/audit?q=${vuln?.issueInstanceId}`
                         comments.push({
                             path: file.filename, line: vuln.details.lineNumber, body: `
 <p><b>Security Scanning</b> / Fortify SAST</p>
 <h3>${vuln.details.friority} - ${vuln.details.issueName} </h3>
-<p>${vuln.details.brief}</p>`,
+<p>${vuln.details.brief}</p>
+<br>
+<p><a href=${appVersionUrl} target="_blank" rel="noopener noreferrer">More detailed information</a></p>`,
                         })
                     })
                 }

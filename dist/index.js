@@ -42769,11 +42769,14 @@ async function decorate(appVersionId) {
                     await vuln.addDetails(vulns, "issueName,traceNodes,fullFileName,shortFileName,brief,friority,lineNumber");
                     vulns.forEach(vuln => {
                         utils.debugGroup(`Adding comment for vuln:`, vuln);
+                        const appVersionUrl = `${core.getInput('ssc_base_url')}/html/ssc/version/370/audit?q=${vuln?.issueInstanceId}`;
                         comments.push({
                             path: file.filename, line: vuln.details.lineNumber, body: `
 <p><b>Security Scanning</b> / Fortify SAST</p>
 <h3>${vuln.details.friority} - ${vuln.details.issueName} </h3>
-<p>${vuln.details.brief}</p>`,
+<p>${vuln.details.brief}</p>
+<br>
+<p><a href=${appVersionUrl} target="_blank" rel="noopener noreferrer">More detailed information</a></p>`,
                         });
                     });
                 }
