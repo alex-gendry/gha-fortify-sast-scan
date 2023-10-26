@@ -8,7 +8,7 @@ export async function getAppVersion(app: string, version: string) : Promise<any>
         'ssc',
         'appversion',
         'list',
-        `-q`, `"application.name=='${app}' && name=='${version}'"`,
+        `-q`, `application.name=='${app}'&&name=='${version}'`,
         '--output=json'
     ])
 }
