@@ -79,6 +79,9 @@ async function setAppVersionAttribute(appId: string, attribute: string): Promise
 }
 
 async function setAppVersionAttributes(appId: string, attributes: string[]): Promise<boolean> {
+    core.debug(`Setting AppVersion ${appId} attributes`)
+    core.debug(`Attributes Qty: ${attributes.length}`)
+    core.debug(`Attributes: ${attributes}`)
     await Promise.all(
         attributes.map(async attribute => {
             core.debug(`Assigning ${attribute} to ${appId}`)
@@ -126,8 +129,9 @@ async function copyAppVersionAudit(source: string | number, target: string | num
     core.debug(`Copying AppVersion Audit values ${source} -> ${target}`)
     core.debug(`Get CustomTag list from AppVersion ${source}`)
     const customTags = await getAppVersionCustomTags(source, "id,guid,name,valueType,valueList")
-    core.debug(`Get vulns list from AppVersion ${source}`)
-    const vulns = await vuln.getAppVersionVulns(source, "", "id,issueInstanceId,revision", "auditValues")
+    core.debug(`CustomTags Qty: ${customTags.label}`)
+    core.debug(`Get vulns list from Source AppVersion ${source}`)
+    const vulns = await vuln.getAppVersionVulns(source, "", "", "id,issueInstanceId,revision", "auditValues")
     core.debug(`transpose to appversion ${target}`)
     await vuln.transposeToAppVersion(vulns, target)
 

@@ -41890,6 +41890,9 @@ async function setAppVersionAttribute(appId, attribute) {
     }
 }
 async function setAppVersionAttributes(appId, attributes) {
+    core.debug(`Setting AppVersion ${appId} attributes`);
+    core.debug(`Attributes Qty: ${attributes.length}`);
+    core.debug(`Attributes: ${attributes}`);
     await Promise.all(attributes.map(async (attribute) => {
         core.debug(`Assigning ${attribute} to ${appId}`);
         let status = await setAppVersionAttribute(appId, attribute);
@@ -41928,8 +41931,9 @@ async function copyAppVersionAudit(source, target) {
     core.debug(`Copying AppVersion Audit values ${source} -> ${target}`);
     core.debug(`Get CustomTag list from AppVersion ${source}`);
     const customTags = await getAppVersionCustomTags(source, "id,guid,name,valueType,valueList");
-    core.debug(`Get vulns list from AppVersion ${source}`);
-    const vulns = await vuln.getAppVersionVulns(source, "", "id,issueInstanceId,revision", "auditValues");
+    core.debug(`CustomTags Qty: ${customTags.label}`);
+    core.debug(`Get vulns list from Source AppVersion ${source}`);
+    const vulns = await vuln.getAppVersionVulns(source, "", "", "id,issueInstanceId,revision", "auditValues");
     core.debug(`transpose to appversion ${target}`);
     await vuln.transposeToAppVersion(vulns, target);
     let requests = [];
@@ -43825,7 +43829,7 @@ async function transposeToAppVersion(vulns, appVersionId) {
     core.debug(`Transposing vulns to ${appVersionId}`);
     core.debug(`source vulns qty: ${vulns.length}`);
     core.debug(`Getting target vulns`);
-    const targetVulns = await getAppVersionVulns(appVersionId, "", "id,issueInstanceId,revision");
+    const targetVulns = await getAppVersionVulns(appVersionId, "", "", "id,issueInstanceId,revision");
     core.debug(`target vulns qty: ${targetVulns.length}`);
     var jp = __nccwpck_require__(4378);
     vulns.forEach(function (vuln, index, vulns) {

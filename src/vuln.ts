@@ -108,7 +108,7 @@ export async function transposeToAppVersion(vulns: any, appVersionId: string | n
     core.debug(`Transposing vulns to ${appVersionId}`)
     core.debug(`source vulns qty: ${vulns.length}`)
     core.debug(`Getting target vulns`)
-    const targetVulns = await getAppVersionVulns(appVersionId, "", "id,issueInstanceId,revision")
+    const targetVulns = await getAppVersionVulns(appVersionId, "", "","id,issueInstanceId,revision")
     core.debug(`target vulns qty: ${targetVulns.length}`)
     var jp = require('jsonpath')
 
