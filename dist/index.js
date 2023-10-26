@@ -41825,22 +41825,13 @@ const vuln = __importStar(__nccwpck_require__(4002));
 const core = __importStar(__nccwpck_require__(2186));
 const process_1 = __importDefault(__nccwpck_require__(7282));
 async function getAppVersionId(app, version) {
-    let jsonRes = await utils.fcli([
+    return await utils.fcli([
         'ssc',
         'appversion',
-        'ls',
-        `-q=application.name=${app}`,
-        `-q=name=${version}`,
+        'list',
+        `--query=application.name=='${app}' && name=='${version}'`,
         '--output=json'
     ]);
-    if (jsonRes.length === 0) {
-        core.debug(`AppVersion "${app}":"${version}" not found`);
-        return -1;
-    }
-    else {
-        core.debug(`AppVersion "${app}":"${version}" exists`);
-        return jsonRes[0].id;
-    }
 }
 exports.getAppVersionId = getAppVersionId;
 async function getAppVersionCustomTags(appVersionId, fields) {
@@ -41855,19 +41846,7 @@ async function getAppVersionCustomTags(appVersionId, fields) {
     }
 }
 async function appVersionExists(app, version) {
-    let jsonRes = await utils.fcli([
-        'ssc',
-        'appversion',
-        'list',
-        `--query=application.name=='${app}' && name=='${version}'`,
-        '--output=json'
-    ]);
-    if (jsonRes.length === 0) {
-        return -1;
-    }
-    else {
-        return jsonRes[0].id;
-    }
+    return (await getAppVersionId(app, version)).length > 0;
 }
 exports.appVersionExists = appVersionExists;
 async function commitAppVersion(id) {
@@ -42161,7 +42140,7 @@ async function runAppVersionCreation(app, version, source_app, source_version) {
 }
 async function getOrCreateAppVersionId(app, version, source_app, source_version) {
     core.info(`Retrieving AppVersion ${app}:${version}`);
-    let appVersionId = await appVersionExists(app, version)
+    let appVersionId = await getAppVersionId(app, version)
         .catch(error => {
         core.error(`${error.message}`);
         core.error(utils.failure(`Retrieving AppVersion ${app}:${version}`));

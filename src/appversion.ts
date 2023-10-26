@@ -3,23 +3,14 @@ import * as vuln from './vuln'
 import * as core from '@actions/core'
 import process from "process";
 
-export async function getAppVersionId(app: string, version: string): Promise<number> {
-    let jsonRes = await utils.fcli([
+export async function getAppVersionId(app: string, version: string): Promise<any> {
+    return await utils.fcli([
         'ssc',
         'appversion',
-        'ls',
-        `-q=application.name=${app}`,
-        `-q=name=${version}`,
+        'list',
+        `--query=application.name=='${app}' && name=='${version}'`,
         '--output=json'
     ])
-
-    if (jsonRes.length === 0) {
-        core.debug(`AppVersion "${app}":"${version}" not found`)
-        return -1
-    } else {
-        core.debug(`AppVersion "${app}":"${version}" exists`)
-        return jsonRes[0].id
-    }
 }
 
 async function getAppVersionCustomTags(appVersionId: string | number, fields?: string): Promise<any> {
@@ -39,20 +30,8 @@ async function getAppVersionCustomTags(appVersionId: string | number, fields?: s
     }
 }
 
-export async function appVersionExists(app: string, version: string): Promise<number | string> {
-    let jsonRes = await utils.fcli([
-        'ssc',
-        'appversion',
-        'list',
-        `--query=application.name=='${app}' && name=='${version}'`,
-        '--output=json'
-    ])
-
-    if (jsonRes.length === 0) {
-        return -1
-    } else {
-        return jsonRes[0].id
-    }
+export async function appVersionExists(app: string, version: string): Promise<boolean> {
+    return (await getAppVersionId(app, version)).length > 0
 }
 
 async function commitAppVersion(id: string): Promise<boolean> {
@@ -389,7 +368,7 @@ async function runAppVersionCreation(app: string, version: string, source_app?: 
 
 export async function getOrCreateAppVersionId(app: string, version: string, source_app?: string, source_version?: string): Promise<number> {
     core.info(`Retrieving AppVersion ${app}:${version}`)
-    let appVersionId = await appVersionExists(app, version)
+    let appVersionId = await getAppVersionId(app, version)
         .catch(error => {
             core.error(`${error.message}`)
             core.error(utils.failure(`Retrieving AppVersion ${app}:${version}`))
