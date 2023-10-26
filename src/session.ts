@@ -7,7 +7,7 @@ async function hasActiveSscSession(base_url: string): Promise<boolean> {
             'ssc',
             'session',
             'list',
-            '-q','name==default',
+            '-q', 'name==default',
             '--output=json'
         ])
 
@@ -30,7 +30,7 @@ async function hasActiveSastSession(base_url: string): Promise<boolean> {
             'sc-sast',
             'session',
             'list',
-            '-q','name==default',
+            '-q', 'name==default',
             '--output=json'
         ])
 
@@ -83,6 +83,7 @@ async function loginSscWithUsernamePassword(
     username: string,
     password: string
 ): Promise<boolean> {
+    let data: any
     try {
         let args = [
             'ssc',
@@ -102,16 +103,20 @@ async function loginSscWithUsernamePassword(
         args = process.env.FCLI_DISABLE_SSL_CHECKS
             ? args.concat([`--insecure`])
             : args
-        let jsonRes = await utils.fcli(args)
-        if (jsonRes['__action__'] === 'CREATED') {
+        data = await utils.fcli(args)
+        if (data.__action__ === 'CREATED') {
             return true
         } else {
             throw new Error(
-                `Login Failed: SSC returned __action__ = ${jsonRes['__action__']}`
+                `Login Failed: SSC returned __action__ = ${data.__action__}`
             )
         }
     } catch (err) {
-        throw new Error(`${err}`)
+        core.error(utils.failure(`Login to SSC using Username and Password `))
+        if (data) {
+            utils.errorGroup('data:', data)
+        }
+        throw err
     }
 }
 

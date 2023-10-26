@@ -43057,6 +43057,7 @@ async function loginSscWithToken(base_url, token) {
     }
 }
 async function loginSscWithUsernamePassword(base_url, username, password) {
+    let data;
     try {
         let args = [
             'ssc',
@@ -43076,16 +43077,20 @@ async function loginSscWithUsernamePassword(base_url, username, password) {
         args = process.env.FCLI_DISABLE_SSL_CHECKS
             ? args.concat([`--insecure`])
             : args;
-        let jsonRes = await utils.fcli(args);
-        if (jsonRes['__action__'] === 'CREATED') {
+        data = await utils.fcli(args);
+        if (data.__action__ === 'CREATED') {
             return true;
         }
         else {
-            throw new Error(`Login Failed: SSC returned __action__ = ${jsonRes['__action__']}`);
+            throw new Error(`Login Failed: SSC returned __action__ = ${data.__action__}`);
         }
     }
     catch (err) {
-        throw new Error(`${err}`);
+        core.error(utils.failure(`Login to SSC using Username and Password `));
+        if (data) {
+            utils.errorGroup('data:', data);
+        }
+        throw err;
     }
 }
 async function loginSastWithToken(base_url, token, clientToken) {
@@ -43416,7 +43421,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.notFound = exports.skipped = exports.failure = exports.exists = exports.success = exports.bgBlue = exports.bgYellow = exports.bgGray = exports.bgRed = exports.bgGreen = exports.debugObject = exports.debugGroup = exports.shortSha = exports.daysOrToday = exports.normalizeScanType = exports.getSastBaseUrl = exports.scancentralRest = exports.scancentral = exports.stringToArgsArray = exports.fcliRest = exports.fcli = exports.getScanCentralPath = exports.getEnvOrValue = exports.getFcliPath = exports.getCopyVulnsBody = exports.getCopyStateBody = exports.getCreateAppVersionBody = void 0;
+exports.notFound = exports.skipped = exports.failure = exports.exists = exports.success = exports.bgBlue = exports.bgYellow = exports.bgGray = exports.bgRed = exports.bgGreen = exports.debugObject = exports.errorGroup = exports.debugGroup = exports.shortSha = exports.daysOrToday = exports.normalizeScanType = exports.getSastBaseUrl = exports.scancentralRest = exports.scancentral = exports.stringToArgsArray = exports.fcliRest = exports.fcli = exports.getScanCentralPath = exports.getEnvOrValue = exports.getFcliPath = exports.getCopyVulnsBody = exports.getCopyStateBody = exports.getCreateAppVersionBody = void 0;
 const core = __importStar(__nccwpck_require__(2186));
 const exec = __importStar(__nccwpck_require__(1514));
 // @ts-ignore
@@ -43673,6 +43678,12 @@ function debugGroup(title, obj) {
     }
 }
 exports.debugGroup = debugGroup;
+function errorGroup(title, obj) {
+    core.startGroup(title);
+    console.log(obj);
+    core.endGroup();
+}
+exports.errorGroup = errorGroup;
 function debugObject(object, title) {
     if (core.isDebug()) {
         if (title) {

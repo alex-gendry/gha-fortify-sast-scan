@@ -271,6 +271,12 @@ export function debugGroup(title:string, obj: any) {
     }
 }
 
+export function errorGroup(title:string, obj: any) {
+    core.startGroup(title)
+    console.log(obj)
+    core.endGroup()
+}
+
 export function debugObject(object:any, title?: string){
     if(core.isDebug()){
         if(title){
