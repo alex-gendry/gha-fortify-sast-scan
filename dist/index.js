@@ -42713,7 +42713,7 @@ async function waitForPullRunsCompleted() {
             if (checkRun.id != selfJobId) {
                 let checkRunStatus = checkRun.status;
                 while (["stale", "in_progress", "queued", "requested", "waiting", "pending"].includes(checkRunStatus)) {
-                    core.info(`Waiting for Run : [${checkRun.id}] ${checkRun.name}:${commit.commit.message} [${commit.sha}] to be completed. Curent status: ${checkRun.status}`);
+                    core.info(`Waiting for Run : [${checkRun.id}] ${checkRun.name}:${commit.commit.message} [${utils.shortSha(commit.sha)}] to be completed. Curent status: ${checkRun.status}`);
                     await new Promise((resolve) => setTimeout(resolve, Number(utils.getEnvOrValue("GHA_COMMIT_CHECKS_PULL_INTERVAL", 60)) * 1000));
                     const { data: tmp } = await octokit.request('GET /repos/{owner}/{repo}/check-runs/{check_run_id}', {
                         owner: github.context.issue.owner,
@@ -42725,7 +42725,7 @@ async function waitForPullRunsCompleted() {
                     });
                     checkRunStatus = tmp.status;
                 }
-                core.info(`[${checkRun.id}] ${checkRun.name}:${commit.commit.message} [${commit.sha}] is ${checkRunStatus} `);
+                core.info(`[${checkRun.id}] ${checkRun.name}: ${commit.commit.message} [${utils.shortSha(commit.sha)}] is ${checkRunStatus} `);
             }
         }));
     }));
@@ -43416,7 +43416,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.notFound = exports.skipped = exports.failure = exports.exists = exports.success = exports.bgBlue = exports.bgYellow = exports.bgGray = exports.bgRed = exports.bgGreen = exports.daysOrToday = exports.normalizeScanType = exports.getSastBaseUrl = exports.scancentralRest = exports.scancentral = exports.stringToArgsArray = exports.fcliRest = exports.fcli = exports.getScanCentralPath = exports.getEnvOrValue = exports.getFcliPath = exports.getCopyVulnsBody = exports.getCopyStateBody = exports.getCreateAppVersionBody = void 0;
+exports.notFound = exports.skipped = exports.failure = exports.exists = exports.success = exports.bgBlue = exports.bgYellow = exports.bgGray = exports.bgRed = exports.bgGreen = exports.shortSha = exports.daysOrToday = exports.normalizeScanType = exports.getSastBaseUrl = exports.scancentralRest = exports.scancentral = exports.stringToArgsArray = exports.fcliRest = exports.fcli = exports.getScanCentralPath = exports.getEnvOrValue = exports.getFcliPath = exports.getCopyVulnsBody = exports.getCopyStateBody = exports.getCreateAppVersionBody = void 0;
 const core = __importStar(__nccwpck_require__(2186));
 const exec = __importStar(__nccwpck_require__(1514));
 // @ts-ignore
@@ -43657,6 +43657,10 @@ function daysOrToday(diffDays) {
     }
 }
 exports.daysOrToday = daysOrToday;
+function shortSha(sha) {
+    return sha.slice(0, 7);
+}
+exports.shortSha = shortSha;
 function bgGreen(str) {
     return ansi_styles_1.default.bgGreen.open + str + ansi_styles_1.default.bgGreen.close;
 }

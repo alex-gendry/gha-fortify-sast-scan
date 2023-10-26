@@ -254,6 +254,10 @@ export function daysOrToday(diffDays: number) {
     }
 }
 
+export function shortSha(sha: string): string {
+    return sha.slice(0, 7)
+}
+
 export function bgGreen(str: string): string {
     return styles.bgGreen.open + str + styles.bgGreen.close
 }

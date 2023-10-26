@@ -52,7 +52,7 @@ export async function waitForPullRunsCompleted() : Promise<boolean> {
             if (checkRun.id != selfJobId) {
                 let checkRunStatus = checkRun.status
                 while (["stale", "in_progress", "queued", "requested", "waiting", "pending"].includes(checkRunStatus)) {
-                    core.info(`Waiting for Run : [${checkRun.id}] ${checkRun.name}:${commit.commit.message} [${commit.sha}] to be completed. Curent status: ${checkRun.status}`)
+                    core.info(`Waiting for Run : [${checkRun.id}] ${checkRun.name}:${commit.commit.message} [${utils.shortSha(commit.sha)}] to be completed. Curent status: ${checkRun.status}`)
                     await new Promise((resolve) => setTimeout(resolve, Number(utils.getEnvOrValue("GHA_COMMIT_CHECKS_PULL_INTERVAL", 60)) * 1000))
 
                     const {data: tmp} = await octokit.request('GET /repos/{owner}/{repo}/check-runs/{check_run_id}', {
@@ -67,7 +67,7 @@ export async function waitForPullRunsCompleted() : Promise<boolean> {
                     checkRunStatus = tmp.status
                 }
 
-                core.info(`[${checkRun.id}] ${checkRun.name}:${commit.commit.message} [${commit.sha}] is ${checkRunStatus} `)
+                core.info(`[${checkRun.id}] ${checkRun.name}: ${commit.commit.message} [${utils.shortSha(commit.sha)}] is ${checkRunStatus} `)
             }
         }));
 
