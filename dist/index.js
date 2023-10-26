@@ -42455,7 +42455,7 @@ async function run() {
             }
             if (github.context.payload.pull_request) {
                 INPUT.ssc_source_app = INPUT.ssc_app;
-                INPUT.ssc_source_version = github.context.payload.pull_request.base.ref;
+                INPUT.ssc_source_version = github.context.payload.pull_request.head.ref;
             }
         }
         /** Does the AppVersion exists ? */
@@ -43540,13 +43540,13 @@ async function fcli(args, returnStatus = false, silent = true) {
             },
             silent: silent
         };
-        core.isDebug() ? core.startGroup(`fcli ${args.join(' ')}`) : null;
-        const response = await exec.exec(getFcliPath(), args, options);
-        debugObject(response, 'status');
-        debugObject(responseData, 'responseData');
-        debugObject(errorData, 'errorData');
-        core.isDebug() ? core.endGroup() : null;
-        return returnStatus ? response : JSON.parse(responseData);
+        await core.group(`fcli ${args.join(' ')}`, async () => {
+            const response = await exec.exec(getFcliPath(), args, options);
+            debugObject(response, 'status');
+            debugObject(responseData, 'responseData');
+            debugObject(errorData, 'errorData');
+            return returnStatus ? response : JSON.parse(responseData);
+        });
     }
     catch (err) {
         core.error('fcli execution failed: ');

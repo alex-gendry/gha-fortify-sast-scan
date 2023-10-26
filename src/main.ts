@@ -11,7 +11,6 @@ import * as pullrequest from './pullrequest'
 import * as process from "process";
 import * as github from "@actions/github";
 import * as artifact from "./artifact";
-import {getNewVulnsByScanId, getVulnsByScanId} from "./vuln";
 
 const INPUT = {
     ssc_base_url: core.getInput('ssc_base_url', {required: true}),
@@ -67,7 +66,7 @@ export async function run(): Promise<void> {
             }
             if (github.context.payload.pull_request) {
                 INPUT.ssc_source_app = INPUT.ssc_app
-                INPUT.ssc_source_version = github.context.payload.pull_request.base.ref
+                INPUT.ssc_source_version = github.context.payload.pull_request.head.ref
             }
         }
 

@@ -127,15 +127,16 @@ export async function fcli(args: string[], returnStatus: boolean = false, silent
             },
             silent: silent
         }
+        await core.group(`fcli ${args.join(' ')}`, async () => {
+            const response = await exec.exec(getFcliPath(), args, options)
+            debugObject(response, 'status')
+            debugObject(responseData, 'responseData')
+            debugObject(errorData, 'errorData')
 
-        core.isDebug() ? core.startGroup(`fcli ${args.join(' ')}`) : null
-        const response = await exec.exec(getFcliPath(), args, options)
-        debugObject(response, 'status')
-        debugObject(responseData, 'responseData')
-        debugObject(errorData, 'errorData')
-        core.isDebug() ? core.endGroup() : null
+            return returnStatus ? response : JSON.parse(responseData)
+        })
 
-        return returnStatus ? response : JSON.parse(responseData)
+
     } catch (err: any) {
         core.error('fcli execution failed: ')
         core.error(`fcli ${args.join(' ')}`)
