@@ -43078,11 +43078,11 @@ async function loginSscWithUsernamePassword(base_url, username, password) {
             ? args.concat([`--insecure`])
             : args;
         data = await utils.fcli(args);
-        if (data.__action__ === 'CREATED') {
+        if (data?.__action__ === 'CREATED') {
             return true;
         }
         else {
-            throw new Error(`Login Failed: SSC returned __action__ = ${data.__action__}`);
+            throw new Error(`Login Failed: SSC returned __action__ = ${data?.__action__}`);
         }
     }
     catch (err) {
@@ -43545,13 +43545,19 @@ async function fcli(args, returnStatus = false, silent = true) {
             },
             silent: silent
         };
-        await core.group(`fcli ${args.join(' ')}`, async () => {
+        if (core.isDebug()) {
+            return await core.group(`fcli ${args.join(' ')}`, async () => {
+                const response = await exec.exec(getFcliPath(), args, options);
+                debugObject(response, 'status');
+                debugObject(responseData, 'responseData');
+                debugObject(errorData, 'errorData');
+                return returnStatus ? response : JSON.parse(responseData);
+            });
+        }
+        else {
             const response = await exec.exec(getFcliPath(), args, options);
-            debugObject(response, 'status');
-            debugObject(responseData, 'responseData');
-            debugObject(errorData, 'errorData');
             return returnStatus ? response : JSON.parse(responseData);
-        });
+        }
     }
     catch (err) {
         core.error('fcli execution failed: ');

@@ -104,12 +104,10 @@ async function loginSscWithUsernamePassword(
             ? args.concat([`--insecure`])
             : args
         data = await utils.fcli(args)
-        if (data.__action__ === 'CREATED') {
+        if (data?.__action__ === 'CREATED') {
             return true
         } else {
-            throw new Error(
-                `Login Failed: SSC returned __action__ = ${data.__action__}`
-            )
+            throw new Error(`Login Failed: SSC returned __action__ = ${data?.__action__}`           )
         }
     } catch (err) {
         core.error(utils.failure(`Login to SSC using Username and Password `))

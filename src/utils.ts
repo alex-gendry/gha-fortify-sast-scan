@@ -127,14 +127,20 @@ export async function fcli(args: string[], returnStatus: boolean = false, silent
             },
             silent: silent
         }
-        await core.group(`fcli ${args.join(' ')}`, async () => {
+        if(core.isDebug()){
+            return await core.group(`fcli ${args.join(' ')}`, async () => {
+                const response = await exec.exec(getFcliPath(), args, options)
+                debugObject(response, 'status')
+                debugObject(responseData, 'responseData')
+                debugObject(errorData, 'errorData')
+
+                return returnStatus ? response : JSON.parse(responseData)
+            })
+        } else {
             const response = await exec.exec(getFcliPath(), args, options)
-            debugObject(response, 'status')
-            debugObject(responseData, 'responseData')
-            debugObject(errorData, 'errorData')
 
             return returnStatus ? response : JSON.parse(responseData)
-        })
+        }
 
 
     } catch (err: any) {
