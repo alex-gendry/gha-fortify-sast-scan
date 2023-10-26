@@ -129,12 +129,12 @@ export async function fcli(args: string[], returnStatus: boolean = false, silent
         }
 
         core.debug(`fcli ${args.join(' ')}`)
-        const status = await exec.exec(getFcliPath(), args, options)
-        core.debug(`status : ${status}`)
+        const response = await exec.exec(getFcliPath(), args, options)
+        core.debug(`status : ${response}`)
         core.debug(`responseData : ${responseData}`)
         core.debug(`errorData : ${errorData}`)
 
-        return returnStatus ? status : JSON.parse(responseData)
+        return returnStatus ? response : JSON.parse(responseData)
     } catch (err: any) {
         core.error('fcli execution failed: ')
         core.error(`fcli ${args.join(' ')}`)
@@ -197,9 +197,11 @@ export async function scancentral(args: string[], silent: boolean = false): Prom
         silent: silent
     }
 
+    core.debug(`scancentral ${args.join(' ')}`)
     const response = await exec.exec(getScanCentralPath(), args, options)
-    core.debug(responseData)
-    core.debug(`response=${response}`)
+    core.debug(`status : ${response}`)
+    core.debug(`responseData : ${responseData}`)
+    core.debug(`errorData : ${errorData}`)
 
     return response
 }

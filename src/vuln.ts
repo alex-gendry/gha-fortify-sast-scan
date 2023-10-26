@@ -23,9 +23,7 @@ export async function getAppVersionVulnsCount(appId: number | string, filterSet:
                 break
         }
     }
-    core.debug(query)
     const url = `/api/v1/projectVersions/${appId}/issueGroups?filterset=${await filterset.getFilterSetGuid(appId, filterSet)}&groupingtype=FOLDER${query.length ? `&qm=issues&q=${encodeURI(query)}` : ""}`
-    core.debug(url)
 
     return await utils.fcliRest(url)
 }
@@ -65,8 +63,6 @@ export async function getAppVersionVulns(appId: number | string, restQuery?: str
     url += fields ? `fields=${fields}&` : ""
     url += embed ? `embed=${embed}&` : ""
 
-    core.debug(`url: ${url}`)
-
     return await utils.fcliRest(url, 'GET', '', fcliQuery)
 }
 
@@ -74,7 +70,6 @@ export async function addDetails(vulns: any[], fields?: string): Promise<void> {
     await Promise.all(
         vulns.map(async vuln => {
             const url = `/api/v1/issueDetails/${vuln.id}`
-            core.debug(`url: ${url}`)
             let data = await utils.fcliRest(url)
             if(data.length){
                 if (fields) {
@@ -98,8 +93,6 @@ export async function tagVulns(appId: string | number, vulns: any[], guid: strin
         },
         "issues": vulns
     }
-
-    core.debug(body)
 
     return (await utils.fcliRest(`/api/v1/projectVersions/${appId}/issues/action/updateTag`, "POST", JSON.stringify(body))).length > 0
 }

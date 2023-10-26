@@ -41836,7 +41836,6 @@ async function getAppVersion(app, version) {
 exports.getAppVersion = getAppVersion;
 async function getAppVersionId(app, version) {
     const appVersion = await getAppVersion(app, version);
-    core.debug(`getAppVersionId: appVersion= ${appVersion}`);
     return appVersion?.id;
 }
 exports.getAppVersionId = getAppVersionId;
@@ -41851,7 +41850,6 @@ exports.appVersionExists = appVersionExists;
 async function commitAppVersion(id) {
     core.debug(`Committing AppVersion ${id}`);
     const commitBodyJson = JSON.parse(`{"committed": "true"}`);
-    core.debug(JSON.stringify(commitBodyJson));
     return await utils.fcliRest(`/api/v1/projectVersions/${id}`, 'PUT', JSON.stringify(commitBodyJson));
 }
 async function setAppVersionIssueTemplate(appId, template) {
@@ -41881,7 +41879,6 @@ async function setAppVersionAttribute(appId, attribute) {
             `--appversion=${appId}`,
             '--output=json'
         ]);
-        core.debug(jsonRes.toString());
         return true;
     }
     catch (err) {
@@ -42227,7 +42224,6 @@ async function downloadArtifact(jobToken) {
         const filePath = "scan.fpr";
         const fpr = fs_1.default.createWriteStream(filePath);
         const url = await utils.getSastBaseUrl() + `/rest/v2/job/${jobToken}/FPR`;
-        core.debug(`url: ${url}`);
         let response = await httpRequest.get(url);
         const message = await response.message.pipe(fpr);
         return filePath;
@@ -42769,6 +42765,7 @@ async function decorate(appVersionId) {
                     let vulns = await vuln.getAppVersionVulns(appVersionId, query, 'id');
                     await vuln.addDetails(vulns, "issueName,traceNodes,fullFileName,shortFileName,brief,friority,lineNumber");
                     vulns.forEach(vuln => {
+                        core.debug(`Adding comment for vuln: ${vuln}`);
                         comments.push({
                             path: file.filename, line: vuln.details.lineNumber, body: `
 <p><b>Security Scanning</b> / Fortify SAST</p>
@@ -42779,6 +42776,7 @@ async function decorate(appVersionId) {
                 }
             }));
             if (comments.length) {
+                core.debug(`comments: ${comments}`);
                 await octokit.request('POST /repos/{owner}/{repo}/pulls/{pull_number}/reviews', {
                     owner: github.context.issue.owner,
                     repo: github.context.repo.repo,
@@ -42791,7 +42789,7 @@ async function decorate(appVersionId) {
                         'X-GitHub-Api-Version': '2022-11-28'
                     }
                 }).catch(error => {
-                    console.log(`error: ${error}`);
+                    core.error(`${error.message}`);
                     // process.exit(1)
                 });
             }
@@ -43044,7 +43042,6 @@ async function loginSscWithToken(base_url, token) {
             ? args.concat([`--insecure`])
             : args;
         let jsonRes = await utils.fcli(args);
-        core.debug(jsonRes);
         if (jsonRes['__action__'] === 'CREATED') {
             return true;
         }
@@ -43541,11 +43538,11 @@ async function fcli(args, returnStatus = false, silent = true) {
             silent: silent
         };
         core.debug(`fcli ${args.join(' ')}`);
-        const status = await exec.exec(getFcliPath(), args, options);
-        core.debug(`status : ${status}`);
+        const response = await exec.exec(getFcliPath(), args, options);
+        core.debug(`status : ${response}`);
         core.debug(`responseData : ${responseData}`);
         core.debug(`errorData : ${errorData}`);
-        return returnStatus ? status : JSON.parse(responseData);
+        return returnStatus ? response : JSON.parse(responseData);
     }
     catch (err) {
         core.error('fcli execution failed: ');
@@ -43604,9 +43601,11 @@ async function scancentral(args, silent = false) {
         },
         silent: silent
     };
+    core.debug(`scancentral ${args.join(' ')}`);
     const response = await exec.exec(getScanCentralPath(), args, options);
-    core.debug(responseData);
-    core.debug(`response=${response}`);
+    core.debug(`status : ${response}`);
+    core.debug(`responseData : ${responseData}`);
+    core.debug(`errorData : ${errorData}`);
     return response;
 }
 exports.scancentral = scancentral;
@@ -43757,9 +43756,7 @@ async function getAppVersionVulnsCount(appId, filterSet, analysisType, newIssues
                 break;
         }
     }
-    core.debug(query);
     const url = `/api/v1/projectVersions/${appId}/issueGroups?filterset=${await filterset.getFilterSetGuid(appId, filterSet)}&groupingtype=FOLDER${query.length ? `&qm=issues&q=${encodeURI(query)}` : ""}`;
-    core.debug(url);
     return await utils.fcliRest(url);
 }
 exports.getAppVersionVulnsCount = getAppVersionVulnsCount;
@@ -43794,14 +43791,12 @@ async function getAppVersionVulns(appId, restQuery, fcliQuery, fields, embed) {
     url += restQuery ? `q=${encodeURI(restQuery)}&qm=issues&` : "";
     url += fields ? `fields=${fields}&` : "";
     url += embed ? `embed=${embed}&` : "";
-    core.debug(`url: ${url}`);
     return await utils.fcliRest(url, 'GET', '', fcliQuery);
 }
 exports.getAppVersionVulns = getAppVersionVulns;
 async function addDetails(vulns, fields) {
     await Promise.all(vulns.map(async (vuln) => {
         const url = `/api/v1/issueDetails/${vuln.id}`;
-        core.debug(`url: ${url}`);
         let data = await utils.fcliRest(url);
         if (data.length) {
             if (fields) {
@@ -43825,7 +43820,6 @@ async function tagVulns(appId, vulns, guid, value) {
         },
         "issues": vulns
     };
-    core.debug(body);
     return (await utils.fcliRest(`/api/v1/projectVersions/${appId}/issues/action/updateTag`, "POST", JSON.stringify(body))).length > 0;
 }
 exports.tagVulns = tagVulns;

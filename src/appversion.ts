@@ -14,7 +14,6 @@ export async function getAppVersion(app: string, version: string) : Promise<any>
 }
 export async function getAppVersionId(app: string, version: string): Promise<number> {
     const appVersion: any = await getAppVersion(app, version)
-    core.debug(`getAppVersionId: appVersion= ${appVersion}`)
 
     return appVersion?.id
 }
@@ -33,7 +32,6 @@ async function commitAppVersion(id: string): Promise<boolean> {
     core.debug(`Committing AppVersion ${id}`)
 
     const commitBodyJson = JSON.parse(`{"committed": "true"}`)
-    core.debug(JSON.stringify(commitBodyJson))
 
     return await utils.fcliRest(`/api/v1/projectVersions/${id}`, 'PUT', JSON.stringify(commitBodyJson))
 }
@@ -68,8 +66,6 @@ async function setAppVersionAttribute(appId: string, attribute: string): Promise
             `--appversion=${appId}`,
             '--output=json'
         ])
-
-        core.debug(jsonRes.toString())
 
         return true
     } catch (err) {

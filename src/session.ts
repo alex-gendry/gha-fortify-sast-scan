@@ -65,7 +65,6 @@ async function loginSscWithToken(
             ? args.concat([`--insecure`])
             : args
         let jsonRes = await utils.fcli(args)
-        core.debug(jsonRes)
 
         if (jsonRes['__action__'] === 'CREATED') {
             return true

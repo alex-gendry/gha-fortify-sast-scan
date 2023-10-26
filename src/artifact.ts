@@ -91,7 +91,6 @@ export async function downloadArtifact(jobToken: string): Promise<any> {
 
         const fpr = fs.createWriteStream(filePath)
         const url: string = await utils.getSastBaseUrl() + `/rest/v2/job/${jobToken}/FPR`
-        core.debug(`url: ${url}`)
         let response = await httpRequest.get(url)
         const message = await response.message.pipe(fpr)
 
