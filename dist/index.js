@@ -42625,16 +42625,14 @@ var __importStar = (this && this.__importStar) || function (mod) {
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.getPerformanceIndicatorValueByName = exports.getPerformanceIndicatorByName = void 0;
 const utils = __importStar(__nccwpck_require__(1314));
-const core = __importStar(__nccwpck_require__(2186));
 async function getPerformanceIndicatorByName(appId, performanceIndicatorName) {
     const url = `/api/v1/projectVersions/${appId}/performanceIndicatorHistories?q=name:${encodeURI(performanceIndicatorName)}`;
-    core.debug(url);
-    return await utils.fcliRest(url);
+    return (await utils.fcliRest(url))[0];
 }
 exports.getPerformanceIndicatorByName = getPerformanceIndicatorByName;
 async function getPerformanceIndicatorValueByName(appId, performanceIndicatorName) {
-    let jsonRes = await getPerformanceIndicatorByName(appId, performanceIndicatorName);
-    return parseFloat(jsonRes["value"]);
+    let data = await getPerformanceIndicatorByName(appId, performanceIndicatorName);
+    return data?.value ? parseFloat(data.value) : 0;
 }
 exports.getPerformanceIndicatorValueByName = getPerformanceIndicatorValueByName;
 
