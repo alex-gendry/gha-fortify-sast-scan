@@ -3,7 +3,7 @@ import * as vuln from './vuln'
 import * as core from '@actions/core'
 import process from "process";
 
-export async function getAppVersionId(app: string, version: string): Promise<any> {
+export async function getAppVersion(app: string, version: string) : Promise<any> {
     return await utils.fcli([
         'ssc',
         'appversion',
@@ -11,6 +11,12 @@ export async function getAppVersionId(app: string, version: string): Promise<any
         `--query=application.name=='${app}' && name=='${version}'`,
         '--output=json'
     ])
+}
+export async function getAppVersionId(app: string, version: string): Promise<number> {
+    const appVersion: any = getAppVersion(app, version)
+    core.debug(appVersion)
+
+    return appVersion.length ? appVersion.id : -1
 }
 
 async function getAppVersionCustomTags(appVersionId: string | number, fields?: string): Promise<any> {
@@ -31,7 +37,7 @@ async function getAppVersionCustomTags(appVersionId: string | number, fields?: s
 }
 
 export async function appVersionExists(app: string, version: string): Promise<boolean> {
-    return (await getAppVersionId(app, version)).length > 0
+    return (await getAppVersionId(app, version)) > 0
 }
 
 async function commitAppVersion(id: string): Promise<boolean> {
@@ -374,6 +380,8 @@ export async function getOrCreateAppVersionId(app: string, version: string, sour
             core.error(utils.failure(`Retrieving AppVersion ${app}:${version}`))
         })
 
+    console.log(appVersionId)
+
     if (appVersionId === -1) {
         core.info(utils.notFound(`Retrieving AppVersion ${app}:${version}`))
         appVersionId = await runAppVersionCreation(app, version, source_app, source_version)
@@ -383,8 +391,9 @@ export async function getOrCreateAppVersionId(app: string, version: string, sour
                 process.exit(core.ExitCode.Failure)
             })
         core.info(`Application Version ${app}:${version} created (${appVersionId})`)
+    } else {
+        core.info(utils.exists(`Retrieving AppVersion ${app}:${version}`))
     }
-    core.info(utils.exists(`Retrieving AppVersion ${app}:${version}`))
 
     return Number(appVersionId)
 }

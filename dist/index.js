@@ -41819,12 +41819,12 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.appVersionHasCustomTag = exports.getOrCreateAppVersionId = exports.addCustomTag = exports.appVersionExists = exports.getAppVersionId = void 0;
+exports.appVersionHasCustomTag = exports.getOrCreateAppVersionId = exports.addCustomTag = exports.appVersionExists = exports.getAppVersionId = exports.getAppVersion = void 0;
 const utils = __importStar(__nccwpck_require__(1314));
 const vuln = __importStar(__nccwpck_require__(4002));
 const core = __importStar(__nccwpck_require__(2186));
 const process_1 = __importDefault(__nccwpck_require__(7282));
-async function getAppVersionId(app, version) {
+async function getAppVersion(app, version) {
     return await utils.fcli([
         'ssc',
         'appversion',
@@ -41832,6 +41832,12 @@ async function getAppVersionId(app, version) {
         `--query=application.name=='${app}' && name=='${version}'`,
         '--output=json'
     ]);
+}
+exports.getAppVersion = getAppVersion;
+async function getAppVersionId(app, version) {
+    const appVersion = getAppVersion(app, version);
+    core.debug(appVersion);
+    return appVersion.length ? appVersion.id : -1;
 }
 exports.getAppVersionId = getAppVersionId;
 async function getAppVersionCustomTags(appVersionId, fields) {
@@ -41846,7 +41852,7 @@ async function getAppVersionCustomTags(appVersionId, fields) {
     }
 }
 async function appVersionExists(app, version) {
-    return (await getAppVersionId(app, version)).length > 0;
+    return (await getAppVersionId(app, version)) > 0;
 }
 exports.appVersionExists = appVersionExists;
 async function commitAppVersion(id) {
@@ -42145,6 +42151,7 @@ async function getOrCreateAppVersionId(app, version, source_app, source_version)
         core.error(`${error.message}`);
         core.error(utils.failure(`Retrieving AppVersion ${app}:${version}`));
     });
+    console.log(appVersionId);
     if (appVersionId === -1) {
         core.info(utils.notFound(`Retrieving AppVersion ${app}:${version}`));
         appVersionId = await runAppVersionCreation(app, version, source_app, source_version)
@@ -42155,7 +42162,9 @@ async function getOrCreateAppVersionId(app, version, source_app, source_version)
         });
         core.info(`Application Version ${app}:${version} created (${appVersionId})`);
     }
-    core.info(utils.exists(`Retrieving AppVersion ${app}:${version}`));
+    else {
+        core.info(utils.exists(`Retrieving AppVersion ${app}:${version}`));
+    }
     return Number(appVersionId);
 }
 exports.getOrCreateAppVersionId = getOrCreateAppVersionId;
