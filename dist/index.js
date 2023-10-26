@@ -42081,6 +42081,7 @@ async function runAppVersionCreation(app, version, source_app, source_version) {
         throw new Error(utils.failure(`ApplicationVersion ${app}:${version} creation`));
     });
     core.info(`ApplicationVersion ${app}:${version} creation` + " ..... " + utils.bgGreen('Success'));
+    console.log(appVersion);
     core.info(`AppVersion ${appVersion.project.name}:${appVersion.name} created with id: ${appVersion.id})`);
     /** COPY STATE: run the AppVersion Copy  */
     let sourceAppVersionId;

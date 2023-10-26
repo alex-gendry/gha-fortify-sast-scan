@@ -281,7 +281,7 @@ async function createAppVersion(app: any, version: string): Promise<any> {
 
     core.debug(JSON.stringify(createAppVersionBodyJson))
 
-    return  await utils.fcliRest('/api/v1/projectVersions', 'POST', JSON.stringify(createAppVersionBodyJson))
+    return await utils.fcliRest('/api/v1/projectVersions', 'POST', JSON.stringify(createAppVersionBodyJson))
 }
 
 export async function addCustomTag(appId: number | string, customTagGuid: string): Promise<boolean> {
@@ -301,6 +301,7 @@ async function runAppVersionCreation(app: string, version: string, source_app?: 
             throw new Error(utils.failure(`ApplicationVersion ${app}:${version} creation`))
         })
     core.info(`ApplicationVersion ${app}:${version} creation` + " ..... " + utils.bgGreen('Success'))
+    console.log(appVersion)
     core.info(`AppVersion ${appVersion.project.name}:${appVersion.name} created with id: ${appVersion.id})`)
 
     /** COPY STATE: run the AppVersion Copy  */
