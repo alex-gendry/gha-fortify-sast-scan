@@ -41835,7 +41835,7 @@ async function getAppVersion(app, version) {
 }
 exports.getAppVersion = getAppVersion;
 async function getAppVersionId(app, version) {
-    const appVersion = getAppVersion(app, version);
+    const appVersion = await getAppVersion(app, version);
     core.debug(appVersion);
     return appVersion.length ? appVersion.id : -1;
 }
@@ -41946,11 +41946,11 @@ async function getAppId(app) {
         '--output=json'
     ]);
     if (jsonRes.length === 0) {
-        core.debug(`Application "${app}" not found`);
+        core.debug(`Application ${app} not found`);
         return -1;
     }
     else {
-        core.debug(`Application "${app}" exists`);
+        core.debug(`Application ${app} exists`);
         return jsonRes[0].id;
     }
 }

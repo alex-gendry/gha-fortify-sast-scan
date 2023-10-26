@@ -13,7 +13,7 @@ export async function getAppVersion(app: string, version: string) : Promise<any>
     ])
 }
 export async function getAppVersionId(app: string, version: string): Promise<number> {
-    const appVersion: any = getAppVersion(app, version)
+    const appVersion: any = await getAppVersion(app, version)
     core.debug(appVersion)
 
     return appVersion.length ? appVersion.id : -1
@@ -159,10 +159,10 @@ async function getAppId(app: string): Promise<number> {
     ])
 
     if (jsonRes.length === 0) {
-        core.debug(`Application "${app}" not found`)
+        core.debug(`Application ${app} not found`)
         return -1
     } else {
-        core.debug(`Application "${app}" exists`)
+        core.debug(`Application ${app} exists`)
         return jsonRes[0].id
     }
 }
