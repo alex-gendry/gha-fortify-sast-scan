@@ -76,7 +76,7 @@ export async function waitForPullRunsCompleted() : Promise<boolean> {
 }
 
 export async function decorate(appVersionId: string | number): Promise<any> {
-    core.info(`Decorating pull request #${github.context.issue.number} from ${github.context.issue.owner}:${github.context.repo.repo}`)
+    core.info(`Decorating pull request #${github.context.issue.number} from ${github.context.issue.owner}/${github.context.repo.repo}`)
 
     const {data: commits} = await octokit.rest.pulls.listCommits({
         owner: github.context.issue.owner, repo: github.context.issue.repo, pull_number: github.context.issue.number,
@@ -102,8 +102,8 @@ export async function decorate(appVersionId: string | number): Promise<any> {
             await Promise.all(files.map(async function (file: any) {
                 const regex = /@@\W[-+](?<Left>[,\d]*)\W[-+](?<right>[,\d]*)\W@@/gm
                 let m;
-                core.debug(`File: ${file["filename"]} =>`)
-                while ((m = regex.exec(file["patch"])) !== null) {
+                core.debug(`File: ${file.filename} =>`)
+                while ((m = regex.exec(file.patch)) !== null) {
                     if (m.index === regex.lastIndex) {
                         regex.lastIndex++;
                     }
@@ -112,16 +112,16 @@ export async function decorate(appVersionId: string | number): Promise<any> {
                     const diffHunk: any = {
                         start: diffElements[0], end: diffElements[0] + diffElements[0] - 1
                     }
-                    core.debug(`diff: ${file["filename"]} ${diffHunk.start}:${diffHunk.end}`)
+                    core.debug(`diff: ${file.filename} ${diffHunk.start}:${diffHunk.end}`)
 
-                    const query: string = `[analysis type]:"sca" AND file:"${file}" AND line:[${diffHunk.start},${diffHunk.end}] AND commit:${commit.sha}`
+                    const query: string = `[analysis type]:"sca" AND file:"${file.filename}" AND line:[${diffHunk.start},${diffHunk.end}] AND commit:${commit.sha}`
                     let vulns = await vuln.getAppVersionVulns(appVersionId, query , 'id')
 
                     await vuln.addDetails(vulns, "issueName,traceNodes,fullFileName,shortFileName,brief,friority,lineNumber")
 
                     vulns.forEach(vuln => {
                         comments.push({
-                            path: file["filename"], line: vuln.details.lineNumber, body: `
+                            path: file.filename, line: vuln.details.lineNumber, body: `
 <p><b>Security Scanning</b> / Fortify SAST</p>
 <h3>${vuln.details.friority} - ${vuln.details.issueName} </h3>
 <p>${vuln.details.brief}</p>`,
