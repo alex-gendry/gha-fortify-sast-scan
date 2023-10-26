@@ -42063,7 +42063,7 @@ async function createAppVersion(app, version) {
         createAppVersionBodyJson = utils.getCreateAppVersionBody(app, version);
     }
     core.debug(JSON.stringify(createAppVersionBodyJson));
-    return await utils.fcliRest('/api/v1/projectVersions', 'POST', JSON.stringify(createAppVersionBodyJson));
+    return (await utils.fcliRest('/api/v1/projectVersions', 'POST', JSON.stringify(createAppVersionBodyJson)))[0];
 }
 async function addCustomTag(appId, customTagGuid) {
     const url = `/api/v1/projectVersions/${appId}/customTags`;
@@ -42081,7 +42081,6 @@ async function runAppVersionCreation(app, version, source_app, source_version) {
         throw new Error(utils.failure(`ApplicationVersion ${app}:${version} creation`));
     });
     core.info(`ApplicationVersion ${app}:${version} creation` + " ..... " + utils.bgGreen('Success'));
-    console.log(appVersion);
     core.info(`AppVersion ${appVersion.project.name}:${appVersion.name} created with id: ${appVersion.id})`);
     /** COPY STATE: run the AppVersion Copy  */
     let sourceAppVersionId;
