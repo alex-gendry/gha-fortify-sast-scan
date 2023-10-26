@@ -142,7 +142,7 @@ export async function decorate(appVersionId: string | number): Promise<any> {
                     repo: github.context.repo.repo,
                     pull_number: github.context.issue.number,
                     commit_id: commit.sha,
-                    body: 'Fortify found potential problems',
+                    body: `Fortify found potential problems in commit ${utils.shortSha(commit.sha)}`,
                     event: "COMMENT",
                     comments: comments,
                     headers: {
