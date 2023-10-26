@@ -120,7 +120,8 @@ export async function decorate(appVersionId: string | number): Promise<any> {
                     await vuln.addDetails(vulns, "issueName,traceNodes,fullFileName,shortFileName,brief,friority,lineNumber")
 
                     vulns.forEach(vuln => {
-                        core.debug(`Adding comment for vuln: ${vuln}`)
+                        core.debug(`Adding comment for vuln:`)
+                        core.debug(`${vuln}`)
                         comments.push({
                             path: file.filename, line: vuln.details.lineNumber, body: `
 <p><b>Security Scanning</b> / Fortify SAST</p>
@@ -132,7 +133,8 @@ export async function decorate(appVersionId: string | number): Promise<any> {
             }))
 
             if (comments.length) {
-                core.debug(`comments: ${comments}`)
+                core.debug(`comments:`)
+                core.debug(`${comments}`)
                 await octokit.request('POST /repos/{owner}/{repo}/pulls/{pull_number}/reviews', {
                     owner: github.context.issue.owner,
                     repo: github.context.repo.repo,
