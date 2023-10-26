@@ -42751,7 +42751,7 @@ async function decorate(appVersionId) {
             await Promise.all(files.map(async function (file) {
                 const regex = /@@\W[-+](?<Left>[,\d]*)\W[-+](?<right>[,\d]*)\W@@/gm;
                 let m;
-                core.debug(`File: ${file.filename} =>`);
+                utils.debugGroup(`File: ${file.filename}:`, file);
                 while ((m = regex.exec(file.patch)) !== null) {
                     if (m.index === regex.lastIndex) {
                         regex.lastIndex++;
@@ -42765,10 +42765,7 @@ async function decorate(appVersionId) {
                     let vulns = await vuln.getAppVersionVulns(appVersionId, query, 'id');
                     await vuln.addDetails(vulns, "issueName,traceNodes,fullFileName,shortFileName,brief,friority,lineNumber");
                     vulns.forEach(vuln => {
-                        core.debug(`Adding comment for vuln:`);
-                        if (core.isDebug()) {
-                            console.log(vuln);
-                        }
+                        utils.debugGroup(`Adding comment for vuln:`, vuln);
                         comments.push({
                             path: file.filename, line: vuln.details.lineNumber, body: `
 <p><b>Security Scanning</b> / Fortify SAST</p>
@@ -43419,7 +43416,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.notFound = exports.skipped = exports.failure = exports.exists = exports.success = exports.bgBlue = exports.bgYellow = exports.bgGray = exports.bgRed = exports.bgGreen = exports.shortSha = exports.daysOrToday = exports.normalizeScanType = exports.getSastBaseUrl = exports.scancentralRest = exports.scancentral = exports.stringToArgsArray = exports.fcliRest = exports.fcli = exports.getScanCentralPath = exports.getEnvOrValue = exports.getFcliPath = exports.getCopyVulnsBody = exports.getCopyStateBody = exports.getCreateAppVersionBody = void 0;
+exports.notFound = exports.skipped = exports.failure = exports.exists = exports.success = exports.bgBlue = exports.bgYellow = exports.bgGray = exports.bgRed = exports.bgGreen = exports.debugGroup = exports.shortSha = exports.daysOrToday = exports.normalizeScanType = exports.getSastBaseUrl = exports.scancentralRest = exports.scancentral = exports.stringToArgsArray = exports.fcliRest = exports.fcli = exports.getScanCentralPath = exports.getEnvOrValue = exports.getFcliPath = exports.getCopyVulnsBody = exports.getCopyStateBody = exports.getCreateAppVersionBody = void 0;
 const core = __importStar(__nccwpck_require__(2186));
 const exec = __importStar(__nccwpck_require__(1514));
 // @ts-ignore
@@ -43543,11 +43540,13 @@ async function fcli(args, returnStatus = false, silent = true) {
             },
             silent: silent
         };
+        core.isDebug() ? core.startGroup('fcli execution logging') : null;
         core.debug(`fcli ${args.join(' ')}`);
         const response = await exec.exec(getFcliPath(), args, options);
         core.debug(`status : ${response}`);
         core.debug(`responseData : ${responseData}`);
         core.debug(`errorData : ${errorData}`);
+        core.isDebug() ? core.endGroup() : null;
         return returnStatus ? response : JSON.parse(responseData);
     }
     catch (err) {
@@ -43666,6 +43665,14 @@ function shortSha(sha) {
     return sha.slice(0, 7);
 }
 exports.shortSha = shortSha;
+function debugGroup(title, obj) {
+    if (core.isDebug()) {
+        core.startGroup(title);
+        console.log(obj);
+        core.endGroup();
+    }
+}
+exports.debugGroup = debugGroup;
 function bgGreen(str) {
     return ansi_styles_1.default.bgGreen.open + str + ansi_styles_1.default.bgGreen.close;
 }
@@ -43804,6 +43811,7 @@ async function addDetails(vulns, fields) {
     await Promise.all(vulns.map(async (vuln) => {
         const url = `/api/v1/issueDetails/${vuln.id}`;
         let data = await utils.fcliRest(url);
+        utils.debugGroup(`Vuln ${vuln.id} details:`, data);
         if (data.length) {
             if (fields) {
                 vuln.details = {};

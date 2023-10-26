@@ -128,11 +128,13 @@ export async function fcli(args: string[], returnStatus: boolean = false, silent
             silent: silent
         }
 
+        core.isDebug() ? core.startGroup('fcli execution logging') : null
         core.debug(`fcli ${args.join(' ')}`)
         const response = await exec.exec(getFcliPath(), args, options)
         core.debug(`status : ${response}`)
         core.debug(`responseData : ${responseData}`)
         core.debug(`errorData : ${errorData}`)
+        core.isDebug() ? core.endGroup() : null
 
         return returnStatus ? response : JSON.parse(responseData)
     } catch (err: any) {
@@ -258,6 +260,14 @@ export function daysOrToday(diffDays: number) {
 
 export function shortSha(sha: string): string {
     return sha.slice(0, 7)
+}
+
+export function debugGroup(title:string, obj: any) {
+    if(core.isDebug()){
+        core.startGroup(title)
+        console.log(obj)
+        core.endGroup()
+    }
 }
 
 export function bgGreen(str: string): string {

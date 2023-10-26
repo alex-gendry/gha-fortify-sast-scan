@@ -71,6 +71,7 @@ export async function addDetails(vulns: any[], fields?: string): Promise<void> {
         vulns.map(async vuln => {
             const url = `/api/v1/issueDetails/${vuln.id}`
             let data = await utils.fcliRest(url)
+            utils.debugGroup(`Vuln ${vuln.id} details:`, data)
             if(data.length){
                 if (fields) {
                     vuln.details = {}

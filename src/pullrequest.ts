@@ -102,7 +102,8 @@ export async function decorate(appVersionId: string | number): Promise<any> {
             await Promise.all(files.map(async function (file: any) {
                 const regex = /@@\W[-+](?<Left>[,\d]*)\W[-+](?<right>[,\d]*)\W@@/gm
                 let m;
-                core.debug(`File: ${file.filename} =>`)
+
+                utils.debugGroup(`File: ${file.filename}:`, file)
                 while ((m = regex.exec(file.patch)) !== null) {
                     if (m.index === regex.lastIndex) {
                         regex.lastIndex++;
@@ -120,10 +121,7 @@ export async function decorate(appVersionId: string | number): Promise<any> {
                     await vuln.addDetails(vulns, "issueName,traceNodes,fullFileName,shortFileName,brief,friority,lineNumber")
 
                     vulns.forEach(vuln => {
-                        core.debug(`Adding comment for vuln:`)
-                        if(core.isDebug()){
-                            console.log(vuln)
-                        }
+                        utils.debugGroup(`Adding comment for vuln:`, vuln)
                         comments.push({
                             path: file.filename, line: vuln.details.lineNumber, body: `
 <p><b>Security Scanning</b> / Fortify SAST</p>
