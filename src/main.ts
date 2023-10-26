@@ -40,9 +40,6 @@ const INPUT = {
  */
 export async function run(): Promise<void> {
     try {
-        console.log(github.context.payload)
-        console.log(github.context.payload.commits)
-        process.exit(core.ExitCode.Failure)
         /** Login  */
         await session.loginSsc(INPUT).catch(error => {
             core.setFailed(`${error.message}`)
@@ -67,7 +64,6 @@ export async function run(): Promise<void> {
             }
             if (github.context.payload.pull_request) {
                 INPUT.ssc_source_app = INPUT.ssc_app
-                // @ts-ignore
                 INPUT.ssc_source_version = github.context.payload.pull_request.head.ref
             }
         }
