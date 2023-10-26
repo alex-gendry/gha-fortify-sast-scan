@@ -41966,7 +41966,6 @@ async function createAppVersion(app, version) {
         core.debug(`Application ${app} not found. Creating new Application as well`);
         createAppVersionBodyJson = utils.getCreateAppVersionBody(app, version);
     }
-    core.debug(JSON.stringify(createAppVersionBodyJson));
     return (await utils.fcliRest('/api/v1/projectVersions', 'POST', JSON.stringify(createAppVersionBodyJson)))[0];
 }
 async function addCustomTag(appId, customTagGuid) {
@@ -42068,10 +42067,9 @@ async function getOrCreateAppVersionId(app, version, source_app, source_version)
     let appVersionId = await getAppVersionId(app, version)
         .catch(error => {
         core.error(`${error.message}`);
-        core.error(utils.failure(`Retrieving AppVersion ${app}:${version}`));
+        throw new Error(utils.failure(`Retrieving AppVersion ${app}:${version}`));
     });
-    console.log(appVersionId);
-    if (appVersionId === -1) {
+    if (appVersionId === undefined || appVersionId === -1) {
         core.info(utils.notFound(`Retrieving AppVersion ${app}:${version}`));
         appVersionId = await runAppVersionCreation(app, version, source_app, source_version)
             .catch(error => {
