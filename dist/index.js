@@ -43821,16 +43821,14 @@ async function addDetails(vulns, fields) {
         const url = `/api/v1/issueDetails/${vuln.id}`;
         let data = (await utils.fcliRest(url))[0];
         utils.debugGroup(`Vuln ${vuln.id} details:`, data);
-        if (data.length) {
-            if (fields) {
-                vuln.details = {};
-                fields.split(",").forEach(field => {
-                    vuln.details[field] = data[field];
-                });
-            }
-            else {
-                vuln.details = data;
-            }
+        if (data?.fields) {
+            vuln.details = {};
+            data.fields.split(",").forEach(function (field) {
+                vuln.details[field] = data[field];
+            });
+        }
+        else {
+            vuln.details = data;
         }
     }));
 }

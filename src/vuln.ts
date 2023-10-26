@@ -43,12 +43,12 @@ export async function getAppVersionVulnsCountTotal(appId: number | string, filte
     return total
 }
 
-export async function getVulnsByScanId(appVersionId: number | string, scanId: number | string, fields?: string ,newIssues?: boolean): Promise<any> {
+export async function getVulnsByScanId(appVersionId: number | string, scanId: number | string, fields?: string, newIssues?: boolean): Promise<any> {
     let restQuery: string = ""
     if (newIssues) {
         restQuery = "[issue age]:NEW"
     }
-    return await getAppVersionVulns(appVersionId, restQuery, `lastScanId==${scanId}`, fields )
+    return await getAppVersionVulns(appVersionId, restQuery, `lastScanId==${scanId}`, fields)
 }
 
 export async function getNewVulnsByScanId(appVersionId: number | string, scanId: number | string): Promise<any> {
@@ -72,15 +72,14 @@ export async function addDetails(vulns: any[], fields?: string): Promise<void> {
             const url = `/api/v1/issueDetails/${vuln.id}`
             let data = (await utils.fcliRest(url))[0]
             utils.debugGroup(`Vuln ${vuln.id} details:`, data)
-            if(data.length){
-                if (fields) {
-                    vuln.details = {}
-                    fields.split(",").forEach(field => {
-                        vuln.details[field] = data[field]
-                    })
-                } else {
-                    vuln.details = data
-                }
+
+            if (data?.fields) {
+                vuln.details = {}
+                data.fields.split(",").forEach(function (field: any) {
+                    vuln.details[field] = data[field]
+                })
+            } else {
+                vuln.details = data
             }
         })
     )
@@ -102,7 +101,7 @@ export async function transposeToAppVersion(vulns: any, appVersionId: string | n
     core.debug(`Transposing vulns to ${appVersionId}`)
     core.debug(`source vulns qty: ${vulns.length}`)
     core.debug(`Getting target vulns`)
-    const targetVulns = await getAppVersionVulns(appVersionId, "", "","id,issueInstanceId,revision")
+    const targetVulns = await getAppVersionVulns(appVersionId, "", "", "id,issueInstanceId,revision")
     core.debug(`target vulns qty: ${targetVulns.length}`)
     var jp = require('jsonpath')
 
