@@ -253,7 +253,7 @@ async function getAppId(app: string): Promise<number> {
         'ssc',
         'app',
         'ls',
-        `-q=name=${app}`,
+        `-q`,`name=='${app}'`,
         '--output=json'
     ])
 

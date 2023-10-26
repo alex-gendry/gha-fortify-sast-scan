@@ -42038,7 +42038,7 @@ async function getAppId(app) {
         'ssc',
         'app',
         'ls',
-        `-q=name=${app}`,
+        `-q`, `name=='${app}'`,
         '--output=json'
     ]);
     if (jsonRes.length === 0) {
