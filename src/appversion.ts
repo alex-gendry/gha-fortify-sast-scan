@@ -14,9 +14,9 @@ export async function getAppVersion(app: string, version: string) : Promise<any>
 }
 export async function getAppVersionId(app: string, version: string): Promise<number> {
     const appVersion: any = await getAppVersion(app, version)
-    core.debug(appVersion)
+    core.debug(`getAppVersionId: appVersion= ${appVersion}`)
 
-    return appVersion.length ? appVersion.id : -1
+    return appVersion.id
 }
 
 async function getAppVersionCustomTags(appVersionId: string | number, fields?: string): Promise<any> {
