@@ -281,8 +281,6 @@ async function createAppVersion(app: any, version: string): Promise<any> {
 
     core.debug(JSON.stringify(createAppVersionBodyJson))
 
-    throw new Error("TODO DELETE")
-
     return  await utils.fcliRest('/api/v1/projectVersions', 'POST', JSON.stringify(createAppVersionBodyJson))
 }
 
@@ -300,17 +298,7 @@ async function runAppVersionCreation(app: string, version: string, source_app?: 
     const appVersion = await createAppVersion(app, version)
         .catch(async function(error) {
             core.error(`${error.message}`)
-            core.error(utils.failure(`ApplicationVersion ${app}:${version} creation`))
-            /** delete uncommited AppVersion */
-            core.info("Trying to delete uncommitted version")
-            await deleteAppVersion(appVersion.id)
-                .catch(error => {
-                    core.error(`Failed to delete uncommited version`)
-                })
-                .then(()=>{
-                    core.info(utils.success("Trying to delete uncommitted version"))
-                })
-            throw new Error(`Failed to create ${app}:${version}`)
+            throw new Error(utils.failure(`ApplicationVersion ${app}:${version} creation`))
         })
     core.info(`ApplicationVersion ${app}:${version} creation` + " ..... " + utils.bgGreen('Success'))
     core.info(`AppVersion ${appVersion.project.name}:${appVersion.name} created with id: ${appVersion.id})`)
