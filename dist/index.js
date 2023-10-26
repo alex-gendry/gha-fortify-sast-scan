@@ -42428,7 +42428,7 @@ const INPUT = {
  */
 async function run() {
     try {
-        /** Login  */
+        /** Login */
         await session.loginSsc(INPUT).catch(error => {
             core.setFailed(`${error.message}`);
             process.exit(core.ExitCode.Failure);
@@ -42437,7 +42437,10 @@ async function run() {
             core.setFailed(`${error.message}`);
             process.exit(core.ExitCode.Failure);
         });
-        /** Set Version base on git event (PR)*/
+        /** PR handling
+         * - Waits for completion of PR's commit
+         * - Define PR's AppVersion to the base branch
+         * */
         if (github.context.eventName === "pull_request") {
             core.info("Pull Request detected");
             core.info("Waiting for PR's related commits check runs to complete");
@@ -42452,7 +42455,7 @@ async function run() {
             }
             if (github.context.payload.pull_request) {
                 INPUT.ssc_source_app = INPUT.ssc_app;
-                INPUT.ssc_source_version = github.context.payload.pull_request.head.ref;
+                INPUT.ssc_source_version = github.context.payload.pull_request.base.ref;
             }
         }
         /** Does the AppVersion exists ? */
@@ -43413,7 +43416,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.notFound = exports.skipped = exports.failure = exports.exists = exports.success = exports.bgBlue = exports.bgYellow = exports.bgGray = exports.bgRed = exports.bgGreen = exports.debugGroup = exports.shortSha = exports.daysOrToday = exports.normalizeScanType = exports.getSastBaseUrl = exports.scancentralRest = exports.scancentral = exports.stringToArgsArray = exports.fcliRest = exports.fcli = exports.getScanCentralPath = exports.getEnvOrValue = exports.getFcliPath = exports.getCopyVulnsBody = exports.getCopyStateBody = exports.getCreateAppVersionBody = void 0;
+exports.notFound = exports.skipped = exports.failure = exports.exists = exports.success = exports.bgBlue = exports.bgYellow = exports.bgGray = exports.bgRed = exports.bgGreen = exports.debugObject = exports.debugGroup = exports.shortSha = exports.daysOrToday = exports.normalizeScanType = exports.getSastBaseUrl = exports.scancentralRest = exports.scancentral = exports.stringToArgsArray = exports.fcliRest = exports.fcli = exports.getScanCentralPath = exports.getEnvOrValue = exports.getFcliPath = exports.getCopyVulnsBody = exports.getCopyStateBody = exports.getCreateAppVersionBody = void 0;
 const core = __importStar(__nccwpck_require__(2186));
 const exec = __importStar(__nccwpck_require__(1514));
 // @ts-ignore
@@ -43538,11 +43541,11 @@ async function fcli(args, returnStatus = false, silent = true) {
             silent: silent
         };
         core.isDebug() ? core.startGroup('fcli execution logging') : null;
-        core.debug(`fcli ${args.join(' ')}`);
+        debugObject(`fcli ${args.join(' ')}`);
         const response = await exec.exec(getFcliPath(), args, options);
-        core.debug(`status : ${response}`);
-        core.debug(`responseData : ${responseData}`);
-        core.debug(`errorData : ${errorData}`);
+        debugObject(response, 'status');
+        debugObject(responseData, 'responseData');
+        debugObject(errorData, 'errorData');
         core.isDebug() ? core.endGroup() : null;
         return returnStatus ? response : JSON.parse(responseData);
     }
@@ -43670,6 +43673,15 @@ function debugGroup(title, obj) {
     }
 }
 exports.debugGroup = debugGroup;
+function debugObject(object, title) {
+    if (core.isDebug()) {
+        if (title) {
+            console.log(`${title}:`);
+        }
+        console.log(object);
+    }
+}
+exports.debugObject = debugObject;
 function bgGreen(str) {
     return ansi_styles_1.default.bgGreen.open + str + ansi_styles_1.default.bgGreen.close;
 }

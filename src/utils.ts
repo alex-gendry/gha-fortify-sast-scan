@@ -129,11 +129,11 @@ export async function fcli(args: string[], returnStatus: boolean = false, silent
         }
 
         core.isDebug() ? core.startGroup('fcli execution logging') : null
-        core.debug(`fcli ${args.join(' ')}`)
+        debugObject(`fcli ${args.join(' ')}`)
         const response = await exec.exec(getFcliPath(), args, options)
-        core.debug(`status : ${response}`)
-        core.debug(`responseData : ${responseData}`)
-        core.debug(`errorData : ${errorData}`)
+        debugObject(response, 'status')
+        debugObject(responseData, 'responseData')
+        debugObject(errorData, 'errorData')
         core.isDebug() ? core.endGroup() : null
 
         return returnStatus ? response : JSON.parse(responseData)
@@ -267,6 +267,15 @@ export function debugGroup(title:string, obj: any) {
         core.startGroup(title)
         console.log(obj)
         core.endGroup()
+    }
+}
+
+export function debugObject(object:any, title?: string){
+    if(core.isDebug()){
+        if(title){
+            console.log(`${title}:`)
+        }
+        console.log(object)
     }
 }
 

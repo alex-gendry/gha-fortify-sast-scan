@@ -40,7 +40,7 @@ const INPUT = {
  */
 export async function run(): Promise<void> {
     try {
-        /** Login  */
+        /** Login */
         await session.loginSsc(INPUT).catch(error => {
             core.setFailed(`${error.message}`)
             process.exit(core.ExitCode.Failure)
@@ -50,7 +50,10 @@ export async function run(): Promise<void> {
             process.exit(core.ExitCode.Failure)
         })
 
-        /** Set Version base on git event (PR)*/
+        /** PR handling
+         * - Waits for completion of PR's commit
+         * - Define PR's AppVersion to the base branch
+         * */
         if (github.context.eventName === "pull_request") {
             core.info("Pull Request detected")
             core.info("Waiting for PR's related commits check runs to complete")
@@ -64,7 +67,7 @@ export async function run(): Promise<void> {
             }
             if (github.context.payload.pull_request) {
                 INPUT.ssc_source_app = INPUT.ssc_app
-                INPUT.ssc_source_version = github.context.payload.pull_request.head.ref
+                INPUT.ssc_source_version = github.context.payload.pull_request.base.ref
             }
         }
 
