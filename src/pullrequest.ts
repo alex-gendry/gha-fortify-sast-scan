@@ -34,7 +34,7 @@ export async function waitForPullRunsCompleted() : Promise<boolean> {
         throw new Error(`Failed to fetch commit list for pull #${github.context.issue.number} from ${github.context.issue.owner}/${github.context.repo.repo}`)
     })
 
-    core.debug(`Commits count: ${commits.length}`)
+    utils.debugObject(`Commits count: ${commits.length}`)
 
     await Promise.all(commits.map(async commit => {
         const {data: checkRuns} = await octokit.request('GET /repos/{owner}/{repo}/commits/{ref}/check-runs?check_name={check_name}', {
@@ -87,7 +87,7 @@ export async function decorate(appVersionId: string | number): Promise<any> {
 
     await Promise.all(commits.map(async commit => {
         try {
-            core.debug(`Commit SHA: ${commit.sha}`)
+            utils.debugObject(`Commit SHA: ${commit.sha}`)
             // Get Commit's Files
             const {data: commitData} = await octokit.request(`GET /repos/{owner}/{repo}/commits/{ref}`, {
                 owner: github.context.issue.owner, repo: github.context.repo.repo, ref: commit.sha, headers: {
@@ -113,7 +113,7 @@ export async function decorate(appVersionId: string | number): Promise<any> {
                     const diffHunk: any = {
                         start: diffElements[0], end: diffElements[0] + diffElements[0] - 1
                     }
-                    core.debug(`diff: ${file.filename} ${diffHunk.start}:${diffHunk.end}`)
+                    utils.debugObject(`diff: ${file.filename} ${diffHunk.start}:${diffHunk.end}`)
 
                     const query: string = `[analysis type]:"sca" AND file:"${file.filename}" AND line:[${diffHunk.start},${diffHunk.end}] AND commit:${commit.sha}`
                     let vulns = await vuln.getAppVersionVulns(appVersionId, query , 'id')

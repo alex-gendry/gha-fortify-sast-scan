@@ -29,7 +29,7 @@ export async function appVersionExists(app: string, version: string): Promise<bo
 }
 
 async function commitAppVersion(id: string): Promise<boolean> {
-    core.debug(`Committing AppVersion ${id}`)
+    utils.debugObject(`Committing AppVersion ${id}`)
 
     const commitBodyJson = JSON.parse(`{"committed": "true"}`)
 
@@ -75,14 +75,14 @@ async function setAppVersionAttribute(appId: string, attribute: string): Promise
 }
 
 async function setAppVersionAttributes(appId: string, attributes: string[]): Promise<boolean> {
-    core.debug(`Setting AppVersion ${appId} attributes`)
-    core.debug(`Attributes Qty: ${attributes.length}`)
-    core.debug(`Attributes: ${attributes}`)
+    utils.debugObject(`Setting AppVersion ${appId} attributes`)
+    utils.debugObject(`Attributes Qty: ${attributes.length}`)
+    utils.debugGroup(`Attributes:`,attributes)
     await Promise.all(
         attributes.map(async attribute => {
-            core.debug(`Assigning ${attribute} to ${appId}`)
+            utils.debugObject(`Assigning ${attribute} to ${appId}`)
             let status = await setAppVersionAttribute(appId, attribute)
-            core.debug(`Assigned = ${status}`)
+            utils.debugObject(`Assigned = ${status}`)
             if (!status) {
                 core.warning(`Attribute assignment failed: ${attribute}`)
                 return false
@@ -94,7 +94,7 @@ async function setAppVersionAttributes(appId: string, attributes: string[]): Pro
 }
 
 async function copyAppVersionVulns(source: string | number, target: string | number): Promise<boolean> {
-    core.debug(`Copying AppVersion Vulnerabilities ${source} -> ${target}`)
+    utils.debugObject(`Copying AppVersion Vulnerabilities ${source} -> ${target}`)
     const copyVulnsBodyJson = utils.getCopyVulnsBody(source, target)
 
 
@@ -108,7 +108,7 @@ async function copyAppVersionVulns(source: string | number, target: string | num
 
 
 async function copyAppVersionState(source: string, target: string): Promise<any> {
-    core.debug(`Copying AppVersion State ${source} -> ${target}`)
+    utils.debugObject(`Copying AppVersion State ${source} -> ${target}`)
     const copyStateBodyJson = utils.getCopyStateBody(source, target)
 
     const data = (await utils.fcliRest('/api/v1/projectVersions/action/copyFromPartial', 'POST', JSON.stringify(copyStateBodyJson)))[0]
@@ -122,13 +122,13 @@ async function copyAppVersionState(source: string, target: string): Promise<any>
 
 async function copyAppVersionAudit(source: string | number, target: string | number): Promise<boolean> {
     var jp = require('jsonpath')
-    core.debug(`Copying AppVersion Audit values ${source} -> ${target}`)
-    core.debug(`Get CustomTag list from AppVersion ${source}`)
+    utils.debugObject(`Copying AppVersion Audit values ${source} -> ${target}`)
+    utils.debugObject(`Get CustomTag list from AppVersion ${source}`)
     const customTags = await getAppVersionCustomTags(source, "id,guid,name,valueType,valueList")
-    core.debug(`CustomTags Qty: ${customTags.label}`)
-    core.debug(`Get vulns list from Source AppVersion ${source}`)
+    utils.debugObject(`CustomTags Qty: ${customTags.length}`)
+    utils.debugObject(`Get vulns list from Source AppVersion ${source}`)
     const vulns = await vuln.getAppVersionVulns(source, "", "", "id,issueInstanceId,revision", "auditValues")
-    core.debug(`transpose to appversion ${target}`)
+    utils.debugObject(`transpose to appversion ${target}`)
     await vuln.transposeToAppVersion(vulns, target)
 
     let requests: any[] = []
@@ -155,7 +155,7 @@ async function copyAppVersionAudit(source: string | number, target: string | num
 
 
 async function deleteAppVersion(id: any): Promise<boolean> {
-    core.debug(`Deleting AppVersion ${id}`)
+    utils.debugObject(`Deleting AppVersion ${id}`)
 
     return await utils.fcliRest(`/api/v1/projectVersions/${id}`, 'DELETE')
 
@@ -171,24 +171,24 @@ async function getAppId(app: string): Promise<number> {
     ])
 
     if (jsonRes.length === 0) {
-        core.debug(`Application ${app} not found`)
+        utils.debugObject(`Application ${app} not found`)
         return -1
     } else {
-        core.debug(`Application ${app} exists`)
+        utils.debugObject(`Application ${app} exists`)
         return jsonRes[0].id
     }
 }
 
 async function createAppVersion(app: any, version: string): Promise<any> {
-    core.debug(`Creating AppVersion ${app}:${version}`)
+    utils.debugObject(`Creating AppVersion ${app}:${version}`)
 
     const appId = await getAppId(app)
     let createAppVersionBodyJson
     if (appId > 0) {
-        core.debug(`Application ${app} exists`)
+        utils.debugObject(`Application ${app} exists`)
         createAppVersionBodyJson = utils.getCreateAppVersionBody(appId, version)
     } else {
-        core.debug(`Application ${app} not found. Creating new Application as well`)
+        utils.debugObject(`Application ${app} not found. Creating new Application as well`)
         createAppVersionBodyJson = utils.getCreateAppVersionBody(app, version)
     }
 

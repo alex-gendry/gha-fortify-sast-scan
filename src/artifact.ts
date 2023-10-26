@@ -49,7 +49,7 @@ export async function getScanTypesList(appId: string | number): Promise<string[]
     const scanTypes = jp.query(artifacts, `$.*.scanTypes`).filter(
         (scanType: any, i: any, arr: any[]) => arr.findIndex(t => t === scanType) === i
     )
-    core.debug(scanTypes)
+    utils.debugGroup('scanType:', scanTypes)
 
     return scanTypes
 }

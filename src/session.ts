@@ -184,10 +184,10 @@ export async function loginSsc(INPUT: any) {
     /** Login to Software Security Center */
     try {
         if (INPUT.ssc_ci_token) {
-            core.debug('Login to Software Security Center using Token')
+            utils.debugObject('Login to Software Security Center using Token')
             await loginSscWithToken(INPUT.ssc_base_url, INPUT.ssc_ci_token)
         } else if (INPUT.ssc_ci_username && INPUT.ssc_ci_password) {
-            core.debug('Login to Software Security Center using Username Password')
+            utils.debugObject('Login to Software Security Center using Username Password')
             await loginSscWithUsernamePassword(
                 INPUT.ssc_base_url,
                 INPUT.ssc_ci_username,

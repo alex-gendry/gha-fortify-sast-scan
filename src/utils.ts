@@ -128,8 +128,7 @@ export async function fcli(args: string[], returnStatus: boolean = false, silent
             silent: silent
         }
 
-        core.isDebug() ? core.startGroup('fcli execution logging') : null
-        debugObject(`fcli ${args.join(' ')}`)
+        core.isDebug() ? core.startGroup(`fcli ${args.join(' ')}`) : null
         const response = await exec.exec(getFcliPath(), args, options)
         debugObject(response, 'status')
         debugObject(responseData, 'responseData')
@@ -199,11 +198,12 @@ export async function scancentral(args: string[], silent: boolean = false): Prom
         silent: silent
     }
 
-    core.debug(`scancentral ${args.join(' ')}`)
+    core.isDebug() ? core.startGroup(`scancentral ${args.join(' ')}`) : null
     const response = await exec.exec(getScanCentralPath(), args, options)
-    core.debug(`status : ${response}`)
-    core.debug(`responseData : ${responseData}`)
-    core.debug(`errorData : ${errorData}`)
+    debugObject(response, 'status')
+    debugObject(responseData, 'responseData')
+    debugObject(errorData, 'errorData')
+    core.isDebug() ? core.endGroup() : null
 
     return response
 }

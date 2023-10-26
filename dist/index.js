@@ -41848,7 +41848,7 @@ async function appVersionExists(app, version) {
 }
 exports.appVersionExists = appVersionExists;
 async function commitAppVersion(id) {
-    core.debug(`Committing AppVersion ${id}`);
+    utils.debugObject(`Committing AppVersion ${id}`);
     const commitBodyJson = JSON.parse(`{"committed": "true"}`);
     return await utils.fcliRest(`/api/v1/projectVersions/${id}`, 'PUT', JSON.stringify(commitBodyJson));
 }
@@ -41887,13 +41887,13 @@ async function setAppVersionAttribute(appId, attribute) {
     }
 }
 async function setAppVersionAttributes(appId, attributes) {
-    core.debug(`Setting AppVersion ${appId} attributes`);
-    core.debug(`Attributes Qty: ${attributes.length}`);
-    core.debug(`Attributes: ${attributes}`);
+    utils.debugObject(`Setting AppVersion ${appId} attributes`);
+    utils.debugObject(`Attributes Qty: ${attributes.length}`);
+    utils.debugGroup(`Attributes:`, attributes);
     await Promise.all(attributes.map(async (attribute) => {
-        core.debug(`Assigning ${attribute} to ${appId}`);
+        utils.debugObject(`Assigning ${attribute} to ${appId}`);
         let status = await setAppVersionAttribute(appId, attribute);
-        core.debug(`Assigned = ${status}`);
+        utils.debugObject(`Assigned = ${status}`);
         if (!status) {
             core.warning(`Attribute assignment failed: ${attribute}`);
             return false;
@@ -41902,7 +41902,7 @@ async function setAppVersionAttributes(appId, attributes) {
     return true;
 }
 async function copyAppVersionVulns(source, target) {
-    core.debug(`Copying AppVersion Vulnerabilities ${source} -> ${target}`);
+    utils.debugObject(`Copying AppVersion Vulnerabilities ${source} -> ${target}`);
     const copyVulnsBodyJson = utils.getCopyVulnsBody(source, target);
     const data = (await utils.fcliRest('/api/v1/projectVersions/action/copyCurrentState', 'POST', JSON.stringify(copyVulnsBodyJson)))[0];
     if (200 <= data?.responseCode && data?.responseCode < 300) {
@@ -41913,7 +41913,7 @@ async function copyAppVersionVulns(source, target) {
     }
 }
 async function copyAppVersionState(source, target) {
-    core.debug(`Copying AppVersion State ${source} -> ${target}`);
+    utils.debugObject(`Copying AppVersion State ${source} -> ${target}`);
     const copyStateBodyJson = utils.getCopyStateBody(source, target);
     const data = (await utils.fcliRest('/api/v1/projectVersions/action/copyFromPartial', 'POST', JSON.stringify(copyStateBodyJson)))[0];
     if (200 <= data?.responseCode && data?.responseCode < 300) {
@@ -41925,13 +41925,13 @@ async function copyAppVersionState(source, target) {
 }
 async function copyAppVersionAudit(source, target) {
     var jp = __nccwpck_require__(4378);
-    core.debug(`Copying AppVersion Audit values ${source} -> ${target}`);
-    core.debug(`Get CustomTag list from AppVersion ${source}`);
+    utils.debugObject(`Copying AppVersion Audit values ${source} -> ${target}`);
+    utils.debugObject(`Get CustomTag list from AppVersion ${source}`);
     const customTags = await getAppVersionCustomTags(source, "id,guid,name,valueType,valueList");
-    core.debug(`CustomTags Qty: ${customTags.label}`);
-    core.debug(`Get vulns list from Source AppVersion ${source}`);
+    utils.debugObject(`CustomTags Qty: ${customTags.length}`);
+    utils.debugObject(`Get vulns list from Source AppVersion ${source}`);
     const vulns = await vuln.getAppVersionVulns(source, "", "", "id,issueInstanceId,revision", "auditValues");
-    core.debug(`transpose to appversion ${target}`);
+    utils.debugObject(`transpose to appversion ${target}`);
     await vuln.transposeToAppVersion(vulns, target);
     let requests = [];
     await Promise.all(vulns.map(async function (vulnTmp) {
@@ -41947,7 +41947,7 @@ async function copyAppVersionAudit(source, target) {
     return true;
 }
 async function deleteAppVersion(id) {
-    core.debug(`Deleting AppVersion ${id}`);
+    utils.debugObject(`Deleting AppVersion ${id}`);
     return await utils.fcliRest(`/api/v1/projectVersions/${id}`, 'DELETE');
 }
 async function getAppId(app) {
@@ -41959,24 +41959,24 @@ async function getAppId(app) {
         '--output=json'
     ]);
     if (jsonRes.length === 0) {
-        core.debug(`Application ${app} not found`);
+        utils.debugObject(`Application ${app} not found`);
         return -1;
     }
     else {
-        core.debug(`Application ${app} exists`);
+        utils.debugObject(`Application ${app} exists`);
         return jsonRes[0].id;
     }
 }
 async function createAppVersion(app, version) {
-    core.debug(`Creating AppVersion ${app}:${version}`);
+    utils.debugObject(`Creating AppVersion ${app}:${version}`);
     const appId = await getAppId(app);
     let createAppVersionBodyJson;
     if (appId > 0) {
-        core.debug(`Application ${app} exists`);
+        utils.debugObject(`Application ${app} exists`);
         createAppVersionBodyJson = utils.getCreateAppVersionBody(appId, version);
     }
     else {
-        core.debug(`Application ${app} not found. Creating new Application as well`);
+        utils.debugObject(`Application ${app} not found. Creating new Application as well`);
         createAppVersionBodyJson = utils.getCreateAppVersionBody(app, version);
     }
     return (await utils.fcliRest('/api/v1/projectVersions', 'POST', JSON.stringify(createAppVersionBodyJson)))[0];
@@ -42184,7 +42184,7 @@ async function getScanTypesList(appId) {
     let artifacts = await getAppVersionArtifacts(appId);
     var jp = __nccwpck_require__(4378);
     const scanTypes = jp.query(artifacts, `$.*.scanTypes`).filter((scanType, i, arr) => arr.findIndex(t => t === scanType) === i);
-    core.debug(scanTypes);
+    utils.debugGroup('scanType:', scanTypes);
     return scanTypes;
 }
 exports.getScanTypesList = getScanTypesList;
@@ -42697,7 +42697,7 @@ async function waitForPullRunsCompleted() {
         core.error(error.message);
         throw new Error(`Failed to fetch commit list for pull #${github.context.issue.number} from ${github.context.issue.owner}/${github.context.repo.repo}`);
     });
-    core.debug(`Commits count: ${commits.length}`);
+    utils.debugObject(`Commits count: ${commits.length}`);
     await Promise.all(commits.map(async (commit) => {
         const { data: checkRuns } = await octokit.request('GET /repos/{owner}/{repo}/commits/{ref}/check-runs?check_name={check_name}', {
             owner: github.context.issue.owner,
@@ -42741,7 +42741,7 @@ async function decorate(appVersionId) {
     });
     await Promise.all(commits.map(async (commit) => {
         try {
-            core.debug(`Commit SHA: ${commit.sha}`);
+            utils.debugObject(`Commit SHA: ${commit.sha}`);
             // Get Commit's Files
             const { data: commitData } = await octokit.request(`GET /repos/{owner}/{repo}/commits/{ref}`, {
                 owner: github.context.issue.owner, repo: github.context.repo.repo, ref: commit.sha, headers: {
@@ -42763,7 +42763,7 @@ async function decorate(appVersionId) {
                     const diffHunk = {
                         start: diffElements[0], end: diffElements[0] + diffElements[0] - 1
                     };
-                    core.debug(`diff: ${file.filename} ${diffHunk.start}:${diffHunk.end}`);
+                    utils.debugObject(`diff: ${file.filename} ${diffHunk.start}:${diffHunk.end}`);
                     const query = `[analysis type]:"sca" AND file:"${file.filename}" AND line:[${diffHunk.start},${diffHunk.end}] AND commit:${commit.sha}`;
                     let vulns = await vuln.getAppVersionVulns(appVersionId, query, 'id');
                     await vuln.addDetails(vulns, "issueName,traceNodes,fullFileName,shortFileName,brief,friority,lineNumber");
@@ -42880,7 +42880,7 @@ async function waitForSastScan(jobToken) {
     // && jsonRes['sscUploadState'] === 'COMPLETED'
     // && jsonRes['sscArtifactState'] === 'PROCESS_COMPLETE'
     ) {
-        core.debug(`Scan ${data['jobToken']} COMPLETED`);
+        utils.debugObject(`Scan ${data['jobToken']} COMPLETED`);
         return true;
     }
     else if (data['scanState'] != 'COMPLETED') {
@@ -43144,11 +43144,11 @@ async function loginSsc(INPUT) {
     /** Login to Software Security Center */
     try {
         if (INPUT.ssc_ci_token) {
-            core.debug('Login to Software Security Center using Token');
+            utils.debugObject('Login to Software Security Center using Token');
             await loginSscWithToken(INPUT.ssc_base_url, INPUT.ssc_ci_token);
         }
         else if (INPUT.ssc_ci_username && INPUT.ssc_ci_password) {
-            core.debug('Login to Software Security Center using Username Password');
+            utils.debugObject('Login to Software Security Center using Username Password');
             await loginSscWithUsernamePassword(INPUT.ssc_base_url, INPUT.ssc_ci_username, INPUT.ssc_ci_password);
         }
         else if (await hasActiveSscSession(INPUT.ssc_base_url)) {
@@ -43540,8 +43540,7 @@ async function fcli(args, returnStatus = false, silent = true) {
             },
             silent: silent
         };
-        core.isDebug() ? core.startGroup('fcli execution logging') : null;
-        debugObject(`fcli ${args.join(' ')}`);
+        core.isDebug() ? core.startGroup(`fcli ${args.join(' ')}`) : null;
         const response = await exec.exec(getFcliPath(), args, options);
         debugObject(response, 'status');
         debugObject(responseData, 'responseData');
@@ -43606,11 +43605,12 @@ async function scancentral(args, silent = false) {
         },
         silent: silent
     };
-    core.debug(`scancentral ${args.join(' ')}`);
+    core.isDebug() ? core.startGroup(`scancentral ${args.join(' ')}`) : null;
     const response = await exec.exec(getScanCentralPath(), args, options);
-    core.debug(`status : ${response}`);
-    core.debug(`responseData : ${responseData}`);
-    core.debug(`errorData : ${errorData}`);
+    debugObject(response, 'status');
+    debugObject(responseData, 'responseData');
+    debugObject(errorData, 'errorData');
+    core.isDebug() ? core.endGroup() : null;
     return response;
 }
 exports.scancentral = scancentral;
@@ -43845,21 +43845,21 @@ async function tagVulns(appId, vulns, guid, value) {
 }
 exports.tagVulns = tagVulns;
 async function transposeToAppVersion(vulns, appVersionId) {
-    core.debug(`Transposing vulns to ${appVersionId}`);
-    core.debug(`source vulns qty: ${vulns.length}`);
-    core.debug(`Getting target vulns`);
+    utils.debugObject(`Transposing vulns to ${appVersionId}`);
+    utils.debugObject(`source vulns qty: ${vulns.length}`);
+    utils.debugObject(`Getting target vulns`);
     const targetVulns = await getAppVersionVulns(appVersionId, "", "", "id,issueInstanceId,revision");
-    core.debug(`target vulns qty: ${targetVulns.length}`);
+    utils.debugObject(`target vulns qty: ${targetVulns.length}`);
     var jp = __nccwpck_require__(4378);
     vulns.forEach(function (vuln, index, vulns) {
         const targetVuln = jp.query(targetVulns, `$..[?(@.issueInstanceId=="${vuln.issueInstanceId}")]`)[0];
         if (targetVuln?.id) {
-            core.debug(`target vuln found for issueInstanceId ${vuln.issueInstanceId} : ${targetVuln.id} `);
+            utils.debugObject(`target vuln found for issueInstanceId ${vuln.issueInstanceId} : ${targetVuln.id} `);
             vuln.id = targetVuln.id;
             vuln.revision = targetVuln.revision;
         }
         else {
-            core.debug(`target vuln ${(0, utils_1.bgYellow)('not found')} for issueInstanceId ${vuln.issueInstanceId}. Removing it from array `);
+            utils.debugObject(`target vuln ${(0, utils_1.bgYellow)('not found')} for issueInstanceId ${vuln.issueInstanceId}. Removing it from array `);
             vulns.splice(index, 1);
         }
     });

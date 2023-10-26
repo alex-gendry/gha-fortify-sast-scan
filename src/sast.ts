@@ -55,7 +55,7 @@ export async function waitForSastScan(jobToken: string): Promise<boolean> {
         // && jsonRes['sscUploadState'] === 'COMPLETED'
         // && jsonRes['sscArtifactState'] === 'PROCESS_COMPLETE'
     ) {
-        core.debug(`Scan ${data['jobToken']} COMPLETED`)
+        utils.debugObject(`Scan ${data['jobToken']} COMPLETED`)
         return true
     } else if (data['scanState'] != 'COMPLETED') {
         throw new Error(
