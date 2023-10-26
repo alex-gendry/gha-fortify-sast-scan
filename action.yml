@@ -1,5 +1,5 @@
-name: 'Fortify SSC - Create Application Version'
-description: 'GitHub Action for Application Version creation'
+name: 'Fortify SSC - SAST Scan'
+description: 'GitHub Action for SAST Scan Execution'
 author: 'Alex Gendry @ OpenText'
 
 # Define your inputs here.
@@ -30,7 +30,7 @@ inputs:
   ssc_source_version:
     description: 'Fortify SSC Source Application Version Name to Copy State from'
     required: false
-  copy_vulns:
+  ssc_source_copy_vulns:
     description: 'Fortify SSC Source Application Version Name to Copy State from'
     default: false
     required: false
@@ -61,12 +61,8 @@ inputs:
     description: 'FilterSet used in the Job Summary'
     default: Security Auditor View
     required: false
-  sha:
-    description: 'SHA used in various FCLI variable names'
-    default: ${{ github.run_id }}
-    required: false
   gha_token:
-    description: 'SHA used in various FCLI variable names'
+    description: 'GHA Token used to request GitHub API (Should be set to \${{ secrets.GITHUB_TOKEN }})'
     required: false
 
 runs:

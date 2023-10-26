@@ -276,7 +276,7 @@ async function runAppVersionCreation(app: string, version: string, source_app?: 
         })
 
     /** COPY VULNS: run the AppVersion Copy vulns */
-    if (core.getInput('copy_vulns') && sourceAppVersionId) {
+    if (core.getInput('ssc_source_copy_vulns') && sourceAppVersionId) {
         core.info(`Copy Vulnerabilities from ${source_app}:${source_version} to ${app}:${version}`)
         if (await copyAppVersionVulns(sourceAppVersionId, appVersion.id)) {
             core.info(utils.success(`Copy Vulnerabilities from ${source_app}:${source_version} to ${app}:${version}` ))

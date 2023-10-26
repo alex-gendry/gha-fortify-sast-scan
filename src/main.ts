@@ -21,12 +21,11 @@ const INPUT = {
     ssc_version: core.getInput('ssc_version', {required: false}),
     ssc_source_app: core.getInput('ssc_source_app', {required: false}),
     ssc_source_version: core.getInput('ssc_source_version', {required: false}),
-    copy_vulns: core.getInput('copy_vulns', {required: false}),
+    ssc_source_copy_vulns: core.getInput('ssc_source_copy_vulns', {required: false}),
     ssc_commit_customtag_guid: core.getInput('ssc_commit_customtag_guid', {required: true}),
     sast_scan: core.getBooleanInput('sast_scan', {required: false}),
     sast_client_auth_token: core.getInput('sast_client_auth_token', {required: false}),
     sast_build_options: core.getInput('sast_build_options', {required: false}),
-    sha: core.getInput('sha', {required: false}),
     security_gate_action: core.getInput('security_gate_action', {required: false}),
     security_gate_filterset: core.getInput('security_gate_filterset', {required: false}),
     summary_filterset: core.getInput('summary_filterset', {required: false}),
@@ -44,10 +43,12 @@ export async function run(): Promise<void> {
             core.setFailed(`${error.message}`)
             process.exit(core.ExitCode.Failure)
         })
-        await session.loginSast(INPUT).catch(error => {
-            core.setFailed(`${error.message}`)
-            process.exit(core.ExitCode.Failure)
-        })
+        if(INPUT.sast_scan){
+            await session.loginSast(INPUT).catch(error => {
+                core.setFailed(`${error.message}`)
+                process.exit(core.ExitCode.Failure)
+            })
+        }
 
         /** PR handling
          * - Waits for completion of PR's commit

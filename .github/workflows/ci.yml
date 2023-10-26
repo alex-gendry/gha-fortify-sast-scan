@@ -31,7 +31,7 @@ jobs:
 
       - name: Download CLIs
         run: |
-          wget -qO- https://github.com/fortify/fcli/releases/download/v1.3.2/fcli-linux.tgz | tar zxf -
+          wget -qO- https://github.com/fortify/fcli/releases/download/v2.0.0/fcli-linux.tgz | tar zxf -
 
       # GitHub Action for Application Version creation
 #      - name: Create Application Version
@@ -55,8 +55,12 @@ jobs:
         with:
           ssc_base_url: ${{ vars.FTFY_SSC_BASE_URL}}
           ssc_app: PetClinic #PetClinic
-          ssc_version: github/custom-actions-7 #${{ github.ref_name }} #1.1-gl-ast
-          ssc_ci_token: ${{ secrets.FTFY_CI_TOKEN_ENC }}
+          ssc_version: github/pull_request #${{ github.ref_name }} #1.1-gl-ast
+          ssc_source_version: 1.0-gh-secrets
+          copy_vulns: true
+#          ssc_ci_token: ${{ secrets.FTFY_CI_TOKEN_ENC }}
+          ssc_ci_username: ${{ secrets.FTFY_CI_USERNAME }}
+          ssc_ci_password: ${{ secrets.FTFY_CI_PASSWORD }}
           sast_scan: true
           sast_client_auth_token: ${{ secrets.FTFY_SAST_CLIENT_TOKEN }}
           sast_build_options: "-bt none"
