@@ -41837,7 +41837,7 @@ exports.getAppVersion = getAppVersion;
 async function getAppVersionId(app, version) {
     const appVersion = await getAppVersion(app, version);
     core.debug(`getAppVersionId: appVersion= ${appVersion}`);
-    return appVersion.id;
+    return appVersion?.id;
 }
 exports.getAppVersionId = getAppVersionId;
 async function getAppVersionCustomTags(appVersionId, fields) {
