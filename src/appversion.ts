@@ -4,13 +4,13 @@ import * as core from '@actions/core'
 import process from "process";
 
 export async function getAppVersion(app: string, version: string) : Promise<any> {
-    return await utils.fcli([
+    return (await utils.fcli([
         'ssc',
         'appversion',
         'list',
         `-q`, `application.name=='${app}'&&name=='${version}'`,
         '--output=json'
-    ])
+    ]))[0]
 }
 export async function getAppVersionId(app: string, version: string): Promise<number> {
     const appVersion: any = await getAppVersion(app, version)

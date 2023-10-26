@@ -41825,13 +41825,13 @@ const vuln = __importStar(__nccwpck_require__(4002));
 const core = __importStar(__nccwpck_require__(2186));
 const process_1 = __importDefault(__nccwpck_require__(7282));
 async function getAppVersion(app, version) {
-    return await utils.fcli([
+    return (await utils.fcli([
         'ssc',
         'appversion',
         'list',
         `-q`, `application.name=='${app}'&&name=='${version}'`,
         '--output=json'
-    ]);
+    ]))[0];
 }
 exports.getAppVersion = getAppVersion;
 async function getAppVersionId(app, version) {
