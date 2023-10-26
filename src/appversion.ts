@@ -281,27 +281,7 @@ async function createAppVersion(app: any, version: string): Promise<any> {
 
     core.debug(JSON.stringify(createAppVersionBodyJson))
 
-    let jsonRes = await utils.fcli([
-        'ssc',
-        'rest',
-        'call',
-        '/api/v1/projectVersions',
-        '-d',
-        JSON.stringify(createAppVersionBodyJson),
-        `-X`,
-        'POST',
-        '--output=json'
-        // `--store=${INPUT.sha}_appVersionId`
-    ])
-    const responseCode = jsonRes[0].responseCode
-    core.debug(responseCode)
-
-    if (200 <= Number(responseCode) && Number(responseCode) < 300) {
-        return jsonRes[0].data
-    } else {
-        core.error(`AppVersion creation return code ${responseCode}`)
-        return false
-    }
+    return  await utils.fcliRest('/api/v1/projectVersions', 'POST', JSON.stringify(createAppVersionBodyJson))
 }
 
 export async function addCustomTag(appId: number | string, customTagGuid: string): Promise<boolean> {
