@@ -42530,6 +42530,9 @@ const INPUT = {
  */
 async function run() {
     try {
+        console.log(github.context);
+        console.log(github.context.payload);
+        process.exit(core.ExitCode.Failure);
         /** Login  */
         await session.loginSsc(INPUT).catch(error => {
             core.setFailed(`${error.message}`);
@@ -42554,6 +42557,7 @@ async function run() {
             }
             if (github.context.payload.pull_request) {
                 INPUT.ssc_source_app = INPUT.ssc_app;
+                // @ts-ignore
                 INPUT.ssc_source_version = github.context.payload.pull_request.head.ref;
             }
         }
