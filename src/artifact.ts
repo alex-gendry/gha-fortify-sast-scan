@@ -107,7 +107,8 @@ export async function waitForArtifactUpload(artifactId: string | number): Promis
         await utils.fcli(
             ['ssc', 'artifact', 'wait-for', artifactId.toString(),
                 // `--while=REQUIRE_AUTH|SCHED_PROCESSING|PROCESSING`,
-                `--on-failure-state=terminate`, `--on-unknown-state=terminate`, `--interval=10s`],
+                `--on-failure-state=terminate`, `--on-unknown-state=terminate`, `--interval=10s`,
+                `--output=expr="Artifact Processing [{id}] ... {status}`],
             true, false)
 
         let response = (await utils.fcli(

@@ -42242,7 +42242,8 @@ async function waitForArtifactUpload(artifactId) {
     try {
         await utils.fcli(['ssc', 'artifact', 'wait-for', artifactId.toString(),
             // `--while=REQUIRE_AUTH|SCHED_PROCESSING|PROCESSING`,
-            `--on-failure-state=terminate`, `--on-unknown-state=terminate`, `--interval=10s`], true, false);
+            `--on-failure-state=terminate`, `--on-unknown-state=terminate`, `--interval=10s`,
+            `--output=expr="Artifact Processing [{id}] ... {status}`], true, false);
         let response = (await utils.fcli(['ssc', 'artifact', 'wait-for', artifactId.toString(),
             // `--while=REQUIRE_AUTH|SCHED_PROCESSING|PROCESSING`,'--no-progress',
             `--on-failure-state=terminate`, `--on-unknown-state=terminate`,
@@ -42867,30 +42868,31 @@ exports.startSastScan = startSastScan;
 async function waitForSastScan(jobToken) {
     await utils.fcli(['sc-sast', 'scan', 'wait-for', jobToken,
         // `--status-type=scan`, `--while=PENDING|QUEUED|RUNNING`,
-        `--interval=1m`, `--on-failure-state=terminate`, `--on-unknown-state=terminate`], true, false);
-    let jsonRes = await utils.fcli(['sc-sast', 'scan', 'wait-for', jobToken,
+        `--interval=1m`, `--on-failure-state=terminate`, `--on-unknown-state=terminate`,
+        `--output=expr="SAST scan execution (jobToken: {jobToken}) ... {scanState}`], true, false);
+    let data = await utils.fcli(['sc-sast', 'scan', 'wait-for', jobToken,
         // `--status-type=scan`, `--while=PENDING|QUEUED|RUNNING`, '--no-progress'
         `--interval=1m`, '--progress=none', '--output=json',
         `--on-failure-state=terminate`, `--on-unknown-state=terminate`]);
-    jsonRes = jsonRes[0];
-    if (jsonRes['scanState'] === 'COMPLETED'
+    data = data[0];
+    if (data['scanState'] === 'COMPLETED'
     // && jsonRes['sscUploadState'] === 'COMPLETED'
     // && jsonRes['sscArtifactState'] === 'PROCESS_COMPLETE'
     ) {
-        core.debug(`Scan ${jsonRes['jobToken']} COMPLETED`);
+        core.debug(`Scan ${data['jobToken']} COMPLETED`);
         return true;
     }
-    else if (jsonRes['scanState'] != 'COMPLETED') {
-        throw new Error(`Scan execution failed: Fortify returned scanState=${jsonRes['scanState']}`);
+    else if (data['scanState'] != 'COMPLETED') {
+        throw new Error(`Scan execution failed: Fortify returned scanState=${data['scanState']}`);
     }
-    else if (jsonRes['sscUploadState'] != 'COMPLETED') {
-        throw new Error(`Scan upload failed: Fortify returned sscUploadState=${jsonRes['scanState']}`);
+    else if (data['sscUploadState'] != 'COMPLETED') {
+        throw new Error(`Scan upload failed: Fortify returned sscUploadState=${data['scanState']}`);
     }
-    else if (jsonRes['sscArtifactState'] != 'PROCESS_COMPLETE') {
-        throw new Error(`Scan artifact processing failed: Fortify returned sscArtifactState=${jsonRes['scanState']}`);
+    else if (data['sscArtifactState'] != 'PROCESS_COMPLETE') {
+        throw new Error(`Scan artifact processing failed: Fortify returned sscArtifactState=${data['scanState']}`);
     }
     else {
-        throw new Error(`Scan failed: Fortify returned ${jsonRes['__action__']}`);
+        throw new Error(`Scan failed: Fortify returned ${data['__action__']}`);
     }
     return false;
 }
