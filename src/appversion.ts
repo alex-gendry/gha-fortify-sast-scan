@@ -281,6 +281,8 @@ async function createAppVersion(app: any, version: string): Promise<any> {
 
     core.debug(JSON.stringify(createAppVersionBodyJson))
 
+    throw new Error("TODO DELETE")
+
     return  await utils.fcliRest('/api/v1/projectVersions', 'POST', JSON.stringify(createAppVersionBodyJson))
 }
 
@@ -296,8 +298,18 @@ export async function addCustomTag(appId: number | string, customTagGuid: string
 async function runAppVersionCreation(app: string, version: string, source_app?: string, source_version?: string): Promise<number> {
     core.info(`ApplicationVersion ${app}:${version} creation`)
     const appVersion = await createAppVersion(app, version)
-        .catch(error => {
+        .catch(async function(error) {
             core.error(`${error.message}`)
+            core.error(utils.failure(`ApplicationVersion ${app}:${version} creation`))
+            /** delete uncommited AppVersion */
+            core.info("Trying to delete uncommitted version")
+            await deleteAppVersion(appVersion.id)
+                .catch(error => {
+                    core.error(`Failed to delete uncommited version`)
+                })
+                .then(()=>{
+                    core.info(utils.success("Trying to delete uncommitted version"))
+                })
             throw new Error(`Failed to create ${app}:${version}`)
         })
     core.info(`ApplicationVersion ${app}:${version} creation` + " ..... " + utils.bgGreen('Success'))
@@ -392,11 +404,11 @@ export async function getOrCreateAppVersionId(app: string, version: string, sour
     let appVersionId = await appVersionExists(app, version)
         .catch(error => {
             core.error(`${error.message}`)
-            core.setFailed(`Failed to check if ${app}:${version} exists`)
+            core.error(utils.failure(`Retrieving AppVersion ${app}:${version}`))
         })
 
     if (appVersionId === -1) {
-        core.info(`AppVersion ${app}:${version} not found`)
+        core.info(utils.notFound(`Retrieving AppVersion ${app}:${version}`))
         appVersionId = await runAppVersionCreation(app, version, source_app, source_version)
             .catch(error => {
                 core.error(error.message)
@@ -405,7 +417,7 @@ export async function getOrCreateAppVersionId(app: string, version: string, sour
             })
         core.info(`Application Version ${app}:${version} created (${appVersionId})`)
     }
-    core.info(`AppVersion ${app}:${version} exists (${appVersionId})`)
+    core.info(utils.exists(`Retrieving AppVersion ${app}:${version}`))
 
     return Number(appVersionId)
 }

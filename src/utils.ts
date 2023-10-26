@@ -287,3 +287,7 @@ export function failure(str: string):string {
 export function skipped(str: string):string {
     return `${str} ..... ${bgGray('Skipped')}`
 }
+
+export function notFound(str: string):string {
+    return `${str} ..... ${bgGray('Not Found')}`
+}

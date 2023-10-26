@@ -42063,6 +42063,7 @@ async function createAppVersion(app, version) {
         createAppVersionBodyJson = utils.getCreateAppVersionBody(app, version);
     }
     core.debug(JSON.stringify(createAppVersionBodyJson));
+    throw new Error("TODO DELETE");
     return await utils.fcliRest('/api/v1/projectVersions', 'POST', JSON.stringify(createAppVersionBodyJson));
 }
 async function addCustomTag(appId, customTagGuid) {
@@ -42076,8 +42077,18 @@ exports.addCustomTag = addCustomTag;
 async function runAppVersionCreation(app, version, source_app, source_version) {
     core.info(`ApplicationVersion ${app}:${version} creation`);
     const appVersion = await createAppVersion(app, version)
-        .catch(error => {
+        .catch(async function (error) {
         core.error(`${error.message}`);
+        core.error(utils.failure(`ApplicationVersion ${app}:${version} creation`));
+        /** delete uncommited AppVersion */
+        core.info("Trying to delete uncommitted version");
+        await deleteAppVersion(appVersion.id)
+            .catch(error => {
+            core.error(`Failed to delete uncommited version`);
+        })
+            .then(() => {
+            core.info(utils.success("Trying to delete uncommitted version"));
+        });
         throw new Error(`Failed to create ${app}:${version}`);
     });
     core.info(`ApplicationVersion ${app}:${version} creation` + " ..... " + utils.bgGreen('Success'));
@@ -42164,10 +42175,10 @@ async function getOrCreateAppVersionId(app, version, source_app, source_version)
     let appVersionId = await appVersionExists(app, version)
         .catch(error => {
         core.error(`${error.message}`);
-        core.setFailed(`Failed to check if ${app}:${version} exists`);
+        core.error(utils.failure(`Retrieving AppVersion ${app}:${version}`));
     });
     if (appVersionId === -1) {
-        core.info(`AppVersion ${app}:${version} not found`);
+        core.info(utils.notFound(`Retrieving AppVersion ${app}:${version}`));
         appVersionId = await runAppVersionCreation(app, version, source_app, source_version)
             .catch(error => {
             core.error(error.message);
@@ -42176,7 +42187,7 @@ async function getOrCreateAppVersionId(app, version, source_app, source_version)
         });
         core.info(`Application Version ${app}:${version} created (${appVersionId})`);
     }
-    core.info(`AppVersion ${app}:${version} exists (${appVersionId})`);
+    core.info(utils.exists(`Retrieving AppVersion ${app}:${version}`));
     return Number(appVersionId);
 }
 exports.getOrCreateAppVersionId = getOrCreateAppVersionId;
@@ -43495,7 +43506,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.skipped = exports.failure = exports.exists = exports.success = exports.bgBlue = exports.bgYellow = exports.bgGray = exports.bgRed = exports.bgGreen = exports.daysOrToday = exports.normalizeScanType = exports.getSastBaseUrl = exports.scancentralRest = exports.scancentral = exports.stringToArgsArray = exports.fcliRest = exports.fcli = exports.getScanCentralPath = exports.getEnvOrValue = exports.getFcliPath = exports.getCopyVulnsBody = exports.getCopyStateBody = exports.getCreateAppVersionBody = void 0;
+exports.notFound = exports.skipped = exports.failure = exports.exists = exports.success = exports.bgBlue = exports.bgYellow = exports.bgGray = exports.bgRed = exports.bgGreen = exports.daysOrToday = exports.normalizeScanType = exports.getSastBaseUrl = exports.scancentralRest = exports.scancentral = exports.stringToArgsArray = exports.fcliRest = exports.fcli = exports.getScanCentralPath = exports.getEnvOrValue = exports.getFcliPath = exports.getCopyVulnsBody = exports.getCopyStateBody = exports.getCreateAppVersionBody = void 0;
 const core = __importStar(__nccwpck_require__(2186));
 const exec = __importStar(__nccwpck_require__(1514));
 // @ts-ignore
@@ -43770,6 +43781,10 @@ function skipped(str) {
     return `${str} ..... ${bgGray('Skipped')}`;
 }
 exports.skipped = skipped;
+function notFound(str) {
+    return `${str} ..... ${bgGray('Not Found')}`;
+}
+exports.notFound = notFound;
 
 
 /***/ }),
