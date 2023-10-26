@@ -40,8 +40,8 @@ const INPUT = {
  */
 export async function run(): Promise<void> {
     try {
-        console.log(github.context)
         console.log(github.context.payload)
+        console.log(github.context.payload.commits)
         process.exit(core.ExitCode.Failure)
         /** Login  */
         await session.loginSsc(INPUT).catch(error => {
