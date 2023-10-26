@@ -42243,7 +42243,7 @@ async function waitForArtifactUpload(artifactId) {
         await utils.fcli(['ssc', 'artifact', 'wait-for', artifactId.toString(),
             // `--while=REQUIRE_AUTH|SCHED_PROCESSING|PROCESSING`,
             `--on-failure-state=terminate`, `--on-unknown-state=terminate`, `--interval=10s`,
-            `--output=expr="Artifact Processing [{id}] ... {status}`], true, false);
+            `--output=expr=Artifact Processing [{id}] ... {status}`], true, false);
         let response = (await utils.fcli(['ssc', 'artifact', 'wait-for', artifactId.toString(),
             // `--while=REQUIRE_AUTH|SCHED_PROCESSING|PROCESSING`,'--no-progress',
             `--on-failure-state=terminate`, `--on-unknown-state=terminate`,
@@ -42869,7 +42869,7 @@ async function waitForSastScan(jobToken) {
     await utils.fcli(['sc-sast', 'scan', 'wait-for', jobToken,
         // `--status-type=scan`, `--while=PENDING|QUEUED|RUNNING`,
         `--interval=1m`, `--on-failure-state=terminate`, `--on-unknown-state=terminate`,
-        `--output=expr="SAST scan execution (jobToken: {jobToken}) ... {scanState}`], true, false);
+        `--output=expr=SAST scan execution (jobToken: {jobToken}) ... {scanState}`], true, false);
     let data = await utils.fcli(['sc-sast', 'scan', 'wait-for', jobToken,
         // `--status-type=scan`, `--while=PENDING|QUEUED|RUNNING`, '--no-progress'
         `--interval=1m`, '--progress=none', '--output=json',
