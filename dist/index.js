@@ -41829,7 +41829,7 @@ async function getAppVersion(app, version) {
         'ssc',
         'appversion',
         'list',
-        `-q`, `application.name=='${app}' && name=='${version}'`,
+        `-q`, `"application.name=='${app}' && name=='${version}'"`,
         '--output=json'
     ]);
 }
