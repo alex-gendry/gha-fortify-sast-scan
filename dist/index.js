@@ -43528,7 +43528,9 @@ async function fcli(args, returnStatus = false, silent = true) {
         };
         core.debug(`fcli ${args.join(' ')}`);
         const status = await exec.exec(getFcliPath(), args, options);
-        core.debug(responseData);
+        core.debug(`status : ${status}`);
+        core.debug(`responseData : ${responseData}`);
+        core.debug(`errorData : ${errorData}`);
         return returnStatus ? status : JSON.parse(responseData);
     }
     catch (err) {

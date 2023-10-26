@@ -130,7 +130,9 @@ export async function fcli(args: string[], returnStatus: boolean = false, silent
 
         core.debug(`fcli ${args.join(' ')}`)
         const status = await exec.exec(getFcliPath(), args, options)
-        core.debug(responseData)
+        core.debug(`status : ${status}`)
+        core.debug(`responseData : ${responseData}`)
+        core.debug(`errorData : ${errorData}`)
 
         return returnStatus ? status : JSON.parse(responseData)
     } catch (err: any) {
