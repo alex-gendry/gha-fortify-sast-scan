@@ -41999,7 +41999,7 @@ async function runAppVersionCreation(app, version, source_app, source_version) {
         core.error(`${error.message}`);
         throw new Error(utils.failure(`ApplicationVersion ${app}:${version} creation`));
     });
-    core.info(`ApplicationVersion ${app}:${version} creation` + " ..... " + utils.bgGreen('Success'));
+    core.info(utils.success(`ApplicationVersion ${app}:${version} creation`));
     core.info(`AppVersion ${appVersion.project.name}:${appVersion.name} created with id: ${appVersion.id}`);
     /** COPY STATE: run the AppVersion Copy  */
     let sourceAppVersionId;
@@ -42013,42 +42013,42 @@ async function runAppVersionCreation(app, version, source_app, source_version) {
         });
         if (sourceAppVersionId) {
             await copyAppVersionState(sourceAppVersionId.toString(), appVersion.id)
-                .then(() => core.info(`Copy state from ${source_app}:${source_version} to ${app}:${version}` + " ..... " + utils.bgGreen('Success')))
+                .then(() => core.info(utils.success(`Copy state from ${source_app}:${source_version} to ${app}:${version}`)))
                 .catch(error => {
                 core.warning(`${error.message}`);
-                core.warning(`Copy state from ${source_app}:${source_version} to ${app}:${version}` + " ..... " + utils.bgRed('Failure'));
+                core.warning(utils.failure(`Copy state from ${source_app}:${source_version} to ${app}:${version}`));
             });
         }
         else {
             core.info(`Source AppVersion ${source_app}:${source_version} not found`);
-            core.warning(`Copy state from ${source_app}:${source_version} to ${app}:${version}` + " ..... " + utils.bgGray('Skipped'));
+            core.warning(utils.skipped(`Copy state from ${source_app}:${source_version} to ${app}:${version}`));
         }
     }
     /** ISSUE TEMPLATE : set AppVersion Issue template */
     core.info("Setting AppVersion's Issue Template");
     await setAppVersionIssueTemplate(appVersion.id, core.getInput('ssc_version_issue_template'))
-        .then(() => core.info(`Setting AppVersion's Issue Template to ${app}:${version}` + " ..... " + utils.bgGreen('Success')))
+        .then(() => core.info(utils.success(`Setting AppVersion's Issue Template to ${app}:${version}`)))
         .catch(error => {
         core.warning(`${error.message}`);
-        core.warning(`Setting AppVersion's Issue Template to ${app}:${version}` + " ..... " + utils.bgRed('Failure'));
+        core.warning(utils.failure(`Setting AppVersion's Issue Template to ${app}:${version}`));
         // process.exit(core.ExitCode.Failure)
     });
     /** ATTRIBUTES : set AppVersion attributes */
     core.info("Setting AppVersion's Attributes");
     await setAppVersionAttributes(appVersion.id, core.getMultilineInput('ssc_version_attributes'))
-        .then(() => core.info(`Setting AppVersion's Attributes to ${app}:${version}` + " ..... " + utils.bgGreen('Success')))
+        .then(() => core.info(utils.success(`Setting AppVersion's Attributes to ${app}:${version}`)))
         .catch(error => {
         core.warning(`${error.message}`);
-        core.warning(`Setting AppVersion's Issue Template to ${app}:${version}` + " ..... " + utils.bgRed('Failure'));
+        core.warning(utils.failure(`Setting AppVersion's Issue Template to ${app}:${version}`));
         // process.exit(core.ExitCode.Failure)
     });
     /** COMMIT: Commit the AppVersion */
     core.info(`Committing AppVersion ${appVersion.project.name}:${appVersion.name} (id: ${appVersion.id})`);
     await commitAppVersion(appVersion.id)
-        .then(() => core.info(`Committing AppVersion ${appVersion.project.name}:${appVersion.name} (id: ${appVersion.id})` + " ..... " + utils.bgGreen('Success')))
+        .then(() => core.info(utils.success(`Committing AppVersion ${appVersion.project.name}:${appVersion.name} (id: ${appVersion.id})`)))
         .catch(async function (error) {
         core.error(error.message);
-        core.error(`Committing AppVersion ${appVersion.project.name}:${appVersion.name} (id: ${appVersion.id})` + " ..... " + utils.bgRed('Failure'));
+        core.error(utils.failure(`Committing AppVersion ${appVersion.project.name}:${appVersion.name} (id: ${appVersion.id})`));
         /** delete uncommited AppVersion */
         core.info("Trying to delete uncommitted version");
         await deleteAppVersion(appVersion.id)
@@ -42061,19 +42061,19 @@ async function runAppVersionCreation(app, version, source_app, source_version) {
     if (core.getInput('copy_vulns') && sourceAppVersionId) {
         core.info(`Copy Vulnerabilities from ${source_app}:${source_version} to ${app}:${version}`);
         if (await copyAppVersionVulns(sourceAppVersionId, appVersion.id)) {
-            core.info(`Copy Vulnerabilities from ${source_app}:${source_version} to ${app}:${version}` + " ..... " + utils.bgGreen('Success'));
+            core.info(utils.success(`Copy Vulnerabilities from ${source_app}:${source_version} to ${app}:${version}`));
             core.info(`Copy Audit from ${source_app}:${source_version} to ${app}:${version}`);
             await copyAppVersionAudit(sourceAppVersionId, appVersion.id)
-                .then(() => core.info(`Copy Audit from ${source_app}:${source_version} to ${app}:${version}` + " ..... " + utils.bgGreen('Success')))
+                .then(() => core.info(utils.success(`Copy Audit from ${source_app}:${source_version} to ${app}:${version}`)))
                 .catch(error => {
                 core.warning(`${error.message}`);
-                core.warning(`Copy Audit from ${source_app}:${source_version} to ${app}:${version}` + " ..... " + utils.bgRed('Failure'));
+                core.warning(utils.failure(`Copy Audit from ${source_app}:${source_version} to ${app}:${version}`));
                 // process.exit(core.ExitCode.Failure)
             });
         }
         else {
-            core.warning(`Copy Vulnerabilities from ${source_app}:${source_version} to ${app}:${version}` + " ..... " + utils.bgRed('Failure'));
-            core.info(`Copy Vulnerabilities from ${source_app}:${source_version} to ${app}:${version}` + " ..... " + utils.bgRed('Skipped'));
+            core.warning(utils.failure(`Copy Vulnerabilities from ${source_app}:${source_version} to ${app}:${version}`));
+            core.info(utils.skipped(`Copy Vulnerabilities from ${source_app}:${source_version} to ${app}:${version}`));
         }
     }
     return appVersion.id;
