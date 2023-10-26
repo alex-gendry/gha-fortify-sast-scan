@@ -276,21 +276,21 @@ export function bgBlue(str: string): string {
 }
 
 export function success(str: string):string {
-    return `${str} ..... ${bgGreen('Success')}`
+    return `${str} ..... ${bgGreen(' Success ')}`
 }
 
 export function exists(str: string):string {
-    return `${str} ..... ${bgBlue('Exists')}`
+    return `${str} ..... ${bgBlue(' Exists ')}`
 }
 
 export function failure(str: string):string {
-    return `${str} ..... ${bgRed('Failure')}`
+    return `${str} ..... ${bgRed(' Failure ')}`
 }
 
 export function skipped(str: string):string {
-    return `${str} ..... ${bgGray('Skipped')}`
+    return `${str} ..... ${bgGray(' Skipped ')}`
 }
 
 export function notFound(str: string):string {
-    return `${str} ..... ${bgGray('Not Found')}`
+    return `${str} ..... ${bgGray(' Not Found ')}`
 }

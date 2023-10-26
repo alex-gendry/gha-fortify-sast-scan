@@ -43676,23 +43676,23 @@ function bgBlue(str) {
 }
 exports.bgBlue = bgBlue;
 function success(str) {
-    return `${str} ..... ${bgGreen('Success')}`;
+    return `${str} ..... ${bgGreen(' Success ')}`;
 }
 exports.success = success;
 function exists(str) {
-    return `${str} ..... ${bgBlue('Exists')}`;
+    return `${str} ..... ${bgBlue(' Exists ')}`;
 }
 exports.exists = exists;
 function failure(str) {
-    return `${str} ..... ${bgRed('Failure')}`;
+    return `${str} ..... ${bgRed(' Failure ')}`;
 }
 exports.failure = failure;
 function skipped(str) {
-    return `${str} ..... ${bgGray('Skipped')}`;
+    return `${str} ..... ${bgGray(' Skipped ')}`;
 }
 exports.skipped = skipped;
 function notFound(str) {
-    return `${str} ..... ${bgGray('Not Found')}`;
+    return `${str} ..... ${bgGray(' Not Found ')}`;
 }
 exports.notFound = notFound;
 
